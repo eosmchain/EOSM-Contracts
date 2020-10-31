@@ -193,20 +193,4 @@ void mgp_ecoshare::redeem(name account){
 // 	});
 // }
 
-extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action)
-{
-	if ( code == BASE_TRANSFER_FROM.value && action == "transfer"_n.value)
-	{
-		eosio::execute_action( eosio::name(receiver), eosio::name(code), &mgp_ecoshare::transfer );
-	}
-	else if (code == receiver)
-	{
-		switch (action)
-		{
-			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (configure)(redeem)(bindaddress)(delbind))
-		}
-	}
-}
-
-
 } //end of namespace:: mgpecoshare
