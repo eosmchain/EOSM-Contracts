@@ -11,25 +11,26 @@
 
 namespace mgpecoshare {
 
-    using eosio::asset;
-    using eosio::check;
-    using eosio::datastream;
-    using eosio::name;
-    using eosio::symbol;
-    using eosio::symbol_code;
-    using eosio::unsigned_int;
-    
-    using std::string;
+using eosio::asset;
+using eosio::check;
+using eosio::datastream;
+using eosio::name;
+using eosio::symbol;
+using eosio::symbol_code;
+using eosio::unsigned_int;
 
-    #define BASE_SYMBOL symbol("MGP", 4)
-    #define BASE_TRANSFER_FROM "eosio.token"_n
-    #define SYS_ACCOUNT "mgpchain2222"_n
-    #define SHOP_ACCOUNT "mgpchainshop"_n
+using std::string;
 
-CONTRACT ecoshare : public eosio::contract {
+#define BASE_SYMBOL symbol("MGP", 4)
+#define BASE_TRANSFER_FROM "eosio.token"_n
+#define SYS_ACCOUNT "mgpchain2222"_n
+#define SHOP_ACCOUNT "mgpchainshop"_n
+#define AGENT_ACCUNT "mgpagentdiya"_n
+
+class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
   public:
     using contract::contract;
-    ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
+    mgp_ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
 	
 	TABLE configs_ {
         name account;
@@ -37,6 +38,7 @@ CONTRACT ecoshare : public eosio::contract {
         int destruction;
         bool redeemallow;
         asset minpay;
+
 		uint64_t primary_key() const { return account.value; }
     };
     typedef eosio::multi_index<"configs"_n, configs_> configs;	
@@ -59,16 +61,17 @@ CONTRACT ecoshare : public eosio::contract {
 	TABLE ethaddressbook_{
         name account;
         string address;
-        uint64_t primary_key() const{return account.value;}
+
+        uint64_t primary_key() const{ return account.value; }
     };
-    typedef eosio::multi_index<"addressbook"_n,ethaddressbook_> addressbook;
+    typedef eosio::multi_index<"addressbook"_n, ethaddressbook_> addressbook;
 
 	ACTION configure( string burn_memo, int destruction, bool redeemallow, asset minpay );
-	ACTION redeem( name account );
     ACTION bindaddress(name account,string address);
     ACTION delbind(name account,string address);
+    ACTION redeem(name account);
 	
-	void transfer( name from, name to, asset quantity, string memo );
+	void transfer(name from, name to, asset quantity, string memo);
 };
 
 
