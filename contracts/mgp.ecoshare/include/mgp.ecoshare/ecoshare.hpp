@@ -9,18 +9,27 @@
 #include <string>
 
 
-namespace ecoshare {
+namespace mgpecoshare {
 
+    using eosio::asset;
+    using eosio::check;
+    using eosio::datastream;
+    using eosio::name;
+    using eosio::symbol;
+    using eosio::symbol_code;
+    using eosio::unsigned_int;
+    
+    using std::string;
 
-#define BASE_SYMBOL symbol("MGP", 4)
-#define BASE_TRANSFER_FROM "eosio.token"_n
-#define SYS_ACCOUNT "mgpchain2222"_n
-#define SHOP_ACCOUNT "mgpchainshop"_n
+    #define BASE_SYMBOL symbol("MGP", 4)
+    #define BASE_TRANSFER_FROM "eosio.token"_n
+    #define SYS_ACCOUNT "mgpchain2222"_n
+    #define SHOP_ACCOUNT "mgpchainshop"_n
 
-CONTRACT mgp_ecoshare : public contract {
+CONTRACT ecoshare : public eosio::contract {
   public:
     using contract::contract;
-    mgp_ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds):contract(receiver, code, ds) {}
+    ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
 	
 	TABLE configs_ {
         name account;
@@ -37,6 +46,7 @@ CONTRACT mgp_ecoshare : public contract {
         asset remaining;
 		uint64_t primary_key() const { return account.value; }
     };
+    typedef eosio::multi_index<"balances"_n, balances_> balances;
 	
 	// 新增额度表
 	TABLE quota_ {

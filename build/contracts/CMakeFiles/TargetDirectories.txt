@@ -1,0 +1,5 @@
+/Users/richardchen/Dev/github-src/MGP-Contracts/build/contracts/CMakeFiles/rebuild_cache.dir
+/Users/richardchen/Dev/github-src/MGP-Contracts/build/contracts/CMakeFiles/edit_cache.dir
+/Users/richardchen/Dev/github-src/MGP-Contracts/build/contracts/mgp.ecoshare/CMakeFiles/rebuild_cache.dir
+/Users/richardchen/Dev/github-src/MGP-Contracts/build/contracts/mgp.ecoshare/CMakeFiles/edit_cache.dir
+/Users/richardchen/Dev/github-src/MGP-Contracts/build/contracts/mgp.ecoshare/CMakeFiles/mgp.ecoshare.dir

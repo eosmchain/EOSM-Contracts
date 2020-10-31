@@ -1,0 +1,1 @@
+/Users/richardchen/Dev/github-src/eosio.cdt/build/bin/eosio-ld CMakeFiles/mgp.ecoshare.dir/src/ecoshare.cpp.obj -o mgp.ecoshare.wasm 

@@ -1,12 +1,12 @@
-#include <ecoshare/ecoshare.hpp>
+#include <mgp.ecoshare/ecoshare.hpp>
 
 using namespace eosio;
 using namespace std;
 using std::string;
 
-namespace ecoshare {
+namespace mgpecoshare {
 
-void mgp_ecoshare::transfer( name from, name to, asset quantity, string memo ){
+void ecoshare::transfer( name from, name to, asset quantity, string memo ){
 	require_auth( from );
 	
 	require_recipient( from );
@@ -18,7 +18,7 @@ void mgp_ecoshare::transfer( name from, name to, asset quantity, string memo ){
 	if( quantity.symbol != BASE_SYMBOL ){
 		check( false, "Token Symbol not allowed");
 	}
-	check( to == get_self(), "must transfer to mgp_ecoshare contract to stake" );
+	check( to == get_self(), "must transfer to ecoshare contract to stake" );
 		
 	// 判断是否是第二种支付方式
 	if (memo =="mgp+hmio") {
@@ -91,7 +91,7 @@ void mgp_ecoshare::transfer( name from, name to, asset quantity, string memo ){
 	}
 }
 
-void mgp_ecoshare::redeem( name account ){
+void ecoshare::redeem( name account ){
 	require_auth(account);
 	
 	configs config(get_self(), get_self().value);
@@ -131,7 +131,7 @@ void mgp_ecoshare::redeem( name account ){
 	}
 }
 
-void mgp_ecoshare::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
+void ecoshare::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
 	require_auth(get_self());
 	
 	configs config(get_self(), get_self().value);
@@ -154,7 +154,7 @@ void mgp_ecoshare::configure( string burn_memo, int destruction, bool redeemallo
 	}
 }
 
-void mgp_ecoshare::bindaddress(name account,string address){
+void ecoshare::bindaddress(name account,string address){
     
     require_auth(account);
     addressbook list(get_self(),get_self().value);
@@ -172,7 +172,7 @@ void mgp_ecoshare::bindaddress(name account,string address){
 }
 
 
-void mgp_ecoshare::delbind(name account,string address){
+void ecoshare::delbind(name account,string address){
     require_auth(get_self());
 
     addressbook list(get_self(),get_self().value);
@@ -185,19 +185,20 @@ void mgp_ecoshare::delbind(name account,string address){
     }
 }
 
-}
-
 extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action)
 {
 	if ( code == BASE_TRANSFER_FROM.value && action == "transfer"_n.value)
 	{
-		eosio::execute_action( eosio::name(receiver), eosio::name(code), &mgp_ecoshare::transfer );
+		eosio::execute_action( eosio::name(receiver), eosio::name(code), &ecoshare::transfer );
 	}
 	else if (code == receiver)
 	{
 		switch (action)
 		{
-			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (configure)(redeem)(bindaddress)(delbind))
+			EOSIO_DISPATCH_HELPER( ecoshare, (configure)(redeem)(bindaddress)(delbind))
 		}
 	}
+}
+
+
 }

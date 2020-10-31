@@ -1,0 +1,28 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/Users/richardchen/Dev/github-src/MGP-Contracts/contracts/mgp.ecoshare/include/mgp.ecoshare/ecoshare.hpp
+eosio/eosio.hpp
+-
+eosio/asset.hpp
+-
+eosio/transaction.hpp
+-
+eosio/system.hpp
+-
+eosio/crypto.hpp
+-
+eosio/action.hpp
+-
+string
+-
+
+/Users/richardchen/Dev/github-src/MGP-Contracts/contracts/mgp.ecoshare/src/ecoshare.cpp
+mgp.ecoshare/ecoshare.hpp
+-
+
