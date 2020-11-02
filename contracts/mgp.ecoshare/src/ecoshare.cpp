@@ -29,14 +29,14 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo){
 		
 	asset to_bps_voting_quant = _gstate.bps_voting_share * quantity / 10000.0;
 	action(
-		permission_level{ get_self(), "active"_n },
+		permission_level{ from, "active"_n },
 		SYS_BANK, "transfer"_n,
 		std::make_tuple( get_self(), _gstate.bps_voting_account, to_bps_voting_quant, "bps reward")
 	).send();
 
 	asset to_stake_mining_quant = quantity - to_bps_voting_quant;
 	action(
-		permission_level{ get_self(), "active"_n },
+		permission_level{ from, "active"_n },
 		SYS_BANK, "transfer"_n,
 		std::make_tuple( get_self(), _gstate.stake_mining_account, to_stake_mining_quant, "staking reward")
 	).send();
