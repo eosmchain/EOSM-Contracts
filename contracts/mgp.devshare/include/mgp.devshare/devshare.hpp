@@ -11,7 +11,7 @@
 #include "devshare_db.hpp"
 #include "devshare_entities.hpp"
 
-using namespace eosio::db;
+using namespace wasm::db;
 
 namespace mgp {
 
@@ -33,11 +33,12 @@ class [[eosio::contract("mgp.devshare")]] mgp_devshare: public eosio::contract {
   private:
     global_singleton    _global;
     global_t            _gstate;
+    dbc                 _dbc;
 
   public:
     using contract::contract;
     mgp_devshare(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), _global(get_self(), get_self().value)
+        contract(receiver, code, ds), _global(get_self(), get_self().value), _dbc(get_self())
     {
         _gstate = _global.exists() ? _global.get() : global_t{};
     }
@@ -67,15 +68,15 @@ class [[eosio::contract("mgp.devshare")]] mgp_devshare: public eosio::contract {
     uint64_t gen_new_id(const name &counter_key) {
         uint64_t newID = 1;
         counter_t counter(counter_key);
-        if (!mgp::db::get(counter)) {
+        if (!_dbc.get(counter)) {
             counter.counter_val = 1;
-            mgp::db::set(counter);
+            _dbc.set(counter);
 
             return 1;
         }
 
         counter.counter_val++;
-        mgp::db::set(counter);
+        _dbc.set(counter);
 
         return counter.counter_val;
     }
