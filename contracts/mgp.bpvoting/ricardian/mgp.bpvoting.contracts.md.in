@@ -1,0 +1,55 @@
+<h1 class="contract">addadmins</h1>
+
+---
+spec_version: "0.1.0"
+title: add admins
+summary: 'Add DevShare Members'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Add DevShare Members
+
+
+<h1 class="contract">deladmins</h1>
+
+---
+spec_version: "0.1.0"
+title: Del admins
+summary: 'Delete DevShare Members'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Delete DevShare Members
+
+<h1 class="contract">propose</h1>
+
+---
+spec_version: "0.1.0"
+title: propose to withdraw
+summary: 'Propose to withdraw a certain amount'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Propose to withdraw a certain amount for each member
+
+<h1 class="contract">approve</h1>
+
+---
+spec_version: "0.1.0"
+title: approve the proposal
+summary: 'Approve a proposal to withdraw'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Approve a proposal to withdraw
+
+<h1 class="contract">execute</h1>
+
+---
+spec_version: "0.1.0"
+title: execute to withdraw
+summary: 'Execute to withdraw a certain amount'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Execute to withdraw a certain amount for each member
