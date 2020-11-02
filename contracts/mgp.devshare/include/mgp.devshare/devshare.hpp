@@ -63,8 +63,6 @@ class [[eosio::contract("mgp.devshare")]] mgp_devshare: public eosio::contract {
     void execute(const name& issuer, uint64_t proposal_id);
 
   private:
-    void transfer(name from, name to, asset quantity, string memo);
-
     uint64_t gen_new_id(const name &counter_key) {
         uint64_t newID = 1;
         counter_t counter(counter_key);

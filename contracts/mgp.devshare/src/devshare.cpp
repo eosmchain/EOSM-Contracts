@@ -83,9 +83,4 @@ void mgp_devshare::execute(const name& issuer, uint64_t proposal_id){
 
 }
 
-
-void mgp_devshare::transfer(name from, name to, asset quantity, string memo){
-	require_auth( from );
-}
-
 }  //end of namespace:: mgpdevshare
