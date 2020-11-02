@@ -4,19 +4,20 @@ using namespace eosio;
 using namespace std;
 using std::string;
 
-namespace mgpecoshare {
+//account: mgp.ecoshare
+namespace mgp {
 
 void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo){
 	require_auth( from );
 	
-	require_recipient( from );
-	require_recipient( to );
+	// require_recipient( from );
+	// require_recipient( to );
 	
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.amount > 0, "Amount quantity must be more then 0" );
-	check( quantity.symbol == BASE_SYMBOL, "Token Symbol not allowed" );
-	check( to == get_self(), "must transfer to self contract to stake" );
+	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+	check( to == get_self(), "must transfer to contract self to stake" );
 		
 	configs config(get_self(), get_self().value);
 	auto conf = config.find( get_self().value );
@@ -38,9 +39,9 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo){
 	
 	name orderAccount = from;
 	
-	asset burn;
-	burn.amount = ( quantity.amount / 100 ) * conf->destruction;
-	burn.symbol = quantity.symbol;
+	asset to_burn;
+	to_burn.amount = ( quantity.amount / 100 ) * conf->destruction;
+	to_burn.symbol = quantity.symbol;
 
 	asset remaining;
 	remaining.symbol = quantity.symbol;
@@ -49,12 +50,12 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo){
 		orderAccount = name(memo);
 		remaining.amount = quantity.amount;
 
-	} else if (from == SHOP_ACCOUNT || from == AGENT_ACCUNT) {
+	} else if (from == SHOP_ACCOUNT || from == AGENT_ACCOUNT) {
 		orderAccount = name(memo);
-		remaining.amount = quantity.amount - burn.amount;
+		remaining.amount = quantity.amount - to_burn.amount;
 
 	} else {
-		remaining.amount = quantity.amount - burn.amount;
+		remaining.amount = quantity.amount - to_burn.amount;
 	}
 
 	balances balance(get_self(), get_self().value);
@@ -69,11 +70,17 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo){
 			t.remaining.amount += remaining.amount;
 		});
 	}
-	if (from != SYS_ACCOUNT){
+	if (from != SYS_ACCOUNT) {
+		// action(
+		// 	permission_level{ get_self(), "active"_n },
+		// 	SYS_BANK, "transfer"_n,
+		// 	std::make_tuple( get_self(), "eosio.token"_n, burn, conf->burn_memo)
+		// ).send();
+
 		action(
-		permission_level{ get_self(), "active"_n },
-		BASE_TRANSFER_FROM, "transfer"_n,
-		std::make_tuple( get_self(), "eosio.token"_n, burn, conf->burn_memo)
+			permission_level{ get_self(), "active"_n },
+			SYS_BANK, "burn"_n,
+			std::make_tuple( from, to_burn, "staking burn")
 		).send();
 	}
 }
@@ -140,7 +147,7 @@ void mgp_ecoshare::redeem(name account){
 	if( conf == config.end() ){
 		asset minpay;
 		minpay.amount = 2000000;
-		minpay.symbol = BASE_SYMBOL;
+		minpay.symbol = SYS_SYMBOL;
 		config.emplace( get_self(), [&]( auto& t ) {
 			t.account = get_self();
 			t.burn_memo = "destruction";
@@ -159,7 +166,7 @@ void mgp_ecoshare::redeem(name account){
 	if (bal->remaining.amount > 0) {
 		action(
 			permission_level{ get_self(), "active"_n },
-			BASE_TRANSFER_FROM, "transfer"_n,
+			SYS_BANK, "transfer"_n,
 			std::make_tuple( get_self(), account, bal->remaining, std::string(""))
 		).send();
 	}

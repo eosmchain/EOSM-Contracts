@@ -9,7 +9,7 @@
 #include <string>
 
 
-namespace mgpecoshare {
+namespace mgp {
 
 using eosio::asset;
 using eosio::check;
@@ -21,16 +21,15 @@ using eosio::unsigned_int;
 
 using std::string;
 
-#define BASE_SYMBOL symbol("MGP", 4)
-#define BASE_TRANSFER_FROM "eosio.token"_n
-#define SYS_ACCOUNT "mgpchain2222"_n
-#define SHOP_ACCOUNT "mgpchainshop"_n
-#define AGENT_ACCUNT "mgpagentdiya"_n
+static constexpr eosio::name SYS_ACCOUNT{"mgpchain2222"_n};
+static constexpr eosio::name SHOP_ACCOUNT{"mgpchainshop"_n};
+static constexpr eosio::name AGENT_ACCOUNT{"mgpagentdiya"_n};
+static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 
 class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
   public:
     using contract::contract;
-    mgp_ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds): contract(receiver, code, ds) {}
 	
 	TABLE configs_ {
         name account;
@@ -75,21 +74,18 @@ class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
 };
 
 
-extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action)
-{
-	if ( code == BASE_TRANSFER_FROM.value && action == "transfer"_n.value)
-	{
-		eosio::execute_action( eosio::name(receiver), eosio::name(code), &mgp_ecoshare::transfer );
-	}
-	else if (code == receiver)
-	{
-		switch (action)
-		{
+extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+	if ( code == SYS_BANK.value && action == "transfer"_n.value) {
+		eosio::execute_action(  eosio::name(receiver), 
+                                eosio::name(code), 
+                                &mgp_ecoshare::transfer );
+
+	} else if (code == receiver) {
+		switch (action) {
 			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (configure)(redeem)(bindaddress)(delbind))
 		}
 	}
 }
 
 
-
-}
+} //end of namespace mgpecoshare
