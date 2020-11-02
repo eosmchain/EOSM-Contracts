@@ -56,6 +56,8 @@ void mgp_devshare::approve(const name& issuer, uint64_t proposal_id){
     check( proposal.expired_at >= current_time_point(), "proposal expired" );
     check( _gstate.devshare_members.find(issuer) != _gstate.devshare_members.end(), 
             issuer.to_string() + " not a devshare member");
+    check( proposal.approval_members.find(issuer) != proposal.approval_members.end(), 
+            issuer.to_string() + " already approved");
 
     proposal.approval_members.insert(issuer);
     _dbc.set(proposal);
