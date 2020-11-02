@@ -8,7 +8,7 @@
 #include <eosio/action.hpp>
 #include <string>
 
-#include "devshare_db.hpp"
+#include "wasm_db.hpp"
 #include "devshare_entities.hpp"
 
 using namespace wasm::db;
