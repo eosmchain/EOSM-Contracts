@@ -45,7 +45,7 @@ struct CONTRACT_TBL proposal_t {
         proposal_id(pid), proposer(p), propose_to_withdraw(a), expired_at(t) {}
 
     uint64_t primary_key()const { return proposal_id; }     
-    uint64_t scope() const { return DEVSHARE_SCOPE; }
+    uint64_t scope() const { return BPVOTING_SCOPE; }
 
     typedef eosio::multi_index<"proposals"_n, proposal_t> table_t;
 
@@ -57,7 +57,7 @@ struct CONTRACT_TBL counter_t {
     uint64_t        counter_val;
 
     uint64_t primary_key() const { return counter_key.value; }
-    uint64_t scope() const { return DEVSHARE_SCOPE; }
+    uint64_t scope() const { return BPVOTING_SCOPE; }
 
     counter_t() {}
     counter_t(name counterKey): counter_key(counterKey) {}
