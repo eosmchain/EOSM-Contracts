@@ -32,7 +32,7 @@ static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 class [[eosio::contract("mgp.devshare")]] mgp_devshare: public eosio::contract {
   private:
     global_singleton    _global;
-    global_t            _gstate;
+    global_tbl          _gstate;
     dbc                 _dbc;
 
   public:
@@ -40,7 +40,7 @@ class [[eosio::contract("mgp.devshare")]] mgp_devshare: public eosio::contract {
     mgp_devshare(eosio::name receiver, eosio::name code, datastream<const char*> ds):
         contract(receiver, code, ds), _global(get_self(), get_self().value), _dbc(get_self())
     {
-        _gstate = _global.exists() ? _global.get() : global_t{};
+        _gstate = _global.exists() ? _global.get() : global_tbl{};
     }
 
     ~mgp_devshare() {

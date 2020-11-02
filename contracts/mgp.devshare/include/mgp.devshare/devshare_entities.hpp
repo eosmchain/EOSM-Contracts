@@ -19,17 +19,18 @@ static constexpr uint64_t DEVSHARE_SCOPE = 1000;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.devshare")]]
 
-struct CONTRACT_TBL global_t {
-    global_t(){}
-
+struct [[eosio::table("global2"), eosio::contract("mgp.devshare")]] global_tbl {
     uint64_t proposal_expire_in_hours = 24; //24 hours
     uint8_t max_member_size = 5;
     uint8_t min_approval_size = 4;
     std::set<name> devshare_members;
 
-    EOSLIB_SERIALIZE( global_t, (proposal_expire_in_hours)(devshare_members) )
+    global_tbl(){}
+
+    EOSLIB_SERIALIZE( global_tbl, (proposal_expire_in_hours)
+                                  (max_member_size)(min_approval_size)(devshare_members) )
 };
-typedef eosio::singleton< "global"_n, global_t > global_singleton;
+typedef eosio::singleton< "global2"_n, global_tbl > global_singleton;
 
 struct CONTRACT_TBL proposal_t {
     uint64_t proposal_id;
@@ -49,7 +50,8 @@ struct CONTRACT_TBL proposal_t {
 
     typedef eosio::multi_index<"proposals"_n, proposal_t> table_t;
 
-    EOSLIB_SERIALIZE( proposal_t, (proposer)(propose_to_withdraw)(expired_at) )
+    EOSLIB_SERIALIZE( proposal_t,   (proposal_id)(proposer)(propose_to_withdraw)
+                                    (expired_at)(approval_members) )
 };
 
 struct CONTRACT_TBL counter_t {
