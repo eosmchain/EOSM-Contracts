@@ -8,7 +8,7 @@
 #include <eosio/action.hpp>
 #include <string>
 
-#include "bpvoting_db.hpp"
+#include "wasm_db.hpp"
 #include "bpvoting_entities.hpp"
 
 using namespace wasm::db;
@@ -48,7 +48,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     }
 
     [[eosio::action]]
-    void addadmins(const std::vector<name>& admins);
+    void vote(const std::vector<name>& admins);
 
     [[eosio::action]]
     void deladmins(const std::vector<name>& admins);

@@ -19,12 +19,12 @@ static constexpr uint64_t BPVOTING_SCOPE = 1000;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
 
-struct [[eosio::table("global"), eosio::contract("mgp.devshare")]] global_t {
+struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     global_t(){}
 
     //FIXME
 
-    uint64_t proposal_expire_in_hours = 24; //24 hours
+    uint64_t max_bps_num = 21;
     uint8_t max_member_size = 5;
     uint8_t min_approval_size = 4;
     std::set<name> devshare_members;
