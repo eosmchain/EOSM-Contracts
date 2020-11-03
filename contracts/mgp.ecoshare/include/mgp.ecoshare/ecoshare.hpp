@@ -47,6 +47,9 @@ class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
               const name& bps_voting_account,
               const name& stake_mining_account);
 
+    [[eosio::action]]
+    void withdraw(const asset& quant);
+
     void transfer(name from, name to, asset quantity, string memo);
 
 };
@@ -61,7 +64,7 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
     // check( false, "none action to invoke!" );
 
 		switch (action) {
-			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (config))
+			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (config)(withdraw))
 		}
 	}
 }

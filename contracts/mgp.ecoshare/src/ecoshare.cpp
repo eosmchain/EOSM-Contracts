@@ -7,7 +7,6 @@ using std::string;
 //account: mgp.ecoshare
 namespace mgp {
 
-[[eosio::action]]
 void mgp_ecoshare::config(const uint64_t bps_voting_share,
               const name& bps_voting_account,
               const name& stake_mining_account) {
@@ -16,6 +15,13 @@ void mgp_ecoshare::config(const uint64_t bps_voting_share,
 	_gstate.bps_voting_share = bps_voting_share;
 	_gstate.bps_voting_account = bps_voting_account;
 	_gstate.stake_mining_account = stake_mining_account;
+}
+
+void mgp_ecoshare::withdraw(const asset& quant) {
+	action(
+		permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
+		std::make_tuple( _self, "masteraychen"_n, quant, std::string(""))
+	).send();
 }
 
 void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo) {
@@ -31,13 +37,15 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo) {
 
 	action(
 		permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
-		std::make_tuple( _self, _gstate.bps_voting_account, to_bps_voting_quant, "bps reward")
+		std::make_tuple( _self, _gstate.bps_voting_account, to_bps_voting_quant, 
+								std::string("bps reward") )
 	).send();
 	
 	asset to_stake_mining_quant = quantity - to_bps_voting_quant;
 	action(
 		permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
-		std::make_tuple( _self, _gstate.stake_mining_account, to_stake_mining_quant, "staking reward")
+		std::make_tuple( _self, _gstate.stake_mining_account, to_stake_mining_quant, 
+								std::string("staking reward") )
 	).send();
 
 }
