@@ -27,7 +27,7 @@ static constexpr eosio::name AGENT_ACCOUNT{"mgpagentdiya"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 
-class [[eosio::contract("addressbookt")]] mgp_staking: public eosio::contract {
+class [[eosio::contract("addressbookt")]] smart_mgp: public eosio::contract {
   public:
     using contract::contract;
 	
@@ -78,11 +78,11 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
 	if ( code == SYS_BANK.value && action == "transfer"_n.value) {
 		eosio::execute_action(  eosio::name(receiver), 
                                 eosio::name(code), 
-                                &mgp_staking::transfer );
+                                &smart_mgp::transfer );
 
 	} else if (code == receiver) {
 		switch (action) {
-			EOSIO_DISPATCH_HELPER( mgp_staking, (configure)(redeem)(bindaddress)(delbind))
+			EOSIO_DISPATCH_HELPER( smart_mgp, (configure)(redeem)(bindaddress)(delbind))
 		}
 	}
 }

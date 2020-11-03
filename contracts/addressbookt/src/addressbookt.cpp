@@ -7,18 +7,20 @@ using std::string;
 //account: mgp.ecoshare
 namespace mgp {
 
-void mgp_staking::transfer(name from, name to, asset quantity, string memo){
+void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	require_auth( from );
 	
 	// require_recipient( from );
 	// require_recipient( to );
 	
+	//skip notification to eosio.token
+	if (to != _self) return;
+	
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.amount > 0, "Amount quantity must be more then 0" );
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( to == get_self(), "must transfer to contract self to stake" );
-		
+
 	configs config(get_self(), get_self().value);
 	auto conf = config.find( get_self().value );
 	if( conf == config.end() ){
@@ -70,23 +72,23 @@ void mgp_staking::transfer(name from, name to, asset quantity, string memo){
 			t.remaining.amount += remaining.amount;
 		});
 	}
-	if (from != SYS_ACCOUNT) {
-		// action(
-		// 	permission_level{ get_self(), "active"_n },
-		// 	SYS_BANK, "transfer"_n,
-		// 	std::make_tuple( get_self(), "eosio.token"_n, burn, conf->burn_memo)
-		// ).send();
 
+	//FIXME: once eosio.token upgraded, use burn
+	if (from != SYS_ACCOUNT) {
 		action(
-			permission_level{ get_self(), "active"_n },
-			SYS_BANK, "burn"_n,
-			std::make_tuple( from, to_burn, "staking burn")
+			permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
+			std::make_tuple( _self, "eosio.token"_n, to_burn, conf->burn_memo)
 		).send();
+
+		// action(
+		// 	permission_level{ _self, "active"_n },	SYS_BANK, "burn"_n,
+		// 	std::make_tuple( from, to_burn, "staking burn")
+		// ).send();
 	}
 }
 
 [[eosio::action]]
-void mgp_staking::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
+void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
 	require_auth(get_self());
 	
 	configs config(get_self(), get_self().value);
@@ -110,7 +112,7 @@ void mgp_staking::configure( string burn_memo, int destruction, bool redeemallow
 }
 
 [[eosio::action]]
-void mgp_staking::bindaddress(name account, string address) {
+void smart_mgp::bindaddress(name account, string address) {
     require_auth(account);
 
 	check(address != "", "Address is empty");
@@ -127,7 +129,7 @@ void mgp_staking::bindaddress(name account, string address) {
 }
 
 [[eosio::action]]
-void mgp_staking::delbind(name account, string address) {
+void smart_mgp::delbind(name account, string address) {
     require_auth(get_self());
 
     addressbook book(get_self(), get_self().value);
@@ -139,7 +141,7 @@ void mgp_staking::delbind(name account, string address) {
 
 
 [[eosio::action]]
-void mgp_staking::redeem(name account){
+void smart_mgp::redeem(name account){
 	require_auth(account);
 	
 	configs config(get_self(), get_self().value);

@@ -22,7 +22,6 @@ using eosio::unsigned_int;
 
 using std::string;
 
-static constexpr eosio::name P_COUNTER{"proposal"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 
