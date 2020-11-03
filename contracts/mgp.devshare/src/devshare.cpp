@@ -58,6 +58,7 @@ void mgp_devshare::approve(const name& issuer, uint64_t proposal_id){
             issuer.to_string() + " not a devshare member");
     check( proposal.approval_members.find(issuer) != proposal.approval_members.end(), 
             issuer.to_string() + " already approved");
+    check( !proposal.executed, "already executed" );
 
     proposal.approval_members.insert(issuer);
     _dbc.set(proposal);
@@ -70,16 +71,21 @@ void mgp_devshare::execute(const name& issuer, uint64_t proposal_id){
     proposal_t proposal(proposal_id);
     check( _dbc.get(proposal), "proposal [" + to_string(proposal_id) + "] not exist" );
     check( proposal.approval_members.size() >= _gstate.min_approval_size, "not enough approvals" );
+    check( !proposal.executed, "already executed" );
 
     auto member_quant = proposal.propose_to_withdraw / _gstate.devshare_members.size();
 
     for (auto& member : _gstate.devshare_members) {
         action(
-			permission_level{ get_self(), "active"_n },
-			SYS_BANK, "transfer"_n,
-			std::make_tuple( get_self(), member, member_quant, "")
+			permission_level{ get_self(), "active"_n }, SYS_BANK, "transfer"_n,
+			std::make_tuple(get_self(), 
+                            member, 
+                            member_quant, 
+                            std::string("execute proposal: " + to_string(proposal_id)))
 		).send();
     }
+
+    proposal.executed = true;
 
 }
 

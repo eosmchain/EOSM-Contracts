@@ -37,13 +37,13 @@ struct CONTRACT_TBL proposal_t {
     name proposer;
     asset propose_to_withdraw;
     time_point expired_at;   //expire in 24 hours
-    
     std::set<name> approval_members;
+    bool executed;
 
     proposal_t(){}
     proposal_t(uint64_t pid): proposal_id(pid) {}
     proposal_t(uint64_t pid, name p, asset a, time_point t): 
-        proposal_id(pid), proposer(p), propose_to_withdraw(a), expired_at(t) {}
+        proposal_id(pid), proposer(p), propose_to_withdraw(a), expired_at(t), executed(false) {}
 
     uint64_t primary_key()const { return proposal_id; }     
     uint64_t scope() const { return DEVSHARE_SCOPE; }
@@ -51,7 +51,7 @@ struct CONTRACT_TBL proposal_t {
     typedef eosio::multi_index<"proposals"_n, proposal_t> table_t;
 
     EOSLIB_SERIALIZE( proposal_t,   (proposal_id)(proposer)(propose_to_withdraw)
-                                    (expired_at)(approval_members) )
+                                    (expired_at)(approval_members)(executed) )
 };
 
 struct CONTRACT_TBL counter_t {
