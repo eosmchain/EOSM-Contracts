@@ -71,25 +71,18 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
 	require_auth( _self );
 	
-	configs_t conf(_self);
-	_dbc.get(conf);
-
-	conf.burn_memo 		= burn_memo;
-	conf.destruction 	= destruction;
-	conf.redeemallow 	= redeemallow;
-	conf.minpay 	 	= minpay;
-
-	_dbc.set(conf);
+	_configs.burn_memo 		= burn_memo;
+	_configs.destruction 	= destruction;
+	_configs.redeemallow 	= redeemallow;
+	_configs.minpay 	    = minpay;
      
 }
 
 void smart_mgp::encorrection( bool enable_data_correction ) {
 	require_auth( _self );
 
-	configs2_t conf(_self);
-	_dbc.get(conf);
-	conf.data_correction_enabled = enable_data_correction;
-   	_dbc.set(conf);
+	_configs2.data_correction_enabled = enable_data_correction;
+
 }
 
 void smart_mgp::bindaddress(const name& account, const string& address) {
@@ -119,11 +112,6 @@ void smart_mgp::delbind(const name& account, const string& address) {
 void smart_mgp::redeem(const name& issuer){
 	require_auth( issuer );
 	
-	configs_t conf(_self);
-	if (!_dbc.get(conf)) {
-		load_default_conf(conf);
-	}
-
 	check( _configs.redeemallow, "Redeem not allowed!" );
 
 	balances_t bal( issuer );

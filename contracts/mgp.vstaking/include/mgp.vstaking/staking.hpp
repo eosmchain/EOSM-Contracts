@@ -49,17 +49,33 @@ class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
     using contract::contract;
 
 	smart_mgp(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), _dbc(get_self()) {}
+        contract(receiver, code, ds), _dbc(get_self()) 
+    {
+        _configs.account = _self;
+        if (!_dbc.get(_configs))
+            load_default_conf(_configs);
+        
+        _configs2.account = _self;
+        if (!_dbc.get(_configs2))
+            load_default_conf(_configs2);
+    }
 
+    ~smart_mgp()
+    {
+        _dbc.set(_configs);
+        _dbc.set(_configs2);
+    }
 
     void load_default_conf(configs_t& conf) {
-        conf.burn_memo    = "destruction";
-        conf.destruction  = 50;
-        conf.redeemallow  = 0;
-        conf.minpay       = asset(200'0000, SYS_SYMBOL);
+        conf.account        = _self;
+        conf.burn_memo      = "destruction";
+        conf.destruction    = 50;
+        conf.redeemallow    = 0;
+        conf.minpay         = asset(200'0000, SYS_SYMBOL);
     }
 
     void load_default_conf(configs2_t& conf) {
+        conf.account        = _self;
         conf.data_correction_enabled = false;
     }
 
