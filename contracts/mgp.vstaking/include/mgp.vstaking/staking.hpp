@@ -34,48 +34,33 @@ static constexpr eosio::name SYS_ACCOUNT{"mgpchain2222"_n};
 static constexpr eosio::name SHOP_ACCOUNT{"mgpchainshop"_n};
 static constexpr eosio::name AGENT_ACCOUNT{"mgpagentdiya"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+static constexpr eosio::name MASTER_ACCOUNT{"masteraychen"_n};
+
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 static constexpr uint64_t ADDRESSBOOK_SCOPE = 1000;
 
 class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
   private:
     configs_t               _configs;
-
-    global_state_singleton  _configs2;
-    mgp_global_state        _gstate2;
-
+    configs2_t              _configs2;
     dbc                     _dbc;
 
   public:
     using contract::contract;
 
 	smart_mgp(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), 
-        _configs2(get_self(), get_self().value),
-        _dbc(get_self())
-    {
-        configs_t _configs(_self);	
-        if (!_dbc.get(_configs))
-            _configs = get_default_configs();
+        contract(receiver, code, ds), _dbc(get_self()) {}
 
-        _gstate2 = _configs2.exists() ? _configs2.get() : mgp_global_state{};
+
+    void load_default_conf(configs_t& conf) {
+        conf.burn_memo    = "destruction";
+        conf.destruction  = 50;
+        conf.redeemallow  = 0;
+        conf.minpay       = asset(200'0000, SYS_SYMBOL);
     }
 
-    ~smart_mgp() {
-        _dbc.set(_configs);
-
-        _configs2.set( _gstate2, _self );
-    }
-
-    configs_t get_default_configs() {
-        configs_t gs(_self);
-
-        gs.burn_memo    = "destruction";
-        gs.destruction  = 50;
-        gs.redeemallow  = 0;
-        gs.minpay       = asset(200'0000, SYS_SYMBOL);
-
-        return gs;
+    void load_default_conf(configs2_t& conf) {
+        conf.data_correction_enabled = false;
     }
 
 	ACTION configure( string burn_memo, int destruction, bool redeemallow, asset minpay );

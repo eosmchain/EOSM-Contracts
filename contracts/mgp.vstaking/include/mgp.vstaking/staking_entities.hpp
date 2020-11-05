@@ -35,14 +35,18 @@ struct CONTRACT_TBL configs_t {
     EOSLIB_SERIALIZE( configs_t, (account)(burn_memo)(destruction)(redeemallow)(minpay) ) 
 };
 
-struct [[eosio::table("configs2"), eosio::contract("mgp.vstaking")]] mgp_global_state {
+struct CONTRACT_TBL configs2_t {
+    name account;
     bool data_correction_enabled = false;
 
-    mgp_global_state() {}
+    configs2_t() {}
+    configs2_t(const name& a): account(a){}
 
-    EOSLIB_SERIALIZE( mgp_global_state, (data_correction_enabled) )
+    uint64_t primary_key() const { return account.value; }
+    typedef eosio::multi_index<"configs.ext"_n, configs2_t> table_t;	
+
+    EOSLIB_SERIALIZE( configs2_t, (account)(data_correction_enabled) )
 };
-typedef eosio::singleton< "configs2"_n, mgp_global_state > global_state_singleton;
 
 struct CONTRACT_TBL balances_t {
     name account;

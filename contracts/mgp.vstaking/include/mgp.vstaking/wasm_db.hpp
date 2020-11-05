@@ -28,16 +28,16 @@ public:
 
     template<typename ObjectType>
     return_t set(const ObjectType& object) {
-        ObjectType obj;
+        // ObjectType obj;
         typename ObjectType::table_t objects(db_code, db_code.value);
-
-        if (objects.find(object.primary_key()) != objects.end()) {
-            objects.modify( obj, same_payer, [&]( auto& s ) {
+        auto itr = objects.find( object.primary_key() );
+        if ( itr != objects.end()) {
+            objects.modify( itr, db_code, [&]( auto& s ) {
                 s = object;
             });
             return return_t::MODIFIED;
         } else {
-            objects.emplace( same_payer, [&]( auto& s ) {
+            objects.emplace( db_code, [&]( auto& s ) {
                 s = object;
             });
             return return_t::APPENDED;
