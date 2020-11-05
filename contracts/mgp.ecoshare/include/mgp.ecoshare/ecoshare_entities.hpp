@@ -15,7 +15,7 @@ namespace mgp {
 
 using namespace eosio;
 
-static constexpr uint64_t DEVSHARE_SCOPE = 1000;
+static constexpr uint64_t ECOSHARE_SCOPE = 1000;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.devshare")]]
 
