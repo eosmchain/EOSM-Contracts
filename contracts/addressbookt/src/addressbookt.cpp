@@ -9,40 +9,18 @@ namespace mgp {
 
 void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	require_auth( from );
-	
-	// require_recipient( from );
-	// require_recipient( to );
-	
-	//skip notification to eosio.token
 	if (to != _self) return;
 	
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.amount > 0, "Amount quantity must be more then 0" );
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-
-	configs config(get_self(), get_self().value);
-	auto conf = config.find( get_self().value );
-	if( conf == config.end() ){
-		asset minpay;
-		minpay.amount = 2000000;
-		minpay.symbol = quantity.symbol;
-		config.emplace( get_self(), [&]( auto& t ) {
-			t.account = get_self();
-			t.burn_memo = "destruction";
-			t.destruction = 50;
-			t.redeemallow = 0;
-			t.minpay = minpay;
-		});
-		conf = config.find( get_self().value );
-	}
-	check( quantity.amount > conf->minpay.amount, 
-		"Amount should be more than [" + to_string(conf->minpay.amount/10000) + "]" );
+	check( quantity >= _gstate.minpay, "Should stake more than [" + _gstate.minpay.to_string() + "]" );
 	
 	name orderAccount = from;
 	
 	asset to_burn;
-	to_burn.amount = ( quantity.amount / 100 ) * conf->destruction;
+	to_burn.amount = ( quantity.amount / 100 ) * _gstate.destruction;
 	to_burn.symbol = quantity.symbol;
 
 	asset remaining;
@@ -60,24 +38,27 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 		remaining.amount = quantity.amount - to_burn.amount;
 	}
 
-	balances balance(get_self(), get_self().value);
-	auto bal = balance.find( orderAccount.value );
-	if( bal == balance.end() ){
-		balance.emplace( get_self(), [&]( auto& t ) {
-			t.account = orderAccount;
-			t.remaining = remaining;
-		});
+	balances_t bal( orderAccount );
+	if( !_dbc.get(bal) ) {
+		bal.account = orderAccount;
+		bal.remaining = remaining;
+
 	} else {
-		balance.modify( bal, get_self(), [&]( auto& t ) {
-			t.remaining.amount += remaining.amount;
-		});
+		bal.remaining.amount += remaining.amount;
 	}
 
-	//FIXME: once eosio.token upgraded, use burn
+	_dbc.set( bal );
+
+	/** 
+	 * FIXME: once eosio.token upgraded, use burn
+	 * 
+	 *  Note: probably not to use burn due to data issues
+	 * 
+	 */ 
 	if (from != SYS_ACCOUNT) {
 		action(
 			permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
-			std::make_tuple( _self, "eosio.token"_n, to_burn, conf->burn_memo)
+			std::make_tuple( _self, "eosio.token"_n, to_burn, _gstate.burn_memo)
 		).send();
 
 		// action(
@@ -91,91 +72,70 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
 	require_auth(get_self());
 	
-	configs config(get_self(), get_self().value);
-	auto conf = config.find( get_self().value );
-	if ( conf == config.end() ) {
-		config.emplace( get_self(), [&]( auto& t ) {
-			t.account = get_self();
-			t.burn_memo = burn_memo;
-			t.destruction = destruction;
-			t.redeemallow = redeemallow;
-			t.minpay = minpay;
-		});
-	} else {
-		config.modify( conf, get_self(), [&]( auto& t ) {
-			t.burn_memo = burn_memo;
-			t.destruction = destruction;
-			t.redeemallow = redeemallow;
-			t.minpay = minpay;
-		});
-	}
+	check( _gstate.account == _self, "configured account is not " + _self.to_string() );
+
+	_gstate.burn_memo 	= burn_memo;
+	_gstate.destruction = destruction;
+	_gstate.redeemallow = redeemallow;
+	_gstate.minpay 		= minpay;
 }
 
+
 [[eosio::action]]
-void smart_mgp::bindaddress(name account, string address) {
+void smart_mgp::encorrection( bool enable_data_correction ) {
+	require_auth( _self );
+
+	_gstate2.data_correction_enabled = enable_data_correction;
+
+}
+
+
+[[eosio::action]]
+void smart_mgp::bindaddress(const name& account, const string& address) {
     require_auth(account);
 
 	check(address != "", "Address is empty");
+	check(address.size() < 64, "Eth address oversized!");
 
-    addressbook book(get_self(), get_self().value);
-    auto iterator = book.find(account.value);
-	check( iterator == book.end(), "The account is already bound" );
+    ethaddressbook_t book(account);
+	check( !_dbc.get(book), "Account (" + account.to_string() + ") was already bound" );
 
-	// 进行绑定
-	book.emplace(get_self(), [&](auto &row){
-		row.account = account;
-		row.address = address;
-	});
+	book.account = account;
+	book.address = address;
+
+	_dbc.set(book);
 }
 
 [[eosio::action]]
-void smart_mgp::delbind(name account, string address) {
-    require_auth(get_self());
+void smart_mgp::delbind(const name& account, const string& address) {
+    require_auth( account );
 
-    addressbook book(get_self(), get_self().value);
-    auto iterator = book.find(account.value);
-    check (iterator != book.end(), "account not found!");
-
-    book.erase(iterator);
-}
-
-
-[[eosio::action]]
-void smart_mgp::redeem(name account){
-	require_auth(account);
+    ethaddressbook_t book(account);
+    check( _dbc.get(book), "Account (" + account.to_string() + ") not yet bound" );
+    _dbc.del(book);
 	
-	configs config(get_self(), get_self().value);
-	auto conf = config.find( get_self().value );
-	if( conf == config.end() ){
-		asset minpay;
-		minpay.amount = 2000000;
-		minpay.symbol = SYS_SYMBOL;
-		config.emplace( get_self(), [&]( auto& t ) {
-			t.account = get_self();
-			t.burn_memo = "destruction";
-			t.destruction = 50;
-			t.redeemallow = 0;
-			t.minpay = minpay;
-		});
-	}
-	conf = config.find( get_self().value );
-	check( conf->redeemallow, "Redeem not allowed!" );
+}
 
-	balances balance(get_self(), get_self().value);
-	auto bal = balance.find( account.value );
-	check( bal != balance.end(), "Balance not found!");
 
-	if (bal->remaining.amount > 0) {
+[[eosio::action]]
+void smart_mgp::redeem(const name& issuer){
+	require_auth( issuer );
+	
+	check( _gstate.redeemallow, "Redeem not allowed!" );
+
+	balances_t bal(issuer);
+	check( _dbc.get(bal), "Balance not found!");
+
+	if (bal.remaining.amount > 0) {
 		action(
-			permission_level{ get_self(), "active"_n },
-			SYS_BANK, "transfer"_n,
-			std::make_tuple( get_self(), account, bal->remaining, std::string(""))
+			permission_level{ get_self(), "active"_n }, SYS_BANK, "transfer"_n,
+			std::make_tuple( get_self(), issuer, bal.remaining, std::string(""))
 		).send();
 	}
 
-	balance.modify( bal, get_self(), [&]( auto& t ) {
-		t.remaining.amount = 0;
-	});
+	bal.remaining.amount = 0;
+
+	_dbc.set(bal);
 }
 
 /**
@@ -183,23 +143,25 @@ void smart_mgp::redeem(name account){
  * 
  * this function shall be suppressed unless ultimately necessary for data cleaning purposes
  */
-// void ecoshare::reloadnum(const name& from, const name& to, const asset& quant) {
-// 	require_auth(get_self());
+void smart_mgp::reloadnum(const name& from, const name& to, const asset& quant) {
+	require_auth( _self );
 	
-// 	balances balance(get_self(), get_self().value);
-// 	auto out_bal = balance.find( from.value );
-// 	check( out_bal != balance.end(), "out balance not found!" );
+	check( _gstate2.data_correction_enabled, "data correction disabled" );
 
-// 	auto to_bal =  balance.find( to.value );
-// 	check( to_bal != balance.end(), "to balance not found!" );
+	balances_t from_bal( from );
+	check( _dbc.get(from_bal), "from balance not found!" );
+
+	balances_t to_bal( to );
+	check( _dbc.get(to_bal), "to balance not found!" );
 			
-// 	balance.modify( out_bal, get_self(), [&]( auto& t ) {
-// 		t.remaining.amount -= quant.amount;
-// 	});
-	
-// 	balance.modify( to_bal, get_self(), [&]( auto& t ) {
-// 		t.remaining.amount += quant.amount;
-// 	});
-// }
+	check( from_bal.remaining >= quant, "from balance: ("+ from_bal.remaining.to_string() 
+										+  "overdrawn" );
+
+	from_bal.remaining.amount -= quant.amount;
+	to_bal.remaining.amount += quant.amount;
+
+	_dbc.set(from_bal);
+	_dbc.set(to_bal);
+}
 
 } //end of namespace:: mgpecoshare

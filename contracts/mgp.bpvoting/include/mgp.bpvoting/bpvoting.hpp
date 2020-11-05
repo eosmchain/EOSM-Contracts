@@ -48,21 +48,12 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     }
 
     [[eosio::action]]
-    void vote(const std::vector<name>& admins);
+    void withdraw(const std::vector<name>& admins);
 
-    [[eosio::action]]
-    void deladmins(const std::vector<name>& admins);
-
-    [[eosio::action]]
-    void propose(const name& issuer, uint64_t proposal_id, const asset& withdraw_quantity);
-
-    [[eosio::action]]
-    void approve(const name& issuer, uint64_t proposal_id);
-
-    [[eosio::action]]
-    void execute(const name& issuer, uint64_t proposal_id);
 
   private:
+    void process_vote(const std::vector<name>& admins);
+
     uint64_t gen_new_id(const name &counter_key) {
         uint64_t newID = 1;
         counter_t counter(counter_key);
@@ -78,8 +69,22 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
         return counter.counter_val;
     }
-
-
 };
+
+
+extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
+	if ( code == SYS_BANK.value && action == "transfer"_n.value) {
+		eosio::execute_action(  eosio::name(receiver), 
+                            eosio::name(code), 
+                            &mgp_ecoshare::transfer );
+
+	} else if (code == receiver) {
+    // check( false, "none action to invoke!" );
+
+		switch (action) {
+			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (config)(withdraw))
+		}
+	}
+}
 
 }

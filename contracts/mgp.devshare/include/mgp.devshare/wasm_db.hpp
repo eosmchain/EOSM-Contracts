@@ -47,7 +47,10 @@ public:
     template<typename ObjectType>
     void del(const ObjectType& object) {
         typename ObjectType::table_t objects(db_code, object.scope());
-        objects.erase(object.primary_key(), same_payer);
+        auto itr = objects.find(object.primary_key());
+        if ( itr != objects.end() ) {
+            objects.erase(itr);
+        }
     }
 
 };

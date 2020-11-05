@@ -10,37 +10,42 @@ namespace mgp {
 
 using namespace eosio;
 
-[[eosio::action]]
-void mgp_bpvoting::addadmins(const std::vector<name>& admins) {
+void mgp_bpvoting::withdraw(const asset& quantity) {
 	require_auth( get_self() );
 
    
 }
 
-[[eosio::action]]
-void mgp_bpvoting::deladmins(const std::vector<name>& admins) {
-	require_auth( get_self() );
+
+//memo: {$cmd}:{$target}, Eg: "list:mgpbpooooo11", "vote:mgpbpooooo11"
+void mgp_bpvoting::transfer(name from, name to, asset quantity, string memo) {
+	require_auth( from );
+	if (to != _self) return;
+
+    std::vector<string> transfer_memo = string_split(memo, ':');
+    check( transfer_memo.size() == 2, "params error" );
+	string cmd = transfer_memo[0];
+	string target = transfer_memo[1];
+
+	if (cmd == "list") {
+		check( quantity.amount >= _gstate.min_bp_list_amount, "min bp list amount not reached" );
+
+		process_list(quantity, target);
+
+	} else if (cmd == "vote") {
+		process_vote(quantity, target);
+
+	} else { //rewards
+		// do nothing but take the rewards
+	}
+}
+
+void process_list(const asset& quantity, const name& target) {
 
 }
 
-[[eosio::action]]
-void mgp_bpvoting::propose(const name& issuer, uint64_t proposal_id, const asset& withdraw_quantity){
-	require_auth( issuer );
-
-}
-
-[[eosio::action]]
-void mgp_bpvoting::approve(const name& issuer, uint64_t proposal_id){
-	require_auth( issuer );
-
-   
-}
-
-[[eosio::action]]
-void mgp_bpvoting::execute(const name& issuer, uint64_t proposal_id){
-	require_auth( issuer );
-
-   
+void process_vote(const asset& quantity, const name& target) {
+	
 }
 
 }  //end of namespace:: mgpbpvoting
