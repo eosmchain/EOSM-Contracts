@@ -209,6 +209,11 @@ void smart_mgp::redeem(const name& account){
 void smart_mgp::reloadnum(const name& from, const name& to, const asset& quant) {
 	require_auth(get_self());
 	
+	configs2_tbl configs2(_self, _self.value);
+	auto conf = configs2.find(_self.value);
+	check( conf != configs2.end(), "configs.ext not set" );
+	check( conf->data_correction_enabled, "data correction disabled" );
+
 	balances balance(get_self(), get_self().value);
 	auto out_bal = balance.find( from.value );
 	auto to_bal =  balance.find( to.value );
