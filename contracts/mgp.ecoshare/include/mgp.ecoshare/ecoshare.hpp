@@ -8,6 +8,7 @@
 #include <eosio/action.hpp>
 #include <string>
 
+#include "wasm_db.hpp"
 #include "ecoshare_entities.hpp"
 
 namespace mgp {
@@ -21,7 +22,9 @@ using eosio::symbol_code;
 using eosio::unsigned_int;
 
 using std::string;
+using namespace wasm::db;
 
+static constexpr eosio::name T_COUNTER{"transfer"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 
@@ -29,11 +32,29 @@ class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
   private:
     global_singleton    _global;
     global_tbl          _gstate;
+    dbc                 _dbc;
+
+  private:
+    uint64_t gen_new_id(const name &counter_key) {
+        uint64_t newID = 1;
+        counter_t counter(counter_key);
+        if (!_dbc.get(counter)) {
+            counter.counter_val = 1;
+            _dbc.set(counter);
+
+            return 1;
+        }
+
+        counter.counter_val++;
+        _dbc.set(counter);
+
+        return counter.counter_val;
+    }
 
   public:
     using contract::contract;
     mgp_ecoshare(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), _global(get_self(), get_self().value)
+        contract(receiver, code, ds), _global(get_self(), get_self().value), _dbc(get_self())
     {
         _gstate = _global.exists() ? _global.get() : global_tbl{};
     }

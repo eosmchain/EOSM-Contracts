@@ -18,77 +18,55 @@ using namespace eosio;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.vstaking")]]
 
-struct CONTRACT_TBL configs_t {
+struct CONTRACT_TBL configs_ {
     name account;
     string burn_memo;
     int destruction;
     bool redeemallow;
     asset minpay;
 
-    configs_t() {}
-    configs_t(const name& a): account(a){}
-
     uint64_t primary_key() const { return account.value; }
 
-    typedef eosio::multi_index<"configs"_n, configs_t> table_t;	
-
-    EOSLIB_SERIALIZE( configs_t, (account)(burn_memo)(destruction)(redeemallow)(minpay) ) 
+    EOSLIB_SERIALIZE( configs_, (account)(burn_memo)(destruction)
+                                (redeemallow)(minpay) )
 };
+typedef eosio::multi_index<"configs"_n, configs_> configs;	
+
 
 struct CONTRACT_TBL configs2_t {
     name account;
     bool data_correction_enabled = false;
 
-    configs2_t() {}
-    configs2_t(const name& a): account(a){}
-
     uint64_t primary_key() const { return account.value; }
-    typedef eosio::multi_index<"configs.ext"_n, configs2_t> table_t;	
 
     EOSLIB_SERIALIZE( configs2_t, (account)(data_correction_enabled) )
 };
+typedef eosio::multi_index<"configs.ext"_n, configs2_t> configs2_tbl;	
 
-struct CONTRACT_TBL balances_t {
+struct CONTRACT_TBL balances_ {
     name account;
     asset remaining;
-
-    balances_t() {}
-    balances_t(const name& a): account(a) {}
-
     uint64_t primary_key() const { return account.value; }
-    
-    typedef eosio::multi_index<"balances"_n, balances_t> table_t;
-
-    EOSLIB_SERIALIZE( balances_t, (account)(remaining) )
 };
-
+typedef eosio::multi_index<"balances"_n, balances_> balances;
 
 // 新增额度表
-// struct CONTRACT_TBL quota_t {
-//     name account;
-//     asset remaining;
-
-//     quota_t() {}
-//     quota_t(const name& a): account(a) {}
-//     uint64_t primary_key() const { return account.value; }
-
-//     typedef eosio::multi_index<"quota"_n, quota_t> table_t;
-// };
-
-
-struct CONTRACT_TBL ethaddressbook_t {
+struct CONTRACT_TBL quota_ {
+    name account;
+    asset remaining;
+    uint64_t primary_key() const { return account.value; }
+};
+typedef eosio::multi_index<"quota"_n, quota_> quota;
+	
+struct CONTRACT_TBL ethaddressbook_{
     name account;
     string address;
 
-    ethaddressbook_t() {}
-    ethaddressbook_t(const name& acct): account(acct) {}
+    uint64_t primary_key() const{return account.value;}
 
-    uint64_t primary_key() const{ return account.value; }
-
-    typedef eosio::multi_index<"addressbook"_n, ethaddressbook_t> table_t;
-
-    EOSLIB_SERIALIZE( ethaddressbook_t, (account)(address) )
+    EOSLIB_SERIALIZE( ethaddressbook_, (account)(address) )
 };
+typedef eosio::multi_index<"addressbook"_n,ethaddressbook_> addressbook;
 
 
 }

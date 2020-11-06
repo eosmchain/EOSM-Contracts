@@ -48,6 +48,12 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo) {
 								std::string("staking reward") )
 	).send();
 
+	auto tid = gen_new_id(T_COUNTER);
+	transfer_t transfer(tid, _gstate.bps_voting_account, _gstate.stake_mining_account,
+						to_bps_voting_quant, to_stake_mining_quant);
+
+	_dbc.set(transfer);
+	
 }
 
 

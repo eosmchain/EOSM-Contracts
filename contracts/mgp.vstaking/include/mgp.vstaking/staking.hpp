@@ -40,46 +40,10 @@ static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 static constexpr uint64_t ADDRESSBOOK_SCOPE = 1000;
 
 class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
-  private:
-    configs_t               _configs;
-    configs2_t              _configs2;
-    dbc                     _dbc;
-
   public:
     using contract::contract;
 
-	smart_mgp(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), _dbc(get_self()) 
-    {
-        _configs.account = _self;
-        if (!_dbc.get(_configs))
-            load_default_conf(_configs);
-        
-        _configs2.account = _self;
-        if (!_dbc.get(_configs2))
-            load_default_conf(_configs2);
-    }
-
-    ~smart_mgp()
-    {
-        _dbc.set(_configs);
-        _dbc.set(_configs2);
-    }
-
-    void load_default_conf(configs_t& conf) {
-        conf.account        = _self;
-        conf.burn_memo      = "destruction";
-        conf.destruction    = 50;
-        conf.redeemallow    = 0;
-        conf.minpay         = asset(200'0000, SYS_SYMBOL);
-    }
-
-    void load_default_conf(configs2_t& conf) {
-        conf.account        = _self;
-        conf.data_correction_enabled = false;
-    }
-
-	ACTION configure( string burn_memo, int destruction, bool redeemallow, asset minpay );
+  	ACTION configure( string burn_memo, int destruction, bool redeemallow, asset minpay );
     ACTION encorrection( bool enable_data_correction );
     ACTION bindaddress(const name& account, const string& address);
     ACTION delbind(const name& account, const string& address);
