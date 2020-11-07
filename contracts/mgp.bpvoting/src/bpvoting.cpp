@@ -56,15 +56,15 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 }
 
 void mgp_bpvoting::process_list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent) {
+	check( is_account(owner), owner.to_string() + " not a valid account" );
 	check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
-
 	candidate_t candidate(owner);
 	check( !_dbc.get(candidate), "candidate already listed" );
 
-	candidate.voter_reward_share_percent = voter_reward_share_percent;
-	candidate.staked_votes = quantity;
-	candidate.staked_votes = asset(0, SYS_SYMBOL);
-	candidate.received_votes = asset(0, SYS_SYMBOL);
+	candidate.voter_reward_share_percent 	= voter_reward_share_percent;
+	candidate.staked_votes 					= quantity;
+	candidate.staked_votes 					= asset(0, SYS_SYMBOL);
+	candidate.received_votes 				= asset(0, SYS_SYMBOL);
 	_dbc.set( candidate );
 
 }
