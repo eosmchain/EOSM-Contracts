@@ -22,6 +22,7 @@ static constexpr uint64_t BPVOTING_SCOPE = 1000;
 
 struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     uint64_t max_bp_size;
+    uint64_t max_candidate_size;
     uint64_t min_bp_list_amount;
     uint64_t min_bp_accept_amount;
     uint64_t refund_time;
@@ -34,6 +35,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 
     global_t() {
         max_bp_size             = 21; 
+        max_candidate_size      = 30;
         min_bp_list_amount      = 10'0000ll;   
         min_bp_accept_amount    = 20'0000ll;   
         refund_time             = 3 * 24 * 3600; //3-days in sec

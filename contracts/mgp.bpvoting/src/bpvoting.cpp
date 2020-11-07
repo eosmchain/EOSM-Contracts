@@ -79,7 +79,7 @@ void mgp_bpvoting::process_vote(const name& owner, const name& target, const ass
 	voter_t voter(owner);
 	_dbc.get( voter );
 	voter.votes[ target ] = vote_info( quantity, current_time_point() );
-	check( voter.votes.size() <= 30, "voted candidates oversized" );
+	check( voter.votes.size() <= _gstate.max_candidate_size, "voted candidates oversized" );
 	voter.total_staked += quantity;
 	_dbc.set( voter );
 
