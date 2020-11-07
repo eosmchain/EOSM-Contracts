@@ -1,5 +1,6 @@
 #include <mgp.bpvoting/bpvoting.hpp>
 #include <eosio.token/eosio.token.hpp>
+#include "mgp.bpvoting/utils.h"
 
 using namespace eosio;
 using namespace std;
@@ -41,8 +42,9 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 
 	} else if (cmd == "vote") {	//"vote:$target" (1coin:1vote!)
 		//vote or revote for a candidate
-		name target = name(param);
-		check( is_account(target), param + " not an account" );
+		check( param.size() < 13, "target name invalid: " + param );
+		name target = name( mgp::string_to_name(param) );
+		check( is_account(target), param + " not a valid account" );
 		process_vote(from, target, quantity);
 
 		_gstate.total_staked += quantity;
@@ -76,7 +78,8 @@ void mgp_bpvoting::process_vote(const name& owner, const name& target, const ass
 
 	voter_t voter(owner);
 	_dbc.get( voter );
-	voter.votes[target] = vote_info(quantity, current_time_point());
+	voter.votes[ target ] = vote_info( quantity, current_time_point() );
+	check( voter.votes.size() <= 30, "voted candidates oversized" );
 	voter.total_staked += quantity;
 	_dbc.set( voter );
 

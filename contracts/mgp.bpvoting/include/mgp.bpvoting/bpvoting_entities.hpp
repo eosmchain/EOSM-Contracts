@@ -103,15 +103,14 @@ struct vote_info {
     EOSLIB_SERIALIZE( vote_info, (quantity)(voted_at) )
 };
 
-// typedef voter_entry
-
 struct CONTRACT_TBL voter_t {
     name                owner;                  //the voter
     asset               total_staked;           //sum of all votes
     asset               last_claimed_rewards;   //unclaimed total rewards
     asset               total_claimed_rewards;  //unclaimed total rewards
     asset               unclaimed_rewards;      //unclaimed total rewards
-    std::map<name, vote_info> votes;            //candidate -> vote_info, max 30 candidates
+    std::map<name, 
+            vote_info>  votes;                  //candidate -> vote_info, max 30 candidates
 
     voter_t() {}
     voter_t(const name& o): owner(o) {}

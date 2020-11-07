@@ -66,7 +66,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
 };
 
-
 extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
 	if ( code == token_account.value && action == "transfer"_n.value) {
 		eosio::execute_action(  eosio::name(receiver), 
