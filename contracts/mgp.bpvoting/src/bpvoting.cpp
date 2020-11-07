@@ -125,10 +125,8 @@ void mgp_bpvoting::unvote(const name& owner, const name& target, const asset& qu
 	check( voter.votes.find(target) != voter.votes.end(), "candidate (" + target.to_string() + ") not found" );
 	check( voter.votes[target].quantity >= quantity, "unvote over voted: " + voter.votes[target].quantity.to_string() );
 
-	auto ct = time_point_sec(current_time_point());
-	auto elapsed = ct - voter.votes[target].voted_at;
-
-	check( elapsed.count() / 1000'000 > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
+	auto elapsed = current_time_point().sec_since_epoch() - voter.votes[target].voted_at.sec_since_epoch();
+	check( elapsed > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
 
 	token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
 	transfer_act.send( _self, owner, quantity, "unvote" );
