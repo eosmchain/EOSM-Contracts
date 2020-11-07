@@ -25,9 +25,12 @@ using eosio::unsigned_int;
 
 using std::string;
 
-static constexpr eosio::name P_COUNTER{"proposal"_n};
-static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+static constexpr eosio::name active_perm{"active"_n};
+static constexpr eosio::name token_account{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
+static constexpr uint32_t seconds_per_year      = 52 * 7 * 24 * 3600;
+static constexpr uint32_t seconds_per_day       = 24 * 3600;
+static constexpr uint32_t seconds_per_hour      = 3600;
 
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
@@ -48,43 +51,52 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     }
 
     [[eosio::action]]
-    void withdraw(const std::vector<name>& admins);
+    void chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity);
+    [[eosio::action]]
+    void unvote(const name& owner, const name& target, const asset& quantity);
+    [[eosio::action]]
+    void updatebps();
 
-
+  public:
+    void transfer(const name& from, const name& to, const asset& quantity, const string& memo);
+  
   private:
-    void process_vote(const std::vector<name>& admins);
+    void process_list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
+    void process_vote(const name& owner, const name& target, const asset& quantity);
 
-    uint64_t gen_new_id(const name &counter_key) {
-        uint64_t newID = 1;
-        counter_t counter(counter_key);
-        if (!_dbc.get(counter)) {
-            counter.counter_val = 1;
-            _dbc.set(counter);
-
-            return 1;
-        }
-
-        counter.counter_val++;
-        _dbc.set(counter);
-
-        return counter.counter_val;
-    }
 };
 
 
 extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-	if ( code == SYS_BANK.value && action == "transfer"_n.value) {
+	if ( code == token_account.value && action == "transfer"_n.value) {
 		eosio::execute_action(  eosio::name(receiver), 
                             eosio::name(code), 
-                            &mgp_ecoshare::transfer );
+                            &mgp_bpvoting::transfer );
 
 	} else if (code == receiver) {
     // check( false, "none action to invoke!" );
 
 		switch (action) {
-			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (config)(withdraw))
+			EOSIO_DISPATCH_HELPER( mgp_bpvoting, (chvote)(unvote)(updatebps) )
 		}
 	}
 }
+
+inline vector <string> string_split(string str, char delimiter) {
+      vector <string> r;
+      string tmpstr;
+      while (!str.empty()) {
+          int ind = str.find_first_of(delimiter);
+          if (ind == -1) {
+              r.push_back(str);
+              str.clear();
+          } else {
+              r.push_back(str.substr(0, ind));
+              str = str.substr(ind + 1, str.size() - ind - 1);
+          }
+      }
+      return r;
+
+  }
 
 }

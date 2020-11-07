@@ -50,7 +50,9 @@ class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
     ACTION redeem(const name& issuer);
     ACTION reloadnum(const name& from, const name& to, const asset& quant);
 	
-	void transfer(name from, name to, asset quantity, string memo);
+    /// NOTE: 
+    /// DO NOT CHANGE PARAM TYPES OTHERWISE CAUSING DATA LOADING ISSUES in EOSWEB
+	  void transfer(name from, name to, asset quantity, string memo);
 };
 
 
