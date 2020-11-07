@@ -66,20 +66,20 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
 };
 
-extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-	if ( code == token_account.value && action == "transfer"_n.value) {
-		eosio::execute_action(  eosio::name(receiver), 
-                            eosio::name(code), 
-                            &mgp_bpvoting::transfer );
 
-	} else if (code == receiver) {
-    // check( false, "none action to invoke!" );
+#define EOSIO_DISPATCH(TYPE, MEMBERS)\
+extern "C" { \
+   void apply( uint64_t receiver, uint64_t code, uint64_t action ) { \
+      if( code == receiver ) { \
+         switch( action ) { \
+            EOSIO_DISPATCH_HELPER( TYPE, MEMBERS ) \
+         } \
+         /* does not allow destructor of thiscontract to run: eosio_exit(0); */ \
+      } \
+   } \
+} \
 
-		switch (action) {
-			EOSIO_DISPATCH_HELPER( mgp_bpvoting, (chvote)(unvote)(updatebps) )
-		}
-	}
-}
+EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(updatebps) )
 
 inline vector <string> string_split(string str, char delimiter) {
       vector <string> r;

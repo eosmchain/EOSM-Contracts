@@ -19,6 +19,7 @@ using namespace eosio;
  * 		"vote:mgpbpooooo11"	: vote for mgpbpooooo11
  * 
  */
+ [[eosio::on_notify("eosio.token::transfer")]]
 void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
 	require_auth( from );
 	if (to != _self) return;
@@ -40,7 +41,7 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 
 		_gstate.total_listed += quantity;
 
-	} else if (cmd == "vote") {	//"vote:$target" (1coin:1vote!)
+	} else if (cmd == "vote") {	//"vote:$target" (1_coin_1_vote!)
 		//vote or revote for a candidate
 		check( param.size() < 13, "target name invalid: " + param );
 		name target = name( mgp::string_to_name(param) );
