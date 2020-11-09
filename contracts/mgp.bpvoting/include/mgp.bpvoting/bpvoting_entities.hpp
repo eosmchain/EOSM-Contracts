@@ -48,7 +48,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 /**
- * 21 elected bps, sorted by total_votes
+ * 21 elected virtual bps, sorted by total_votes
  */
 struct CONTRACT_TBL vbp_t{
     name account;
@@ -127,5 +127,16 @@ struct CONTRACT_TBL voter_t {
                                 (votes) )
 };
 
+/**
+ *  Incoming rewards for whole bpvoting cohort
+ * 
+ */
+truct CONTRACT_TBL reward_t {
+    asset quantity;
+    time_point_sec rewarded_at;
+
+    reward_t() {}
+    uint64_t primary_key() const { return rewarded_at.sec_since_epoch(); }
+};
 
 }

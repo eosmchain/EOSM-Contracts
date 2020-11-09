@@ -43,7 +43,7 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 
 	} else if (cmd == "vote") {	//"vote:$target" (1_coin_1_vote!)
 		//vote or revote for a candidate
-		check( param.size() < 13, "target name invalid: " + param );
+		check( param.size() < 13, "target name leghth invalid: " + param );
 		name target = name( mgp::string_to_name(param) );
 		check( is_account(target), param + " not a valid account" );
 		process_vote(from, target, quantity);
