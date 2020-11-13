@@ -31,6 +31,7 @@ static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 static constexpr uint32_t seconds_per_year      = 52 * 7 * 24 * 3600;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
+static constexpr uint32_t min_votes             = 100;
 
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:

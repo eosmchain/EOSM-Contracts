@@ -30,9 +30,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     asset total_listed;
     asset total_staked;
     asset total_rewarded;
-
-    set<name> bps;          //list of elected bp accounts, max 21, updated every hour
-
+  
     global_t() {
         max_bp_size             = 21; 
         max_candidate_size      = 30;
@@ -48,11 +46,14 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 /**
- * 21 elected virtual bps, sorted by total_votes
+ * election round table, one record per day
  */
-struct CONTRACT_TBL vbp_t{
-    name account;
+struct CONTRACT_TBL election_round_t{
+    uint64_t round_id;          //corresponding to days since the very 1st vote
+    set<name> bps;
     asset total_votes;
+    asset available_rewards;    //rewards from last inflation distribution
+    asset total_rewards;        //total received accumualted rewards
 
     uint64_t primary_key()const { return account.value; }
 
@@ -91,6 +92,20 @@ struct CONTRACT_TBL candidate_t {
                                     (staked_votes)(received_votes) )
 };
 
+struct CONTRACT_TBL vote_t {
+    name            owner;
+    name            candidate;
+    asset           voted;
+    asset           total_rewarded;
+
+    time_point_sec  voted_at;   
+    time_point_sec  updated_at; /* 0 - 24 h: days = 0
+                                 * 1 - 30 days: counted as days, 
+                                 * 30+ days: days % 30
+                                 */
+
+
+};
 
 /**
  *  vote info
