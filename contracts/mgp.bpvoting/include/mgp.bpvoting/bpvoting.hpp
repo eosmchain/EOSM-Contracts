@@ -28,9 +28,12 @@ using std::string;
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
-static constexpr uint32_t seconds_per_year      = 52 * 7 * 24 * 3600;
+static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
+static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
+static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
+static constexpr uint32_t rewards_to_bp_per_day = 1580;
 static constexpr uint32_t min_votes             = 100;
 
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
@@ -54,7 +57,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity);
     [[eosio::action]]
-    void unvote(const name& owner, const name& target, const asset& quantity);
+    void unvote(const name& owner, const uint64_t vote_id, const asset& quantity);
     [[eosio::action]]
     void execute(const name& issuer); //anyone can invoke, but usually by the platform
 
@@ -64,11 +67,13 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     void _list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
     void _vote(const name& owner, const name& target, const asset& quantity);
+    void _elect(map<name, asset>& elected_bps, const candidate_t& candidate);
 
     uint64_t get_round_id(const time_point& ct);
-    void _current_election_round(const time_point& ct, const election_round_t& election_round);
-    void _tally_votes_for_election_round(const election_round_t& er);
-    void _tally_unvotes_for_election_round(const election_round_t& er);
+    void _current_election_round(const time_point& ct, election_round_t& election_round);
+    void _tally_votes_for_election_round(election_round_t& round);
+    void _tally_unvotes_for_election_round(election_round_t& round);
+    void _reward_through_votes(election_round_t& round);
 };
 
 
@@ -84,7 +89,7 @@ extern "C" { \
    } \
 } \
 
-EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(updatebps) )
+EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(execute) )
 
 inline vector <string> string_split(string str, char delimiter) {
       vector <string> r;

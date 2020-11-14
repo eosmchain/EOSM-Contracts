@@ -20,36 +20,52 @@ private:
 public: 
     dbc(const name& code): db_code(code) {}
 
-    template<typename ObjectType>
-    bool get(ObjectType& object) {
-        typename ObjectType::table_t objects(db_code, object.scope());
-        return( objects.find(object.primary_key()) != objects.end() );
+    template<typename RecordType>
+    bool get(RecordType& record) {
+        // typename RecordType::table_t tbl(db_code, record.scope());
+         typename RecordType::table_t tbl(db_code, db_code.value);
+        return( tbl.find(record.primary_key()) != tbl.end() );
     }
 
-    template<typename ObjectType>
-    return_t set(const ObjectType& object) {
-        ObjectType obj;
-        typename ObjectType::table_t objects(db_code, object.scope());
+    template<typename RecordType>
+    bool get_pk() {
+        typename RecordType::table_t tbl(db_code, db_code.value);
+        return( tbl.available_primary_key() );
+    }
 
-        if (objects.find(object.primary_key()) != objects.end()) {
-            objects.modify( obj, same_payer, [&]( auto& s ) {
-                s = object;
+    template<typename RecordType>
+    auto get_index(const name& index_name) {
+        typename RecordType::table_t tbl(db_code, db_code.value);
+        auto idx = tbl.get_index<index_name>();
+        return idx;
+    }
+
+    template<typename RecordType>
+    return_t set(const RecordType& record) {
+        // typename RecordType::table_t tbl(db_code, record.scope());
+        typename RecordType::table_t tbl(db_code, db_code.value);
+
+        auto itr = tbl.find( record.primary_key() );
+        if ( itr != tbl.end()) {
+            tbl.modify( itr, same_payer, [&]( auto& s ) {
+                s = record;
             });
             return return_t::MODIFIED;
         } else {
-            objects.emplace( same_payer, [&]( auto& s ) {
-                s = object;
+            tbl.emplace( same_payer, [&]( auto& s ) {
+                s = record;
             });
             return return_t::APPENDED;
         }
     }
 
-    template<typename ObjectType>
-    void del(const ObjectType& object) {
-        typename ObjectType::table_t objects(db_code, object.scope());
-        auto itr = objects.find(object.primary_key());
-        if ( itr != objects.end() ) {
-            objects.erase(itr);
+    template<typename RecordType>
+    void del(const RecordType& record) {
+        // typename RecordType::table_t tbl(db_code, record.scope());
+        typename RecordType::table_t tbl(db_code, db_code.value);
+        auto itr = tbl.find(record.primary_key());
+        if ( itr != tbl.end() ) {
+            tbl.erase(itr);
         }
     }
 
