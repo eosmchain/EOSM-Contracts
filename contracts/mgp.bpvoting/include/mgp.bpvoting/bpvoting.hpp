@@ -56,15 +56,19 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void unvote(const name& owner, const name& target, const asset& quantity);
     [[eosio::action]]
-    void updatebps();
+    void execute(const name& issuer); //anyone can invoke, but usually by the platform
 
   public:
     void transfer(const name& from, const name& to, const asset& quantity, const string& memo);
   
   private:
-    void process_list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
-    void process_vote(const name& owner, const name& target, const asset& quantity);
+    void _list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
+    void _vote(const name& owner, const name& target, const asset& quantity);
 
+    uint64_t get_round_id(const time_point& ct);
+    void _current_election_round(const time_point& ct, const election_round_t& election_round);
+    void _tally_votes_for_election_round(const election_round_t& er);
+    void _tally_unvotes_for_election_round(const election_round_t& er);
 };
 
 

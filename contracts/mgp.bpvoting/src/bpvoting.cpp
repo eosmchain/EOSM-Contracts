@@ -12,6 +12,168 @@ namespace mgp {
 using namespace std;
 using namespace eosio;
 
+/*************** Begin of Helper functions ***************************************/
+
+uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
+	check( ct > _gstate.started_at, "too early to start a round" );
+
+	auto elased = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
+	auto days = elapsed / seconds_per_day;
+	return days;
+}
+
+void mgp_bpvoting::_current_election_round(const time_point& ct, const election_round_t& election_round) {
+	election_round.round_id = get_round_id(ct);
+	_dbc.get( election_round );
+}
+
+void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent) {
+	check( is_account(owner), owner.to_string() + " not a valid account" );
+	check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
+	candidate_t candidate(owner);
+	check( !_dbc.get(candidate), "candidate already listed" );
+
+	candidate.voter_reward_share_percent 	= voter_reward_share_percent;
+	candidate.staked_votes 					= quantity;
+	candidate.staked_votes 					= asset(0, SYS_SYMBOL);
+	candidate.received_votes 				= asset(0, SYS_SYMBOL);
+	_dbc.set( candidate );
+
+}
+
+void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& quantity) {
+
+	candidate_t candidate(target);
+	check( _dbc.get(candidate), "candidate ("+target.to_string() +") not listed" );
+	candidate.received_votes += quantity;
+	_dbc.set(candidate);
+
+	vote_t vote(owner);
+	_dbc.get( voter );
+	voter.votes[ target ] = vote_info( quantity, current_time_point() );
+	check( voter.votes.size() <= _gstate.max_candidate_size, "voted candidates oversized" );
+	voter.total_staked += quantity;
+	_dbc.set( voter );
+
+	auto ct = current_time_point();
+	election_round_t election_round;
+	_current_election_round(ct, election_round);
+	election_round.vote_count++;
+
+}
+
+void mgp_bpvoting:_elect(const map<name, asset>& elected_bps, const candidate_t& candidate) {
+	elected_bps[candidate.owner] = candidate.received_votes;
+
+	typedef std::pair<name, asset> bp_info_t;
+	auto cmp = [](bp_info_t a, bp_info_t b) { return a.second >= b.second };
+	std::set<bp_info_t, decltype(cmp)> bps(cmp);
+    vector< bp_info_t > bps; 
+	for (auto& it : elected_bps) {
+		bps.push_back(it);
+	}
+	std::sort(bps.begin(), bps.end());
+	elected_bps.clear();
+	auto size = (bps.size() == 22) ? 21 : bps.size();
+	for (int i = 0; i < size i++) {
+		elected_bps.emplace(bps[i].first, bps[i].second);
+	}
+}
+
+void mgp_bpvoting::_tally_votes_for_election_round(const election_round_t& round) {
+	auto idx = _dbc.get_index<vote_t>("lvotallied"_n);
+	int step = 0;
+	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+		if (step++ == max_tally_vote_iterate_steps)
+			break;
+
+		if (itr->last_vote_tallied_at > round.started_at) {
+			round.vote_tally_completed = true;
+			break;
+		}
+		itr->last_vote_tallied_at = curent_time_point();
+
+		candidate_t bp(itr->candidate);
+		check( _dbc.get(bp), "Err: bp not found" );
+		voter_t voter(itr->owner);
+		check( _dbc.get(voter), "Err: voter not found" );
+
+		candidate.received_votes += itr->quantity;
+		_elect(round.elected_bps, candidate);
+
+		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto coinage = itr->quantity * age;
+		round.total_votes_in_coinage += coinage;
+		
+	}
+	
+}
+
+void mgp_bpvoting::_tally_unvotes_for_election_round(const election_round_t& round) {
+	auto idx = _dbc.get_index<vote_t>("luvtallied"_n);
+	int step = 0;
+	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+		if (step++ == max_tally_unvote_iterate_steps)
+			break;
+
+		if (itr->last_unvote_tallied_at > round.started_at) {
+			round.unvote_tally_completed = true;
+			break;
+		}
+		itr->last_unvote_tallied_at = curent_time_point();
+
+		candidate_t candidate(itr->candidate);
+		check( _dbc.get(bp), "Err: bp not found" );
+		check( candidate.received_votes >= itr->quantity, "Err: unvote exceeded" );
+		candidate.received_votes -= itr->quantity;
+		_elect(round.elected_bps, candidate);
+
+		voter_t voter(itr->owner);
+		check( _dbc.get(voter), "Err: voter not found" );
+
+		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto coinage = itr->quantity * age;
+		round.total_votes_in_coinage -= coinage;
+		
+	}
+}
+
+void mgp_bpvoting::_reward_through_votes(const election_round_t& round) {
+	auto idx = _dbc.get_index<vote_t>("lastrewarded"_n);
+	int step = 0;
+	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+		if (step++ == max_iterate_steps_reward)
+			break;
+
+		if (itr->last_rewarded_at > round.started_at) {
+			round.reward_completed = true;
+			break;
+		}
+		
+		itr->last_rewarded_at = current_time_point(); //update it no matter what
+		if (!round.elected_bps.count(itr->candidate)) 
+			continue;
+
+		candidate_t bp(itr->candidate);
+		check( _dbc.get(bp), "Err: bp not found" );
+		voter_t voter(itr->owner);
+		check( _dbc.get(voter), "Err: voter not found" );
+
+		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto coinage = itr->quantity * age;
+		auto ratio = coinage / round.total_votes_in_coinage;
+		auto bp_rewards = rewards_to_bp_per_day * bp.self_reward_share / 10000;
+		auto voter_rewards = rewards_to_bp_per_day - bp_rewards;
+		bp.unclaimed_rewards += bp_rewards;
+		voter.unclaimed_rewards += voter_rewards;
+		
+		_dbc.set(bp);
+		_dbc.set(voter);
+   	}
+
+}
+
+/*************** Begin of eosio.token transfer trigger function ******************/
 /** 
  * memo: {$cmd}:{$params} 
  * 
@@ -37,7 +199,9 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 	if (cmd == "list") { 		//"list:$share"
 		uint64_t voter_reward_share_percent = std::stoul(param);
 		check( voter_reward_share_percent <= 10000, "share oversized: " + param);
-		process_list(from, quantity, voter_reward_share_percent);
+		check( _gstate.started_at != time_point(), "election not started" );
+
+		_list(from, quantity, voter_reward_share_percent);
 
 		_gstate.total_listed += quantity;
 
@@ -47,8 +211,9 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 		name target = name( mgp::string_to_name(param) );
 		check( is_account(target), param + " not a valid account" );
 		check( quantity.amount >= min_votes, "less than min_votes" );
+		check( _gstate.started_at != time_point(), "election not started" );
 
-		process_vote(from, target, quantity);
+		_vote(from, target, quantity);
 
 		_gstate.total_staked += quantity;
 
@@ -58,38 +223,11 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 	}
 }
 
-void mgp_bpvoting::process_list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent) {
-	check( is_account(owner), owner.to_string() + " not a valid account" );
-	check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
-	candidate_t candidate(owner);
-	check( !_dbc.get(candidate), "candidate already listed" );
-
-	candidate.voter_reward_share_percent 	= voter_reward_share_percent;
-	candidate.staked_votes 					= quantity;
-	candidate.staked_votes 					= asset(0, SYS_SYMBOL);
-	candidate.received_votes 				= asset(0, SYS_SYMBOL);
-	_dbc.set( candidate );
-
-}
-
-void mgp_bpvoting::process_vote(const name& owner, const name& target, const asset& quantity) {
-
-	candidate_t candidate(target);
-	check( _dbc.get(candidate), "candidate ("+target.to_string() +") not listed" );
-	candidate.received_votes += quantity;
-	_dbc.set(candidate);
-
-	voter_t voter(owner);
-	_dbc.get( voter );
-	voter.votes[ target ] = vote_info( quantity, current_time_point() );
-	check( voter.votes.size() <= _gstate.max_candidate_size, "voted candidates oversized" );
-	voter.total_staked += quantity;
-	_dbc.set( voter );
-
-}
+/*************** Begin of ACTION functions ***************************************/
 
 /**
  *	ACTION: change/move votes from one candidate to another
+ *			Internally, it is achieved in two sub-steps:  "unvote" + "vote"
  */
 void mgp_bpvoting::chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity) {
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
@@ -150,10 +288,39 @@ void mgp_bpvoting::unvote(const name& owner, const name& target, const asset& qu
 	_gstate.total_staked -= quantity;
 }
 
-//TODO reorder candidates to update bps
-// could be invoked by BP onblock action
-void mgp_bpvoting::updatebps() {
+/**
+ *	ACTION: continuously invoked to execute election until target round is completed
+ */
+void mgp_bpvoting::execute(const name& issuer) {
+	required_auth( issuer );	//anyone can kick off this action
 
+	auto ct = current_time_point();
+	election_round_t curr_round;
+	_current_election_round(ct, curr_round);
+	auto curr_round_id = curr_round.round_id;
+	check( curr_round_id >= 2, "too early to execute election" );
+
+	election_round_t target_round(curr_round_id - 1);
+	check( !target_round.completed, "target round is completed" );
+
+	election_round_t last_round(curr_round_id - 2);
+	if (_dbc.get(last_round) && !last_round.vote_tally_completed) {
+		_tally_votes_for_election_round(last_round);
+		_dbc.set(last_round);
+	}
+
+	if (_dbc.get(target_round) && !target_round.unvote_tally_completed) {
+		_tally_unvotes_for_election_round(target_round);
+		_dbc.set(target_round);
+	}
+
+	if (target_round.unvote_tally_completed && 
+		last_round.vote_tally_completed && 
+		!target_round.reward_completed) {
+		_reward_through_votes(target_round);
+		_dbc.set(target_round);
+	}
 }
+
 
 }  //end of namespace:: mgpbpvoting
