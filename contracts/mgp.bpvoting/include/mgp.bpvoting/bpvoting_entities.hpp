@@ -63,8 +63,8 @@ typedef eosio::singleton< "global"_n, global_t > global_singleton;
  */
 struct CONTRACT_TBL election_round_t{
     uint64_t round_id;          //one day one round
-    time_point_sec started_at;
-    time_point_sec ended_at;
+    time_point started_at;
+    time_point ended_at;
 
     uint64_t vote_count;
     uint64_t unvote_count;
@@ -143,18 +143,20 @@ struct CONTRACT_TBL vote_t {
     vote_t() {}
     vote_t(uint64_t i): id(i) {}
 
-    typedef eosio::multi_index
+    typedef eosio::multi_index<"votes"_n, vote_t> table_t;
+
+    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)(voted_at)(restarted_at)
+                                (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
+};
+
+typedef eosio::multi_index
     < "votes"_n, vote_t,
     indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at> >,
     indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at> >,
     indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at> >,
     indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
     indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at> >
-    > table_t;
-
-    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)(voted_at)(restarted_at)
-                                (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
-};
+    > vote_multi_index_tbl;
 
 struct CONTRACT_TBL unvote_t {
     uint64_t id;

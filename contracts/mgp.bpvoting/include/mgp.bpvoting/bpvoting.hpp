@@ -76,19 +76,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void _reward_through_votes(election_round_t& round);
 };
 
-
-#define EOSIO_DISPATCH(TYPE, MEMBERS)\
-extern "C" { \
-   void apply( uint64_t receiver, uint64_t code, uint64_t action ) { \
-      if( code == receiver ) { \
-         switch( action ) { \
-            EOSIO_DISPATCH_HELPER( TYPE, MEMBERS ) \
-         } \
-         /* does not allow destructor of thiscontract to run: eosio_exit(0); */ \
-      } \
-   } \
-} \
-
 EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(execute) )
 
 inline vector <string> string_split(string str, char delimiter) {

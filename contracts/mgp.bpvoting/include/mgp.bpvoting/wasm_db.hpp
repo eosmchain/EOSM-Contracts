@@ -34,13 +34,6 @@ public:
     }
 
     template<typename RecordType>
-    auto get_index(const name& index_name) {
-        typename RecordType::table_t tbl(db_code, db_code.value);
-        auto idx = tbl.get_index<index_name>();
-        return idx;
-    }
-
-    template<typename RecordType>
     return_t set(const RecordType& record) {
         // typename RecordType::table_t tbl(db_code, record.scope());
         typename RecordType::table_t tbl(db_code, db_code.value);

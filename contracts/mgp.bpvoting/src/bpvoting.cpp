@@ -92,8 +92,8 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 }
 
 void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
-	
-	auto idx = _dbc.get_index<vote_t>("lvotallied"_n);
+	vote_multi_index_tbl vote_mi(_self, _self.value);
+	auto idx = vote_mi.get_index<"lvotallied"_n>();
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_iterate_steps_tally_vote)
@@ -103,7 +103,10 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 			round.vote_tally_completed = true;
 			break;
 		}
-		itr->last_vote_tallied_at = current_time_point();
+		vote_t vote(itr->id);
+		_dbc.get(vote);
+		vote.last_vote_tallied_at = current_time_point();
+		_dbc.set(vote);
 
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
@@ -122,7 +125,9 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
-	auto idx = _dbc.get_index<vote_t>("luvtallied"_n);
+	vote_multi_index_tbl vote_mi(_self, _self.value);
+	auto idx = vote_mi.get_index<"luvtallied"_n>();
+
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_iterate_steps_tally_unvote)
@@ -132,7 +137,10 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 			round.unvote_tally_completed = true;
 			break;
 		}
-		itr->last_unvote_tallied_at = current_time_point();
+		vote_t vote(itr->id);
+		_dbc.get(vote);
+		vote.last_unvote_tallied_at = current_time_point();
+		_dbc.set(vote);
 
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
@@ -151,7 +159,8 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
-	auto idx = _dbc.get_index<vote_t>("lastrewarded"_n);
+	vote_multi_index_tbl vote_mi(_self, _self.value);
+	auto idx = vote_mi.get_index<"lastrewarded"_n>();
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_iterate_steps_reward)
@@ -161,8 +170,11 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 			round.reward_completed = true;
 			break;
 		}
-		
-		itr->last_rewarded_at = current_time_point(); //update it no matter what
+		vote_t vote(itr->id);
+		_dbc.get(vote);
+		vote.last_rewarded_at = current_time_point();
+		_dbc.set(vote);
+
 		if (!round.elected_bps.count(itr->candidate)) 
 			continue;
 
