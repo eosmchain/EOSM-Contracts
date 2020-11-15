@@ -216,37 +216,39 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	check( quantity.amount > 0, "deposit quanity must be positive" );
 
     std::vector<string> memo_arr = string_split(memo, ':');
-    check( memo_arr.size() == 2, "memo error" );
-	string cmd = memo_arr[0];
-	string param = memo_arr[1];
+    if (memo_arr.size() == 2) {
+		string cmd = memo_arr[0];
+		string param = memo_arr[1];
 
-	if (cmd == "list") { 		//"list:$share"
-		uint64_t voter_reward_share_percent = std::stoul(param);
-		check( voter_reward_share_percent <= 10000, "share oversized: " + param);
-		check( _gstate.started_at != time_point(), "election not started" );
+		if (cmd == "list") { 		//"list:$share"
+			uint64_t voter_reward_share_percent = std::stoul(param);
+			check( voter_reward_share_percent <= 10000, "share oversized: " + param);
+			check( _gstate.started_at != time_point(), "election not started" );
 
-		_list(from, quantity, voter_reward_share_percent);
+			_list(from, quantity, voter_reward_share_percent);
+			_gstate.total_listed += quantity;
+			return;
 
-		_gstate.total_listed += quantity;
+		} else if (cmd == "vote") {	//"vote:$target" (1_coin_1_vote!)
+			//vote or revote for a candidate
+			check( param.size() < 13, "target name length invalid: " + param );
+			name target = name( mgp::string_to_name(param) );
+			check( is_account(target), param + " not a valid account" );
+			check( quantity.amount >= min_votes, "less than min_votes" );
+			check( _gstate.started_at != time_point(), "election not started" );
 
-	} else if (cmd == "vote") {	//"vote:$target" (1_coin_1_vote!)
-		//vote or revote for a candidate
-		check( param.size() < 13, "target name length invalid: " + param );
-		name target = name( mgp::string_to_name(param) );
-		check( is_account(target), param + " not a valid account" );
-		check( quantity.amount >= min_votes, "less than min_votes" );
-		check( _gstate.started_at != time_point(), "election not started" );
+			_vote(from, target, quantity);
+			_gstate.total_staked += quantity;
+			return;
 
-		_vote(from, target, quantity);
-
-		_gstate.total_staked += quantity;
-
-	} else { //rewards
-		// accepted as the rewards for voters and bps
-		reward_t reward(quantity, current_time_point());
-		_dbc.set( reward );
-		_gstate.total_rewarded += quantity;
+		} 
 	}
+	
+	//all other cases will be handled as rewards
+	reward_t reward(quantity, current_time_point());
+	_dbc.set( reward );
+	_gstate.total_rewarded += quantity;
+	
 }
 
 /*************** Begin of ACTION functions ***************************************/
