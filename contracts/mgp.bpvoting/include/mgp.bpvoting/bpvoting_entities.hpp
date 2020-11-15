@@ -52,7 +52,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
                                 (max_iterate_steps_tally_unvote)
                                 (max_iterate_steps_reward)
                                 (max_bp_size)(max_candidate_size)
-                                (min_bp_list_amount)(min_bp_accept_amount)(refund_time) )
+                                (min_bp_list_amount)(min_bp_accept_amount)(refund_time)
+                                (total_listed)(total_staked)(total_rewarded) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
