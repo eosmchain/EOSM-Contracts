@@ -261,7 +261,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 /**
  *	ACTION: kick start the election
  */
-void mgp_bpvoting::init() {
+void mgp_bpvoting::startelect() {
 	require_auth( _self );
 
 	_gstate.started_at = current_time_point();
