@@ -210,8 +210,6 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
-	check( false, "invoked!!!" );
-	
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );

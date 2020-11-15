@@ -82,7 +82,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void _reward_through_votes(election_round_t& round);
 };
 
-EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(execute) )
+// EOSIO_DISPATCH( mgp_bpvoting, (chvote)(unvote)(execute) )
 
 inline vector <string> string_split(string str, char delimiter) {
       vector <string> r;
