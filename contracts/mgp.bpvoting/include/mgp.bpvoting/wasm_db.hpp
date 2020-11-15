@@ -22,30 +22,29 @@ public:
 
     template<typename RecordType>
     bool get(RecordType& record) {
-        // typename RecordType::index_t tbl(code, record.scope());
-         typename RecordType::index_t tbl(code, code.value);
+        auto scope = record.scope();
+        if (scope == 0) scope = code.value;
+
+        typename RecordType::index_t tbl(code, scope);
         return( tbl.find(record.primary_key()) != tbl.end() );
     }
 
     template<typename RecordType>
-    bool get_pk() {
-        typename RecordType::index_t tbl(code, code.value);
-        return( tbl.available_primary_key() );
-    }
-
-    template<typename RecordType>
     return_t set(const RecordType& record) {
-        typename RecordType::index_t tbl(code, record.scope());
+        auto scope = record.scope();
+        if (scope == 0) scope = code.value;
 
+        typename RecordType::index_t tbl(code, scope);
         auto itr = tbl.find( record.primary_key() );
         if ( itr != tbl.end()) {
-            tbl.modify( itr, code, [&]( auto& s ) {
-                s = record;
+            tbl.modify( itr, code, [&]( auto& item ) {
+                item = record;
             });
             return return_t::MODIFIED;
+
         } else {
-            tbl.emplace( code, [&]( auto& s ) {
-                s = record;
+            tbl.emplace( code, [&]( auto& item ) {
+                item = record;
             });
             return return_t::APPENDED;
         }
@@ -53,8 +52,10 @@ public:
 
     template<typename RecordType>
     void del(const RecordType& record) {
-        // typename RecordType::index_t tbl(code, record.scope());
-        typename RecordType::index_t tbl(code, code.value);
+        auto scope = record.scope();
+        if (scope == 0) scope = code.value;
+
+        typename RecordType::index_t tbl(code, scope);
         auto itr = tbl.find(record.primary_key());
         if ( itr != tbl.end() ) {
             tbl.erase(itr);

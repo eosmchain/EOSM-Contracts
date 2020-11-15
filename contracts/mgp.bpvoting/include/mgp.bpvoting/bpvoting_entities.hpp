@@ -154,6 +154,10 @@ struct CONTRACT_TBL vote_t {
     uint64_t scope() const { return owner.value; }
 
     vote_t() {}
+    vote_t(name code, uint64_t scope) {
+        index_t tbl(code, scope);
+        id = tbl.available_primary_key();
+    }
     vote_t(uint64_t i): id(i) {}
 
     typedef eosio::multi_index<"votes"_n, vote_t> index_t;
@@ -186,6 +190,10 @@ struct CONTRACT_TBL unvote_t {
     uint64_t scope() const { return owner.value; }
 
     unvote_t() {}
+    unvote_t(name code, uint64_t scope) {
+        index_t tbl(code, scope);
+        id = tbl.available_primary_key();
+    }
     unvote_t(uint64_t i): id(i) {}
 
     typedef eosio::multi_index< "unvotes"_n, unvote_t,
@@ -226,10 +234,15 @@ struct CONTRACT_TBL reward_t {
     time_point created_at;
 
     reward_t() {}
+    reward_t(name code, uint64_t scope) {
+        index_t tbl(code, scope);
+        id = tbl.available_primary_key();
+    }
+
     reward_t(const uint64_t& i): id(i) {}
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"rewards"_n, reward_t> index_t;
 

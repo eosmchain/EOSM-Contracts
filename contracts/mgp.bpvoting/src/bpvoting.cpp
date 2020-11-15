@@ -52,8 +52,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 	time_point ct = current_time_point();
 
-	vote_t vote;
-	vote.id = _dbc.get_pk<vote_t>();
+	vote_t vote(_self, _self.value);
 	vote.candidate = target;
 	vote.quantity = quantity;
 	vote.voted_at = ct;
@@ -245,7 +244,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	}
 	
 	//all other cases will be handled as rewards
-	reward_t reward(_dbc.get_pk<reward_t>() + 1);
+	reward_t reward(_self, _self.value);
 	reward.quantity = quantity;
 	reward.created_at = current_time_point();
 	_dbc.set( reward );
@@ -280,16 +279,14 @@ void mgp_bpvoting::chvote(const name& owner, const name& from_candidate, const n
 
 	auto ct = current_time_point();
 
-	unvote_t unvote;
-	unvote.id = _dbc.get_pk<unvote_t>();
+	unvote_t unvote(_self, _self.value);
 	unvote.owner = owner;
 	unvote.candidate = from_candidate;
 	unvote.quantity = quantity;
 	unvote.unvoted_at = ct;
 	_dbc.set( unvote );
 
-	vote_t vote;
-	vote.id = _dbc.get_pk<unvote_t>();
+	vote_t vote(_self, _self.value);
 	vote.owner = owner;
 	vote.candidate = to_candidate;
 	vote.quantity = quantity;
@@ -316,8 +313,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	auto elapsed = current_time_point().sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	check( elapsed > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
 
-	unvote_t unvote;
-	unvote.id = _dbc.get_pk<unvote_t>();
+	unvote_t unvote(_self, _self.value);
 	unvote.owner = owner;
 	unvote.quantity = quantity;
 	_dbc.set(unvote);
