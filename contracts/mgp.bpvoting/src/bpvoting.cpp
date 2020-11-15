@@ -29,14 +29,16 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 
 void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t& self_reward_share) {
 	check( is_account(owner), owner.to_string() + " not a valid account" );
-	check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
+	
 	candidate_t candidate(owner);
-	check( !_dbc.get(candidate), "candidate already listed" );
-
+	if ( !_dbc.get(candidate) ) {
+		check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
+		candidate.staked_votes 				= asset(0, SYS_SYMBOL);
+		candidate.received_votes 			= asset(0, SYS_SYMBOL);
+	}
 	candidate.self_reward_share 			= self_reward_share;
-	candidate.staked_votes 					= quantity;
-	candidate.staked_votes 					= asset(0, SYS_SYMBOL);
-	candidate.received_votes 				= asset(0, SYS_SYMBOL);
+	candidate.staked_votes 					+= quantity;
+	
 	_dbc.set( candidate );
 
 }
