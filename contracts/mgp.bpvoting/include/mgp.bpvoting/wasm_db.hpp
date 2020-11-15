@@ -22,21 +22,20 @@ public:
 
     template<typename RecordType>
     bool get(RecordType& record) {
-        // typename RecordType::table_t tbl(code, record.scope());
-         typename RecordType::table_t tbl(code, code.value);
+        // typename RecordType::index_t tbl(code, record.scope());
+         typename RecordType::index_t tbl(code, code.value);
         return( tbl.find(record.primary_key()) != tbl.end() );
     }
 
     template<typename RecordType>
     bool get_pk() {
-        typename RecordType::table_t tbl(code, code.value);
+        typename RecordType::index_t tbl(code, code.value);
         return( tbl.available_primary_key() );
     }
 
     template<typename RecordType>
     return_t set(const RecordType& record) {
-        typename RecordType::table_t tbl(code, record.scope());
-        // typename RecordType::table_t tbl(code, code.value);
+        typename RecordType::index_t tbl(code, record.scope());
 
         auto itr = tbl.find( record.primary_key() );
         if ( itr != tbl.end()) {
@@ -54,8 +53,8 @@ public:
 
     template<typename RecordType>
     void del(const RecordType& record) {
-        // typename RecordType::table_t tbl(code, record.scope());
-        typename RecordType::table_t tbl(code, code.value);
+        // typename RecordType::index_t tbl(code, record.scope());
+        typename RecordType::index_t tbl(code, code.value);
         auto itr = tbl.find(record.primary_key());
         if ( itr != tbl.end() ) {
             tbl.erase(itr);

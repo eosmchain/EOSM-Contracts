@@ -100,7 +100,7 @@ struct CONTRACT_TBL election_round_t{
     uint64_t primary_key()const { return round_id; }
     uint64_t scope() const { return BPVOTING_SCOPE; }
 
-    typedef eosio::multi_index<"electrounds"_n, election_round_t> table_t;
+    typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(elected_bps)(total_votes)
                                         (available_rewards)(total_rewards) )
@@ -124,7 +124,7 @@ struct CONTRACT_TBL candidate_t {
     uint64_t primary_key() const { return owner.value; }
     uint64_t scope() const { return owner.value; }
 
-    typedef eosio::multi_index<"candidates"_n, candidate_t> table_t;
+    typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
 
     EOSLIB_SERIALIZE(candidate_t,   (owner)(self_reward_share)
                                     (staked_votes)(received_votes) )
@@ -156,7 +156,7 @@ struct CONTRACT_TBL vote_t {
     vote_t() {}
     vote_t(uint64_t i): id(i) {}
 
-    typedef eosio::multi_index<"votes"_n, vote_t> table_t;
+    typedef eosio::multi_index<"votes"_n, vote_t> index_t;
 
     EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)(voted_at)(restarted_at)
                                 (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
@@ -191,7 +191,7 @@ struct CONTRACT_TBL unvote_t {
     typedef eosio::multi_index< "unvotes"_n, unvote_t,
                             indexed_by<"unvoted"_n, const_mem_fun<unvote_t, double, &unvote_t::by_unvoted_at> >,
                             indexed_by<"lasttallied"_n, const_mem_fun<unvote_t, double, &unvote_t::by_last_tallied_at> >
-                             > table_t;
+                             > index_t;
 
     EOSLIB_SERIALIZE( unvote_t, (owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
 };
@@ -210,7 +210,7 @@ struct CONTRACT_TBL voter_t {
     uint64_t primary_key() const { return owner.value; }
     uint64_t scope() const { return BPVOTING_SCOPE; }
 
-    typedef eosio::multi_index<"voters"_n, voter_t> table_t;
+    typedef eosio::multi_index<"voters"_n, voter_t> index_t;
 
     EOSLIB_SERIALIZE( voter_t,  (owner)(total_staked)
                                 (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
@@ -231,7 +231,7 @@ struct CONTRACT_TBL reward_t {
     uint64_t primary_key() const { return id; }
     uint64_t scope() const { return BPVOTING_SCOPE; }
 
-    typedef eosio::multi_index<"rewards"_n, reward_t> table_t;
+    typedef eosio::multi_index<"rewards"_n, reward_t> index_t;
 
     EOSLIB_SERIALIZE( reward_t,  (id)(quantity)(created_at) )
 };
