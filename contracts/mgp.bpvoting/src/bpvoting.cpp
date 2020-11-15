@@ -259,6 +259,15 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 /*************** Begin of ACTION functions ***************************************/
 
 /**
+ *	ACTION: kick start the election
+ */
+void mgp_bpvoting::init() {
+	require_auth( _self );
+
+	_gstate.started_at = current_time_point();
+}
+
+/**
  *	ACTION: change/move votes from one candidate to another
  *			Internally, it is achieved in two sub-steps:  "unvote" + "vote"
  */
