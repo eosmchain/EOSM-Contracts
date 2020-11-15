@@ -43,6 +43,9 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         min_bp_list_amount              = 10'0000ll;
         min_bp_accept_amount            = 20'0000ll;
         refund_time                     = 3 * 24 * 3600; //3-days in sec
+        total_listed                    = asset(0, SYS_SYMBOL);
+        total_staked                    = asset(0, SYS_SYMBOL);
+        total_rewarded                  = asset(0, SYS_SYMBOL);
     }       
 
     // EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)
