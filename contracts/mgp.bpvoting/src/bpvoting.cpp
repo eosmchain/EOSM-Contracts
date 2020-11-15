@@ -221,8 +221,9 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 		string param = memo_arr[1];
 
 		if (cmd == "list") { 		//"list:$share"
+			uint64_t self_reward_share = 0;
 			try {
-				uint64_t self_reward_share = std::stoul(param);
+				self_reward_share = std::stoul(param);
 			} catch {
 				check( false, "share param not integer" );
 			}
