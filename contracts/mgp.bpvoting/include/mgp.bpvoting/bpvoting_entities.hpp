@@ -18,8 +18,8 @@ using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
-static constexpr uint64_t BPVOTING_SCOPE        = 1000;
 static constexpr symbol SYS_SYMBOL              = symbol(symbol_code("MGP"), 4);
+static constexpr uint64_t BPVOTING_SCOPE        = 1000;
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
