@@ -208,10 +208,17 @@ struct CONTRACT_TBL voter_t {
  */
 struct CONTRACT_TBL reward_t {
     asset quantity;
-    time_point_sec rewarded_at;
+    time_point rewarded_at;
 
     reward_t() {}
+    reward_t(const asset& q, const time_point& t): quantity(q), rewarded_at(t) {}
+
     uint64_t primary_key() const { return rewarded_at.sec_since_epoch(); }
+    uint64_t scope() const { return BPVOTING_SCOPE; }
+
+    typedef eosio::multi_index<"rewards"_n, reward_t> table_t;
+
+    EOSLIB_SERIALIZE( reward_t,  (quantity)(rewarded_at) )
 };
 
 }

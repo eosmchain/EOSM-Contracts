@@ -243,6 +243,8 @@ void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quant
 
 	} else { //rewards
 		// accepted as the rewards for voters and bps
+		reward_t reward(quantity, current_time_point());
+		_dbc.set( reward );
 		_gstate.total_rewarded += quantity;
 	}
 }
