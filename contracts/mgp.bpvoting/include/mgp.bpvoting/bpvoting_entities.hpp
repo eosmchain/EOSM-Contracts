@@ -21,39 +21,36 @@ static constexpr uint64_t BPVOTING_SCOPE        = 1000;
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
 
 struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
-    uint64_t max_iterate_steps_tally_vote    = 30;
-    uint64_t max_iterate_steps_tally_unvote  = 20;
-    uint64_t max_iterate_steps_reward        = 50;
+    uint64_t max_iterate_steps_tally_vote;
+    uint64_t max_iterate_steps_tally_unvote;
+    uint64_t max_iterate_steps_reward;
     uint64_t max_bp_size;
     uint64_t max_candidate_size;
     uint64_t min_bp_list_amount;
     uint64_t min_bp_accept_amount;
     uint64_t refund_time;
-
-    time_point_sec started_at;
-
     asset total_listed;
     asset total_staked;
     asset total_rewarded;
+    time_point started_at;
 
     global_t() {
         max_iterate_steps_tally_vote    = 30;
         max_iterate_steps_tally_unvote  = 20;
         max_iterate_steps_reward        = 50;
+        max_bp_size                     = 21;
+        max_candidate_size              = 30;
+        min_bp_list_amount              = 10'0000ll;
+        min_bp_accept_amount            = 20'0000ll;
+        refund_time                     = 3 * 24 * 3600; //3-days in sec
+    }       
 
-        max_bp_size             = 21;
-        max_candidate_size      = 30;
-        min_bp_list_amount      = 10'0000ll;
-        min_bp_accept_amount    = 20'0000ll;
-        refund_time             = 3 * 24 * 3600; //3-days in sec
-    }
-
-    EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)
-                                (max_iterate_steps_tally_unvote)
-                                (max_iterate_steps_reward)
-                                (max_bp_size)(max_candidate_size)
-                                (min_bp_list_amount)(min_bp_accept_amount)(refund_time)
-                                (total_listed)(total_staked)(total_rewarded) )
+    // EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)
+    //                             (max_iterate_steps_tally_unvote)
+    //                             (max_iterate_steps_reward)
+    //                             (max_bp_size)(max_candidate_size)
+    //                             (min_bp_list_amount)(min_bp_accept_amount)(refund_time)
+    //                             (total_listed)(total_staked)(total_rewarded) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
