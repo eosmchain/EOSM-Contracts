@@ -62,7 +62,8 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void execute(const name& issuer); //anyone can invoke, but usually by the platform
 
   public:
-    void deposit(const name& from, const name& to, const asset& quantity, const string& memo);
+    [[eosio::on_notify("eosio.token::transfer")]]
+    void deposit(name from, name to, asset quantity, string memo);
   
     using chvote_action   = action_wrapper<name("chvote"),    &mgp_bpvoting::chvote>;
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote>;
