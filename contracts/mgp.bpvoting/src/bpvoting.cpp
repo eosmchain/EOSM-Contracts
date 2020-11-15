@@ -213,7 +213,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity.amount > 0, "unvote quanity must be positive" );
+	check( quantity.amount > 0, "deposit quanity must be positive" );
 
     std::vector<string> memo_arr = string_split(memo, ':');
     check( memo_arr.size() == 2, "memo error" );
