@@ -248,10 +248,8 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	reward_t reward(_dbc.get_pk<reward_t>());
 	reward.quantity = quantity;
 	reward.created_at = current_time_point();
-
-	// check( false, "id: " + to_string(reward.id) );
-
 	_dbc.set( reward );
+	
 	_gstate.total_rewarded += quantity;
 
 }

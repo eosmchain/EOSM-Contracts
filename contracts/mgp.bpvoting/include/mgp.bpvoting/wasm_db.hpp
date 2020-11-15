@@ -35,8 +35,8 @@ public:
 
     template<typename RecordType>
     return_t set(const RecordType& record) {
-        // typename RecordType::table_t tbl(db_code, record.scope());
-        typename RecordType::table_t tbl(db_code, db_code.value);
+        typename RecordType::table_t tbl(db_code, record.scope());
+        // typename RecordType::table_t tbl(db_code, db_code.value);
 
         auto itr = tbl.find( record.primary_key() );
         if ( itr != tbl.end()) {

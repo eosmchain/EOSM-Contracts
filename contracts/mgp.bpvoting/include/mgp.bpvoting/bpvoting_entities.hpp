@@ -122,7 +122,7 @@ struct CONTRACT_TBL candidate_t {
     candidate_t(const name& o): owner(o) {}
   
     uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return owner.value; }
 
     typedef eosio::multi_index<"candidates"_n, candidate_t> table_t;
 
@@ -151,6 +151,7 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
+    uint64_t scope() const { return owner.value; }
 
     vote_t() {}
     vote_t(uint64_t i): id(i) {}
@@ -182,6 +183,7 @@ struct CONTRACT_TBL unvote_t {
     double by_last_tallied_at() const   { return last_tallied_at.sec_since_epoch();     }
 
     uint64_t primary_key() const { return id; }
+    uint64_t scope() const { return owner.value; }
 
     unvote_t() {}
     unvote_t(uint64_t i): id(i) {}
