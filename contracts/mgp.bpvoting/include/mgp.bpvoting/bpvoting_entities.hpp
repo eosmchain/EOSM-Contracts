@@ -36,9 +36,9 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     uint64_t max_iterate_steps_reward;
     uint64_t max_bp_size;
     uint64_t max_candidate_size;
-    uint64_t min_bp_list_amount;
-    uint64_t min_bp_accept_amount;
     uint64_t refund_time;
+    asset min_bp_list_quantity;
+    asset min_bp_accept_quantity;
     asset total_listed;
     asset total_staked;
     asset total_rewarded;
@@ -50,9 +50,9 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         max_iterate_steps_reward        = 50;
         max_bp_size                     = 21;
         max_candidate_size              = 30;
-        min_bp_list_amount              = 10'0000ll;
-        min_bp_accept_amount            = 20'0000ll;
         refund_time                     = 3 * 24 * 3600; //3-days in sec
+        min_bp_list_quantity            = asset(10'0000ll, SYS_SYMBOL);
+        min_bp_accept_quantity          = asset(20'0000ll, SYS_SYMBOL);
         total_listed                    = asset(0, SYS_SYMBOL);
         total_staked                    = asset(0, SYS_SYMBOL);
         total_rewarded                  = asset(0, SYS_SYMBOL);
@@ -62,7 +62,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
                                 (max_iterate_steps_tally_unvote)
                                 (max_iterate_steps_reward)
                                 (max_bp_size)(max_candidate_size)
-                                (min_bp_list_amount)(min_bp_accept_amount)(refund_time)
+                                (refund_time)(min_bp_list_quantity)(min_bp_accept_quantity)
                                 (total_listed)(total_staked)(total_rewarded)
                                 (started_at) )
 };

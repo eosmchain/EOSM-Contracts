@@ -32,7 +32,7 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t
 	
 	candidate_t candidate(owner);
 	if ( !_dbc.get(candidate) ) {
-		check( quantity.amount >= _gstate.min_bp_list_amount, "insufficient quantity to list as a candidate" );
+		check( quantity >= _gstate.min_bp_list_quantity, "insufficient quantity to list as a candidate" );
 		candidate.staked_votes 				= asset(0, SYS_SYMBOL);
 		candidate.received_votes 			= asset(0, SYS_SYMBOL);
 	}
