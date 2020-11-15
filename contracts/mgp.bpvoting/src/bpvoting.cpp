@@ -206,7 +206,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
  * 
  */
  [[eosio::on_notify("eosio.token::transfer")]]
-void mgp_bpvoting::transfer(const name& from, const name& to, const asset& quantity, const string& memo) {
+void mgp_bpvoting::deposit(const name& from, const name& to, const asset& quantity, const string& memo) {
 	require_auth( from );
 	if (to != _self) return;
 
