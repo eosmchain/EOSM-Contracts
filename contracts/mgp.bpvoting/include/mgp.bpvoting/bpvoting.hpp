@@ -64,10 +64,10 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   public:
     void deposit(const name& from, const name& to, const asset& quantity, const string& memo);
   
-    using chvote_action   = action_wrapper<name("chvote"), &mgp_bpvoting::chvote>;
-    using unvote_action   = action_wrapper<name("unvote"), &mgp_bpvoting::unvote>;
-    using execute_action  = action_wrapper<name("execute"), &mgp_bpvoting::execute>;
-    using transfer_action = action_wrapper<name("transfer"), &mgp_bpvoting::deposit>;
+    using chvote_action   = action_wrapper<name("chvote"),    &mgp_bpvoting::chvote>;
+    using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote>;
+    using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute>;
+    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit>;
 
   private:
     void _list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
