@@ -245,11 +245,11 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	}
 	
 	//all other cases will be handled as rewards
-	reward_t reward(_dbc.get_pk<reward_t>());
+	reward_t reward(_dbc.get_pk<reward_t>() + 1);
 	reward.quantity = quantity;
 	reward.created_at = current_time_point();
 	_dbc.set( reward );
-	
+
 	_gstate.total_rewarded += quantity;
 
 }
