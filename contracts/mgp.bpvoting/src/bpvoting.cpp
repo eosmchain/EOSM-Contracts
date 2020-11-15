@@ -221,11 +221,15 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 		string param = memo_arr[1];
 
 		if (cmd == "list") { 		//"list:$share"
-			uint64_t voter_reward_share_percent = std::stoul(param);
-			check( voter_reward_share_percent <= 10000, "share oversized: " + param);
+			try {
+				uint64_t self_reward_share = std::stoul(param);
+			} catch {
+				check( false, "share param not integer" );
+			}
+			check( self_reward_share <= 10000, "self share oversized: " + param);
 			check( _gstate.started_at != time_point(), "election not started" );
 
-			_list(from, quantity, voter_reward_share_percent);
+			_list(from, quantity, self_reward_share);
 			_gstate.total_listed += quantity;
 			return;
 
