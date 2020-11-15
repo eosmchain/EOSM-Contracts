@@ -261,9 +261,31 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
+	check (_gstate.started_at == time_point(), "already kickstarted" );
+
 	_gstate.started_at = current_time_point();
 }
 
+void mgp_bpvoting::config(
+		const uint64_t& max_iterate_steps_tally_vote,
+		const uint64_t& max_iterate_steps_tally_unvote,
+		const uint64_t& max_iterate_steps_reward,
+		const uint64_t& max_bp_size,
+		const uint64_t& max_candidate_size,
+		const asset& min_bp_list_quantity, 
+		const asset& min_bp_accept_quantity) {
+
+	require_auth( _self );
+
+	_gstate.max_iterate_steps_tally_vote 	= max_iterate_steps_tally_vote;
+	_gstate.max_iterate_steps_tally_unvote 	= max_iterate_steps_tally_unvote;
+	_gstate.max_iterate_steps_reward 		= max_iterate_steps_reward;
+	_gstate.max_bp_size 					= max_bp_size;
+	_gstate.max_candidate_size 				= max_candidate_size;
+	_gstate.min_bp_list_quantity 			= min_bp_list_quantity;
+	_gstate.min_bp_accept_quantity 			= min_bp_accept_quantity;
+
+}
 /**
  *	ACTION: change/move votes from one candidate to another
  *			Internally, it is achieved in two sub-steps:  "unvote" + "vote"

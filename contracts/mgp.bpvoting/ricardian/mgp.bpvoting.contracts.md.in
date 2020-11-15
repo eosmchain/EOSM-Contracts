@@ -9,6 +9,16 @@ icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 
 Kick start the election by invoking init action
 
+<h1 class="contract">config</h1>
+
+---
+spec_version: "0.1.0"
+title: config global params
+summary: 'Configure Global Params'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Making updates to global params
 
 <h1 class="contract">chvote</h1>
 

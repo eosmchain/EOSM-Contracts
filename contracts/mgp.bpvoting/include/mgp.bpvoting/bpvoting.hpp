@@ -47,6 +47,15 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void init();
     
     [[eosio::action]]
+    void config(const uint64_t& max_iterate_steps_tally_vote,
+                const uint64_t& max_iterate_steps_tally_unvote,
+                const uint64_t& max_iterate_steps_reward,
+                const uint64_t& max_bp_size,
+                const uint64_t& max_candidate_size,
+                const asset& min_bp_list_quantity, 
+                const asset& min_bp_accept_quantity);
+
+    [[eosio::action]]
     void chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity);
     
     [[eosio::action]]
@@ -59,6 +68,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void deposit(name from, name to, asset quantity, string memo);
 
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init   >;
+    using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config >;
     using chvote_action   = action_wrapper<name("chvote"),    &mgp_bpvoting::chvote >;
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute>;
