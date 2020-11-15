@@ -25,17 +25,6 @@ using eosio::unsigned_int;
 
 using std::string;
 
-static constexpr eosio::name active_perm{"active"_n};
-static constexpr eosio::name token_account{"eosio.token"_n};
-static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
-static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
-static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
-static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
-static constexpr uint32_t seconds_per_day       = 24 * 3600;
-static constexpr uint32_t seconds_per_hour      = 3600;
-static constexpr uint32_t rewards_to_bp_per_day = 1580;
-static constexpr uint32_t min_votes             = 100;
-
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     global_singleton    _global;
