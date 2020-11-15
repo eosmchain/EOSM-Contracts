@@ -1,55 +1,33 @@
-<h1 class="contract">addadmins</h1>
+<h1 class="contract">init</h1>
 
 ---
 spec_version: "0.1.0"
-title: add admins
-summary: 'Add DevShare Members'
+title: init to start election
+summary: 'Init Election'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Add DevShare Members
+Kick start the election by invoking init action
 
 
-<h1 class="contract">deladmins</h1>
+<h1 class="contract">chvote</h1>
 
 ---
 spec_version: "0.1.0"
-title: Del admins
-summary: 'Delete DevShare Members'
+title: change vote
+summary: 'Change one's vote'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Delete DevShare Members
+Change one's vote
 
-<h1 class="contract">propose</h1>
+<h1 class="contract">unvote</h1>
 
 ---
 spec_version: "0.1.0"
-title: propose to withdraw
-summary: 'Propose to withdraw a certain amount'
+title: Unvote
+summary: 'Withdraw tokens to unvote'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Propose to withdraw a certain amount for each member
-
-<h1 class="contract">approve</h1>
-
----
-spec_version: "0.1.0"
-title: approve the proposal
-summary: 'Approve a proposal to withdraw'
-icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
----
-
-Approve a proposal to withdraw
-
-<h1 class="contract">execute</h1>
-
----
-spec_version: "0.1.0"
-title: execute to withdraw
-summary: 'Execute to withdraw a certain amount'
-icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
----
-
-Execute to withdraw a certain amount for each member
+Withdraw one's tokens to unvote but have to wait for min. 3 days before unvote.
