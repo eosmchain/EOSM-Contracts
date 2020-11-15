@@ -31,3 +31,17 @@ icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
 Withdraw one's tokens to unvote but have to wait for min. 3 days before unvote.
+
+<h1 class="contract">execute</h1>
+
+---
+spec_version: "0.1.0"
+title: Execute
+summary: 'Execute election'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+
+Execute election repeatedly until completion. Each step invovles 3 sub-processes:
+1) scan for votes in the one before last eletion round;
+2) scan for unvotes in the last election round;
+3) distribute rewards accordingly (by recording instead of transferring)
