@@ -127,7 +127,8 @@ struct CONTRACT_TBL candidate_t {
     typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
 
     EOSLIB_SERIALIZE(candidate_t,   (owner)(self_reward_share)
-                                    (staked_votes)(received_votes) )
+                                    (staked_votes)(received_votes)
+                                    (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
 };
 
 /**
