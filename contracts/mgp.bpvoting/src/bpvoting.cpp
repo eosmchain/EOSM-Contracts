@@ -200,7 +200,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		auto ratio = coinage / round.total_votes_in_coinage;
+		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
 		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), 10000);
 		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
