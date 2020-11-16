@@ -306,6 +306,8 @@ void mgp_bpvoting::config(
  *			Internally, it is achieved in two sub-steps:  "unvote" + "vote"
  */
 void mgp_bpvoting::chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity) {
+	require_auth( owner );
+
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed");
