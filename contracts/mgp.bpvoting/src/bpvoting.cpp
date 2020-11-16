@@ -13,6 +13,7 @@ namespace mgp {
 
 using namespace std;
 using namespace eosio;
+using namespace wasm::safemath;
 
 /*************** Begin of Helper functions ***************************************/
 
