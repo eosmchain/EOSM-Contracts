@@ -118,10 +118,6 @@ struct CONTRACT_TBL candidate_t {
 
     candidate_t() {}
     candidate_t(const name& o): owner(o) {}
-    // candidate_t(name code, uint64_t scope) {
-    //     index_t tbl(code, scope);
-    //     id = tbl.available_primary_key();
-    // }
 
     uint64_t primary_key() const { return owner.value; }
     uint64_t scope() const { return 0; }
