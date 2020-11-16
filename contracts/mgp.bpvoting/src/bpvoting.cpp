@@ -314,6 +314,10 @@ void mgp_bpvoting::chvote(const name& owner, const name& from_candidate, const n
 	check( is_account(from_candidate), from_candidate.to_string() + " account invalid" );
 	check( is_account(to_candidate), to_candidate.to_string() + " account invalid" );
 
+	voter_t voter(owner);
+	check( _dbc.get(voter), "voter: " + owner.to_string() + " not found" );
+	check( voter.total_staked >= quantity, "total staked exceeded in vote change" );
+
 	auto ct = current_time_point();
 
 	unvote_t unvote(_self, _self.value);
@@ -348,7 +352,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
 
 	auto elapsed = current_time_point().sec_since_epoch() - vote.voted_at.sec_since_epoch();
-	check( elapsed > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
+	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
 
 	unvote_t unvote(_self, _self.value);
 	unvote.owner = owner;
