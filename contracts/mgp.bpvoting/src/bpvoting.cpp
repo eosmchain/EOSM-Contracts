@@ -67,7 +67,13 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	_dbc.set( vote );
 
 	voter_t voter(owner);
-	_dbc.get( voter );
+	if (!_dbc.get( voter )) {
+		voter.total_staked = asset(0, SYS_SYMBOL);
+		voter.last_claimed_rewards = asset(0, SYS_SYMBOL);
+		voter.total_claimed_rewards = asset(0, SYS_SYMBOL);
+		voter.unclaimed_rewards = asset(0, SYS_SYMBOL);
+	}
+
 	voter.total_staked += quantity;
 	_dbc.set( voter );
 
@@ -206,7 +212,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 /**
  * memo: {$cmd}:{$params}
  *
- * Eg: 	"list:6000"			: list self as candidate, sharing 60% out to voters
+ * Eg: 	"list:6000"			: list self as candidate, taking 60% of rewards to self
  * 		"vote:mgpbpooooo11"	: vote for mgpbpooooo11
  *
  */
