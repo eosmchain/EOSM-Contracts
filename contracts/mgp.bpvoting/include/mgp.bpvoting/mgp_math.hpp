@@ -3,11 +3,6 @@
 //#include <math.h>
 
 namespace wasm { namespace safemath {
-    static constexpr int128_t HIGH_PRECISION_1 = 100000000000000000;   //17*0 behind 1
-    static constexpr int128_t PRECISION_1      = 10000;                // 4*0 behind 1
-    static constexpr int128_t PRECISION        = 4;
-
-
     template<typename T>
     uint128_t divide_decimal(uint128_t a, uint128_t b, T precision) {
         uint128_t tmp = 10 * a * precision  / b;
@@ -19,7 +14,6 @@ namespace wasm { namespace safemath {
         uint128_t tmp = 10 * a * b / precision;
         return (tmp + 5) / 10;
     }
-
 
 
     #define div(a, b) divide_decimal(a, b, PRECISION_1)
