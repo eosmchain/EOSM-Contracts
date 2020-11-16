@@ -140,15 +140,15 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
-	vote_multi_index_tbl vote_mi(_self, _self.value);
-	auto idx = vote_mi.get_index<"luvtallied"_n>();
+	unvote_multi_index_tbl unvote_mi(_self, _self.value);
+	auto idx = unvote_mi.get_index<"luvtallied"_n>();
 
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_iterate_steps_tally_unvote)
 			break;
 
-		if (itr->last_unvote_tallied_at > round.started_at) {
+		if (itr->last_unvote_tallied_at > round.ended_at) {
 			round.unvote_tally_completed = true;
 			break;
 		}
@@ -314,21 +314,16 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 	check( quantity.amount > 0, "unvote quanity must be positive" );
 
+	auto ct = current_time_point();
+
 	vote_t vote(vote_id);
 	check( _dbc.get(vote), "vote not found" );
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
-
-	auto elapsed = current_time_point().sec_since_epoch() - vote.voted_at.sec_since_epoch();
+	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
-
-	unvote_t unvote(vote_id);
-	check( !_dbc.get(unvote), "already unvoted" );
-
-	unvote.owner = owner;
-	unvote.quantity = quantity;
-	unvote.unvoted_at = current_time_point();
-	_dbc.set(unvote);
-
+	vote.unvoted_at = ct;
+	_dbc.set(vote);
+	
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
 	check( voter.total_staked >= quantity, "Err: unvote exceeds total staked" );

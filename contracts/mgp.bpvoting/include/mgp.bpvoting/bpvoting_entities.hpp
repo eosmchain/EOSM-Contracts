@@ -104,7 +104,10 @@ struct CONTRACT_TBL election_round_t{
 
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
-    EOSLIB_SERIALIZE(election_round_t,  (round_id)(elected_bps)(total_votes)
+    EOSLIB_SERIALIZE(election_round_t,  (round_id)(started_at)(ended_at)
+                                        (vote_count)(unvote_count)(vote_tallied_count)(unvote_tallied_count)
+                                        (vote_tally_completed)(unvote_tally_completed)(reward_completed)(execute_completed)
+                                        (elected_bps)(total_votes)(total_votes_in_coinage)
                                         (available_rewards)(total_rewards) )
 };
 
@@ -139,13 +142,16 @@ struct CONTRACT_TBL vote_t {
     name owner;         //voter
     name candidate;     //target candidiate to vote for
     asset quantity;
+
     time_point voted_at;
+    time_point unvoted_at;
     time_point restarted_at;   //restart age counting every 30-days
     time_point last_vote_tallied_at;
     time_point last_unvote_tallied_at;
     time_point last_rewarded_at;
 
     uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
+    uint64_t by_unvoted_at() const              { return uint64_t(unvoted_at.sec_since_epoch());              }
     uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
     uint64_t by_last_vote_tallied_at() const    { return uint64_t(last_vote_tallied_at.sec_since_epoch());    }
     uint64_t by_last_unvote_tallied_at() const  { return uint64_t(last_unvote_tallied_at.sec_since_epoch());  }
@@ -163,48 +169,19 @@ struct CONTRACT_TBL vote_t {
 
     typedef eosio::multi_index<"votes"_n, vote_t> index_t;
 
-    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)(voted_at)(restarted_at)
+    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
+                                (voted_at)(unvoted_at)(restarted_at)
                                 (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
 };
 
-typedef eosio::multi_index
-    < "votes"_n, vote_t,
+typedef eosio::multi_index < "votes"_n, vote_t,
     indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at> >,
+    indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at> >,
     indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at> >,
     indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at> >,
     indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
     indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at> >
     > vote_multi_index_tbl;
-
-struct CONTRACT_TBL unvote_t {
-    uint64_t id;
-    name owner;         //voter
-    name candidate;     //target candidiate to unvote for
-    asset quantity;
-    time_point unvoted_at;
-    time_point last_tallied_at;
-
-    double by_unvoted_at() const        { return unvoted_at.sec_since_epoch();          }
-    double by_last_tallied_at() const   { return last_tallied_at.sec_since_epoch();     }
-
-    uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return 0; }
-
-    unvote_t() {}
-    unvote_t(name code, uint64_t scope) {
-        index_t tbl(code, scope);
-        id = tbl.available_primary_key();
-    }
-    unvote_t(uint64_t i): id(i) {}
-
-    typedef eosio::multi_index< "unvotes"_n, unvote_t,
-                            indexed_by<"unvoted"_n, const_mem_fun<unvote_t, double, &unvote_t::by_unvoted_at> >,
-                            indexed_by<"lasttallied"_n, const_mem_fun<unvote_t, double, &unvote_t::by_last_tallied_at> >
-                             > index_t;
-
-    EOSLIB_SERIALIZE( unvote_t, (id)(owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
-};
-
 
 struct CONTRACT_TBL voter_t {
     name                owner;                  //the voter
