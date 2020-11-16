@@ -327,8 +327,18 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	unvote.owner = owner;
 	unvote.quantity = quantity;
 	unvote.unvoted_at = current_time_point();
-	
 	_dbc.set(unvote);
+
+	voter_t voter(owner);
+	check( _dbc.get(voter), "voter not found" );
+	check( voter.total_staked >= quantity, "Err: unvote exceeds total staked" );
+	voter.total_staked -= quantity;
+	_dbc.set(voter);
+	
+ 	{
+        token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+        transfer_act.send( _self, owner, quantity, "unvote" );
+    }
 
 }
 
