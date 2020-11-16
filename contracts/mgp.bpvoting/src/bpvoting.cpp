@@ -1,6 +1,8 @@
-#include <mgp.bpvoting/bpvoting.hpp>
 #include <eosio.token/eosio.token.hpp>
-#include "mgp.bpvoting/utils.h"
+#include <mgp.bpvoting/bpvoting.hpp>
+#include <mgp.bpvoting/mgp_math.hpp>
+#include <mgp.bpvoting/utils.h>
+
 
 using namespace eosio;
 using namespace std;
@@ -197,8 +199,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		auto ratio = coinage / round.total_votes_in_coinage;
-		auto bp_rewards = _gstate.bp_rewards_per_day * bp.self_reward_share / 10000;
+		auto ratio = div(coinage, round.total_votes_in_coinage);
+		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), 10000);
 		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);

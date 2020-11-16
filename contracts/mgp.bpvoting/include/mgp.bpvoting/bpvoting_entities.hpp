@@ -54,7 +54,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         refund_time                     = 3 * 24 * 3600; //3-days in sec
         min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
-        min_bp_vote_quantity            = asset(100'0000ll, SYS_SYMBOL);
+        min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
         total_listed                    = asset(0, SYS_SYMBOL);
         total_staked                    = asset(0, SYS_SYMBOL);
         total_rewarded                  = asset(0, SYS_SYMBOL);
