@@ -45,25 +45,25 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     [[eosio::action]]
     void init();
-    
+
     [[eosio::action]]
     void config(const uint64_t& max_iterate_steps_tally_vote,
                 const uint64_t& max_iterate_steps_tally_unvote,
                 const uint64_t& max_iterate_steps_reward,
                 const uint64_t& max_bp_size,
                 const uint64_t& max_candidate_size,
-                const asset& min_bp_list_quantity, 
+                const asset& min_bp_list_quantity,
                 const asset& min_bp_accept_quantity);
 
     [[eosio::action]]
     void chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity);
-    
+
     [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id, const asset& quantity);
-    
+
     [[eosio::action]]
     void execute(const name& issuer); //anyone can invoke, but usually by the platform
-    
+
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
@@ -77,14 +77,14 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     uint64_t get_round_id(const time_point& ct);
 
-    void _list(const name& owner, const asset& quantity, const uint8_t& voter_reward_share_percent);
+    void _list(const name& owner, const asset& quantity, const uint32_t& voter_reward_share_percent);
     void _vote(const name& owner, const name& target, const asset& quantity);
     void _elect(map<name, asset>& elected_bps, const candidate_t& candidate);
     void _current_election_round(const time_point& ct, election_round_t& election_round);
     void _tally_votes_for_election_round(election_round_t& round);
     void _tally_unvotes_for_election_round(election_round_t& round);
     void _reward_through_votes(election_round_t& round);
-    
+
 };
 
 inline vector <string> string_split(string str, char delimiter) {

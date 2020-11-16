@@ -27,7 +27,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 	_dbc.get( election_round );
 }
 
-void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t& self_reward_share) {
+void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_t& self_reward_share) {
 	check( is_account(owner), owner.to_string() + " not a valid account" );
 
 	candidate_t candidate(owner);

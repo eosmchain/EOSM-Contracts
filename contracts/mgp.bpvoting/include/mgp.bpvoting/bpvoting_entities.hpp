@@ -109,14 +109,12 @@ struct CONTRACT_TBL election_round_t{
 // added by BP candidate
 struct CONTRACT_TBL candidate_t {
     name owner;
-
-    /// Upon BP rewarding, distribute partially to voters who vote for self
-    uint32_t self_reward_share; //boost by 10000
-    asset staked_votes;     //self staked
-    asset received_votes;   //other voted
-    asset last_claimed_rewards;   //unclaimed total rewards
-    asset total_claimed_rewards;  //unclaimed total rewards
-    asset unclaimed_rewards;      //unclaimed total rewards
+    uint32_t self_reward_share;     //boost by 10000
+    asset staked_votes;             //self staked
+    asset received_votes;           //other voted
+    asset last_claimed_rewards;     //unclaimed total rewards
+    asset total_claimed_rewards;    //unclaimed total rewards
+    asset unclaimed_rewards;        //unclaimed total rewards
 
     candidate_t() {}
     candidate_t(const name& o): owner(o) {}
