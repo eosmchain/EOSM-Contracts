@@ -29,7 +29,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 
 void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t& self_reward_share) {
 	check( is_account(owner), owner.to_string() + " not a valid account" );
-	
+
 	candidate_t candidate(owner);
 	if ( !_dbc.get(candidate) ) {
 		check( quantity >= _gstate.min_bp_list_quantity, "insufficient quantity to list as a candidate" );
@@ -38,7 +38,7 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t
 	}
 	candidate.self_reward_share 			= self_reward_share;
 	candidate.staked_votes 					+= quantity;
-	
+
 	_dbc.set( candidate );
 
 }
@@ -120,9 +120,9 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage += coinage;
-		
+
 	}
-	
+
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
@@ -155,7 +155,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
-		
+
 	}
 }
 
@@ -176,7 +176,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		vote.last_rewarded_at = current_time_point();
 		_dbc.set(vote);
 
-		if (!round.elected_bps.count(itr->candidate)) 
+		if (!round.elected_bps.count(itr->candidate))
 			continue;
 
 		candidate_t bp(itr->candidate);
@@ -191,7 +191,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto voter_rewards = rewards_to_bp_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
-		
+
 		_dbc.set(bp);
 		_dbc.set(voter);
    	}
@@ -199,12 +199,12 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
-/** 
- * memo: {$cmd}:{$params} 
- * 
+/**
+ * memo: {$cmd}:{$params}
+ *
  * Eg: 	"list:6000"			: list self as candidate, sharing 60% out to voters
  * 		"vote:mgpbpooooo11"	: vote for mgpbpooooo11
- * 
+ *
  */
 void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
@@ -240,9 +240,9 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 			_gstate.total_staked += quantity;
 			return;
 
-		} 
+		}
 	}
-	
+
 	//all other cases will be handled as rewards
 	reward_t reward(_self, _self.value);
 	reward.quantity = quantity;
@@ -272,7 +272,7 @@ void mgp_bpvoting::config(
 		const uint64_t& max_iterate_steps_reward,
 		const uint64_t& max_bp_size,
 		const uint64_t& max_candidate_size,
-		const asset& min_bp_list_quantity, 
+		const asset& min_bp_list_quantity,
 		const asset& min_bp_accept_quantity) {
 
 	require_auth( _self );
@@ -368,8 +368,8 @@ void mgp_bpvoting::execute(const name& issuer) {
 		_dbc.set(target_round);
 	}
 
-	if (target_round.unvote_tally_completed && 
-		last_round.vote_tally_completed && 
+	if (target_round.unvote_tally_completed &&
+		last_round.vote_tally_completed &&
 		!target_round.reward_completed) {
 		_reward_through_votes(target_round);
 		_dbc.set(target_round);

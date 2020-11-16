@@ -56,7 +56,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         total_listed                    = asset(0, SYS_SYMBOL);
         total_staked                    = asset(0, SYS_SYMBOL);
         total_rewarded                  = asset(0, SYS_SYMBOL);
-    }       
+    }
 
     EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)
                                 (max_iterate_steps_tally_unvote)
@@ -82,7 +82,7 @@ struct CONTRACT_TBL election_round_t{
     uint64_t unvote_count;
     uint64_t vote_tallied_count;
     uint64_t unvote_tallied_count;
-    
+
     bool     vote_tally_completed   = false;
     bool     unvote_tally_completed = false;
     bool     reward_completed       = false;
@@ -93,7 +93,7 @@ struct CONTRACT_TBL election_round_t{
     asset total_votes_in_coinage;
     asset available_rewards;    //rewards from last inflation distribution
     asset total_rewards;        //total received accumualted rewards
- 
+
     election_round_t() {}
     election_round_t(uint64_t rid): round_id(rid) {}
 
@@ -120,9 +120,13 @@ struct CONTRACT_TBL candidate_t {
 
     candidate_t() {}
     candidate_t(const name& o): owner(o) {}
-  
+    // candidate_t(name code, uint64_t scope) {
+    //     index_t tbl(code, scope);
+    //     id = tbl.available_primary_key();
+    // }
+
     uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
 
@@ -146,7 +150,7 @@ struct CONTRACT_TBL vote_t {
     time_point last_rewarded_at;
 
     uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
-    uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            } 
+    uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
     uint64_t by_last_vote_tallied_at() const    { return uint64_t(last_vote_tallied_at.sec_since_epoch());    }
     uint64_t by_last_unvote_tallied_at() const  { return uint64_t(last_unvote_tallied_at.sec_since_epoch());  }
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
