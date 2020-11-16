@@ -56,9 +56,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
                 const asset& min_bp_accept_quantity);
 
     [[eosio::action]]
-    void chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity);
-    
-    [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id, const asset& quantity);
     
     [[eosio::action]]
@@ -69,7 +66,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init   >;
     using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config >;
-    using chvote_action   = action_wrapper<name("chvote"),    &mgp_bpvoting::chvote >;
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute>;
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit>;

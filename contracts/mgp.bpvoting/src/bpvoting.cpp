@@ -286,36 +286,7 @@ void mgp_bpvoting::config(
 	_gstate.min_bp_accept_quantity 			= min_bp_accept_quantity;
 
 }
-/**
- *	ACTION: change/move votes from one candidate to another
- *			Internally, it is achieved in two sub-steps:  "unvote" + "vote"
- */
-void mgp_bpvoting::chvote(const name& owner, const name& from_candidate, const name& to_candidate, const asset& quantity) {
-	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
-	check( quantity.is_valid(), "Invalid quantity");
-	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed");
-	check( quantity.amount > 0, "chvote quanity must be positive" );
 
-	check( is_account(from_candidate), from_candidate.to_string() + " account invalid" );
-	check( is_account(to_candidate), to_candidate.to_string() + " account invalid" );
-
-	auto ct = current_time_point();
-
-	unvote_t unvote(_self, _self.value);
-	unvote.owner = owner;
-	unvote.candidate = from_candidate;
-	unvote.quantity = quantity;
-	unvote.unvoted_at = ct;
-	_dbc.set( unvote );
-
-	vote_t vote(_self, _self.value);
-	vote.owner = owner;
-	vote.candidate = to_candidate;
-	vote.quantity = quantity;
-	vote.voted_at = ct;
-	_dbc.set( vote );
-
-}
 
 /**
  *	ACTION: unvote fully or partially
@@ -335,9 +306,13 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	auto elapsed = current_time_point().sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	check( elapsed > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
 
-	unvote_t unvote(_self, _self.value);
+	unvote_t unvote(vote_id);
+	check( !_dbc.get(unvote), "already unvoted" );
+
 	unvote.owner = owner;
 	unvote.quantity = quantity;
+	unvote.unvoted_at = current_time_point();
+	
 	_dbc.set(unvote);
 
 }
