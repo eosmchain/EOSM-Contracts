@@ -35,7 +35,11 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t
 		check( quantity >= _gstate.min_bp_list_quantity, "insufficient quantity to list as a candidate" );
 		candidate.staked_votes 				= asset(0, SYS_SYMBOL);
 		candidate.received_votes 			= asset(0, SYS_SYMBOL);
+		candidate.last_claimed_rewards 		= asset(0, SYS_SYMBOL);
+		candidate.total_claimed_rewards 	= asset(0, SYS_SYMBOL);
+		candidate.unclaimed_rewards			= asset(0, SYS_SYMBOL);
 	}
+
 	candidate.self_reward_share 			= self_reward_share;
 	candidate.staked_votes 					+= quantity;
 
