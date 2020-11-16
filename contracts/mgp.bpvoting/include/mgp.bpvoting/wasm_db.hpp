@@ -14,10 +14,10 @@ enum return_t{
 };
 
 class dbc {
-private: 
+private:
     name code;   //contract owner
 
-public: 
+public:
     dbc(const name& code): code(code) {}
 
     template<typename RecordType>
@@ -26,7 +26,11 @@ public:
         if (scope == 0) scope = code.value;
 
         typename RecordType::index_t tbl(code, scope);
-        return( tbl.find(record.primary_key()) != tbl.end() );
+        if (tbl.find(record.primary_key()) == tbl.end())
+            return false;
+
+        record = tbl.get(record.primary_key());
+        return true;
     }
 
     template<typename RecordType>

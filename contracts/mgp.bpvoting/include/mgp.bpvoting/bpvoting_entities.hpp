@@ -19,14 +19,12 @@ using namespace eosio;
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL              = symbol(symbol_code("MGP"), 4);
-static constexpr uint64_t BPVOTING_SCOPE        = 1000;
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
 static constexpr uint32_t rewards_to_bp_per_day = 1580;
-static constexpr uint32_t min_votes             = 100;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
 
@@ -36,9 +34,11 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     uint64_t max_iterate_steps_reward;
     uint64_t max_bp_size;
     uint64_t max_candidate_size;
+    uint64_t bp_rewards_per_day;    //for one BP
     uint64_t refund_time;
     asset min_bp_list_quantity;
     asset min_bp_accept_quantity;
+    asset min_bp_vote_quantity;
     asset total_listed;
     asset total_staked;
     asset total_rewarded;
@@ -50,19 +50,20 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         max_iterate_steps_reward        = 50;
         max_bp_size                     = 21;
         max_candidate_size              = 30;
+        bp_rewards_per_day              = 1580;
         refund_time                     = 3 * 24 * 3600; //3-days in sec
         min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
+        min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
         total_listed                    = asset(0, SYS_SYMBOL);
         total_staked                    = asset(0, SYS_SYMBOL);
         total_rewarded                  = asset(0, SYS_SYMBOL);
-    }       
+    }
 
-    EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)
-                                (max_iterate_steps_tally_unvote)
-                                (max_iterate_steps_reward)
-                                (max_bp_size)(max_candidate_size)
-                                (refund_time)(min_bp_list_quantity)(min_bp_accept_quantity)
+    EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)(max_iterate_steps_tally_unvote)
+                                (max_iterate_steps_reward)(max_bp_size)(max_candidate_size)
+                                (bp_rewards_per_day)(refund_time)
+                                (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
                                 (total_listed)(total_staked)(total_rewarded)
                                 (started_at) )
 };
@@ -82,7 +83,7 @@ struct CONTRACT_TBL election_round_t{
     uint64_t unvote_count;
     uint64_t vote_tallied_count;
     uint64_t unvote_tallied_count;
-    
+
     bool     vote_tally_completed   = false;
     bool     unvote_tally_completed = false;
     bool     reward_completed       = false;
@@ -93,12 +94,12 @@ struct CONTRACT_TBL election_round_t{
     asset total_votes_in_coinage;
     asset available_rewards;    //rewards from last inflation distribution
     asset total_rewards;        //total received accumualted rewards
- 
+
     election_round_t() {}
     election_round_t(uint64_t rid): round_id(rid) {}
 
     uint64_t primary_key()const { return round_id; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
@@ -109,20 +110,18 @@ struct CONTRACT_TBL election_round_t{
 // added by BP candidate
 struct CONTRACT_TBL candidate_t {
     name owner;
-
-    /// Upon BP rewarding, distribute partially to voters who vote for self
-    uint32_t self_reward_share; //boost by 10000
-    asset staked_votes;     //self staked
-    asset received_votes;   //other voted
-    asset last_claimed_rewards;   //unclaimed total rewards
-    asset total_claimed_rewards;  //unclaimed total rewards
-    asset unclaimed_rewards;      //unclaimed total rewards
+    uint32_t self_reward_share;     //boost by 10000
+    asset staked_votes;             //self staked
+    asset received_votes;           //other voted
+    asset last_claimed_rewards;     //unclaimed total rewards
+    asset total_claimed_rewards;    //unclaimed total rewards
+    asset unclaimed_rewards;        //unclaimed total rewards
 
     candidate_t() {}
     candidate_t(const name& o): owner(o) {}
-  
+
     uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
 
@@ -146,13 +145,13 @@ struct CONTRACT_TBL vote_t {
     time_point last_rewarded_at;
 
     uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
-    uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            } 
+    uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
     uint64_t by_last_vote_tallied_at() const    { return uint64_t(last_vote_tallied_at.sec_since_epoch());    }
     uint64_t by_last_unvote_tallied_at() const  { return uint64_t(last_unvote_tallied_at.sec_since_epoch());  }
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     vote_t() {}
     vote_t(name code, uint64_t scope) {
@@ -188,7 +187,7 @@ struct CONTRACT_TBL unvote_t {
     double by_last_tallied_at() const   { return last_tallied_at.sec_since_epoch();     }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     unvote_t() {}
     unvote_t(name code, uint64_t scope) {
@@ -202,7 +201,7 @@ struct CONTRACT_TBL unvote_t {
                             indexed_by<"lasttallied"_n, const_mem_fun<unvote_t, double, &unvote_t::by_last_tallied_at> >
                              > index_t;
 
-    EOSLIB_SERIALIZE( unvote_t, (owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
+    EOSLIB_SERIALIZE( unvote_t, (id)(owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
 };
 
 
@@ -217,7 +216,7 @@ struct CONTRACT_TBL voter_t {
     voter_t(const name& o): owner(o) {}
 
     uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"voters"_n, voter_t> index_t;
 

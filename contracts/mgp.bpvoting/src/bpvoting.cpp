@@ -1,6 +1,8 @@
-#include <mgp.bpvoting/bpvoting.hpp>
 #include <eosio.token/eosio.token.hpp>
-#include "mgp.bpvoting/utils.h"
+#include <mgp.bpvoting/bpvoting.hpp>
+#include <mgp.bpvoting/mgp_math.hpp>
+#include <mgp.bpvoting/utils.h>
+
 
 using namespace eosio;
 using namespace std;
@@ -11,6 +13,7 @@ namespace mgp {
 
 using namespace std;
 using namespace eosio;
+using namespace wasm::safemath;
 
 /*************** Begin of Helper functions ***************************************/
 
@@ -27,18 +30,22 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 	_dbc.get( election_round );
 }
 
-void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint8_t& self_reward_share) {
+void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_t& self_reward_share) {
 	check( is_account(owner), owner.to_string() + " not a valid account" );
-	
+
 	candidate_t candidate(owner);
 	if ( !_dbc.get(candidate) ) {
 		check( quantity >= _gstate.min_bp_list_quantity, "insufficient quantity to list as a candidate" );
 		candidate.staked_votes 				= asset(0, SYS_SYMBOL);
 		candidate.received_votes 			= asset(0, SYS_SYMBOL);
+		candidate.last_claimed_rewards 		= asset(0, SYS_SYMBOL);
+		candidate.total_claimed_rewards 	= asset(0, SYS_SYMBOL);
+		candidate.unclaimed_rewards			= asset(0, SYS_SYMBOL);
 	}
+
 	candidate.self_reward_share 			= self_reward_share;
 	candidate.staked_votes 					+= quantity;
-	
+
 	_dbc.set( candidate );
 
 }
@@ -53,6 +60,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	time_point ct = current_time_point();
 
 	vote_t vote(_self, _self.value);
+	vote.owner = owner;
 	vote.candidate = target;
 	vote.quantity = quantity;
 	vote.voted_at = ct;
@@ -63,7 +71,13 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	_dbc.set( vote );
 
 	voter_t voter(owner);
-	_dbc.get( voter );
+	if (!_dbc.get( voter )) {
+		voter.total_staked = asset(0, SYS_SYMBOL);
+		voter.last_claimed_rewards = asset(0, SYS_SYMBOL);
+		voter.total_claimed_rewards = asset(0, SYS_SYMBOL);
+		voter.unclaimed_rewards = asset(0, SYS_SYMBOL);
+	}
+
 	voter.total_staked += quantity;
 	_dbc.set( voter );
 
@@ -120,9 +134,9 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage += coinage;
-		
+
 	}
-	
+
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
@@ -155,7 +169,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
-		
+
 	}
 }
 
@@ -176,7 +190,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		vote.last_rewarded_at = current_time_point();
 		_dbc.set(vote);
 
-		if (!round.elected_bps.count(itr->candidate)) 
+		if (!round.elected_bps.count(itr->candidate))
 			continue;
 
 		candidate_t bp(itr->candidate);
@@ -186,12 +200,12 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		auto ratio = coinage / round.total_votes_in_coinage;
-		auto bp_rewards = rewards_to_bp_per_day * bp.self_reward_share / 10000;
-		auto voter_rewards = rewards_to_bp_per_day - bp_rewards;
+		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
+		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), 10000);
+		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
-		
+
 		_dbc.set(bp);
 		_dbc.set(voter);
    	}
@@ -199,12 +213,13 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
-/** 
- * memo: {$cmd}:{$params} 
- * 
- * Eg: 	"list:6000"			: list self as candidate, sharing 60% out to voters
+/**
+ * memo: {$cmd}:{$params}
+ *
+ * Eg: 	"list:6000"			: list self as candidate, taking 60% of rewards to self
  * 		"vote:mgpbpooooo11"	: vote for mgpbpooooo11
- * 
+ *      ""					: all other cases will be treated as rewards deposit
+ *
  */
 void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
@@ -233,16 +248,16 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 			check( param.size() < 13, "target name length invalid: " + param );
 			name target = name( mgp::string_to_name(param) );
 			check( is_account(target), param + " not a valid account" );
-			check( quantity.amount >= min_votes, "less than min_votes" );
+			check( quantity >= _gstate.min_bp_vote_quantity, "min_bp_vote_quantity not met" );
 			check( _gstate.started_at != time_point(), "election not started" );
 
 			_vote(from, target, quantity);
 			_gstate.total_staked += quantity;
 			return;
 
-		} 
+		}
 	}
-	
+
 	//all other cases will be handled as rewards
 	reward_t reward(_self, _self.value);
 	reward.quantity = quantity;
@@ -272,7 +287,7 @@ void mgp_bpvoting::config(
 		const uint64_t& max_iterate_steps_reward,
 		const uint64_t& max_bp_size,
 		const uint64_t& max_candidate_size,
-		const asset& min_bp_list_quantity, 
+		const asset& min_bp_list_quantity,
 		const asset& min_bp_accept_quantity) {
 
 	require_auth( _self );
@@ -304,7 +319,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
 
 	auto elapsed = current_time_point().sec_since_epoch() - vote.voted_at.sec_since_epoch();
-	check( elapsed > seconds_per_day * 3, "not allowed to unvote less than 3 days" );
+	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
 
 	unvote_t unvote(vote_id);
 	check( !_dbc.get(unvote), "already unvoted" );
@@ -343,8 +358,8 @@ void mgp_bpvoting::execute(const name& issuer) {
 		_dbc.set(target_round);
 	}
 
-	if (target_round.unvote_tally_completed && 
-		last_round.vote_tally_completed && 
+	if (target_round.unvote_tally_completed &&
+		last_round.vote_tally_completed &&
 		!target_round.reward_completed) {
 		_reward_through_votes(target_round);
 		_dbc.set(target_round);
