@@ -27,7 +27,14 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 
 void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& election_round) {
 	election_round.round_id = get_round_id(ct);
-	_dbc.get( election_round );
+
+	if (!_dbc.get( election_round )) {
+		auto days = ct.sec_since_epoch() / seconds_per_day;
+		auto start_secs = _gstate.election_round_begin_at * 3600;
+		election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+
+		election_round.ended_at = election_round.started_at + eosio::seconds(seconds_per_day);
+	}
 }
 
 void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_t& self_reward_share) {
@@ -140,7 +147,7 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
-	unvote_multi_index_tbl unvote_mi(_self, _self.value);
+	vote_multi_index_tbl unvote_mi(_self, _self.value);
 	auto idx = unvote_mi.get_index<"luvtallied"_n>();
 
 	int step = 0;
@@ -323,7 +330,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
 	vote.unvoted_at = ct;
 	_dbc.set(vote);
-	
+
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
 	check( voter.total_staked >= quantity, "Err: unvote exceeds total staked" );
