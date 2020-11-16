@@ -57,6 +57,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	time_point ct = current_time_point();
 
 	vote_t vote(_self, _self.value);
+	vote.owner = owner;
 	vote.candidate = target;
 	vote.quantity = quantity;
 	vote.voted_at = ct;
