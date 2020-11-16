@@ -19,7 +19,6 @@ using namespace eosio;
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
 static constexpr symbol SYS_SYMBOL              = symbol(symbol_code("MGP"), 4);
-static constexpr uint64_t BPVOTING_SCOPE        = 1000;
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
@@ -98,7 +97,7 @@ struct CONTRACT_TBL election_round_t{
     election_round_t(uint64_t rid): round_id(rid) {}
 
     uint64_t primary_key()const { return round_id; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
@@ -150,7 +149,7 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0 }
 
     vote_t() {}
     vote_t(name code, uint64_t scope) {
@@ -186,7 +185,7 @@ struct CONTRACT_TBL unvote_t {
     double by_last_tallied_at() const   { return last_tallied_at.sec_since_epoch();     }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     unvote_t() {}
     unvote_t(name code, uint64_t scope) {
@@ -215,7 +214,7 @@ struct CONTRACT_TBL voter_t {
     voter_t(const name& o): owner(o) {}
 
     uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return BPVOTING_SCOPE; }
+    uint64_t scope() const { return 0; }
 
     typedef eosio::multi_index<"voters"_n, voter_t> index_t;
 
