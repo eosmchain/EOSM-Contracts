@@ -111,7 +111,7 @@ struct CONTRACT_TBL candidate_t {
     name owner;
 
     /// Upon BP rewarding, distribute partially to voters who vote for self
-    int8_t self_reward_share; //boost by 10000
+    uint32_t self_reward_share; //boost by 10000
     asset staked_votes;     //self staked
     asset received_votes;   //other voted
     asset last_claimed_rewards;   //unclaimed total rewards
