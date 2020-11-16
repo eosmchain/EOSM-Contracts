@@ -25,11 +25,6 @@ using eosio::unsigned_int;
 
 using std::string;
 
-static constexpr int128_t HIGH_PRECISION_1 = 100000000000000000;   //17*0 behind 1
-static constexpr int128_t PRECISION_1      = 10000;                // 4*0 behind 1
-static constexpr int128_t PRECISION        = 4;
-
-
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     global_singleton    _global;
