@@ -201,7 +201,7 @@ struct CONTRACT_TBL unvote_t {
                             indexed_by<"lasttallied"_n, const_mem_fun<unvote_t, double, &unvote_t::by_last_tallied_at> >
                              > index_t;
 
-    EOSLIB_SERIALIZE( unvote_t, (owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
+    EOSLIB_SERIALIZE( unvote_t, (id)(owner)(candidate)(quantity)(unvoted_at)(last_tallied_at) )
 };
 
 
