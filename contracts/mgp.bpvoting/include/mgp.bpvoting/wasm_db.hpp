@@ -26,7 +26,7 @@ public:
         if (scope == 0) scope = code.value;
 
         typename RecordType::index_t tbl(code, scope);
-        if (!tbl.find(record.primary_key()) != tbl.end())
+        if (tbl.find(record.primary_key()) == tbl.end())
             return false;
 
         record = tbl.get(record.primary_key());
