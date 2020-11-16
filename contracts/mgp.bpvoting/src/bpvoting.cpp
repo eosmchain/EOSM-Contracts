@@ -198,8 +198,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		auto ratio = coinage / round.total_votes_in_coinage;
-		auto bp_rewards = rewards_to_bp_per_day * bp.self_reward_share / 10000;
-		auto voter_rewards = rewards_to_bp_per_day - bp_rewards;
+		auto bp_rewards = _gstate.bp_rewards_per_day * bp.self_reward_share / 10000;
+		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
@@ -215,6 +215,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
  *
  * Eg: 	"list:6000"			: list self as candidate, taking 60% of rewards to self
  * 		"vote:mgpbpooooo11"	: vote for mgpbpooooo11
+ *      ""					: all other cases will be treated as rewards deposit
  *
  */
 void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
@@ -244,7 +245,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 			check( param.size() < 13, "target name length invalid: " + param );
 			name target = name( mgp::string_to_name(param) );
 			check( is_account(target), param + " not a valid account" );
-			check( quantity.amount >= min_votes, "less than min_votes" );
+			check( quantity >= _gstate.min_bp_vote_quantity, "min_bp_vote_quantity not met" );
 			check( _gstate.started_at != time_point(), "election not started" );
 
 			_vote(from, target, quantity);
