@@ -282,7 +282,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	_gstate = global_t{};
+	// _gstate = global_t{};
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
 	_gstate.started_at = current_time_point();
