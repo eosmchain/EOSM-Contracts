@@ -29,19 +29,13 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 	election_round.round_id = round_id;
 
 	if (!_dbc.get( election_round )) {
-		if (round_id == 0) {
-			auto days = ct.sec_since_epoch() / seconds_per_day;
-			auto start_secs = _gstate.election_round_start_hour * 3600;
-			election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-			election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-		
-		} else {
-			election_round_t prev_round(round_id - 1);
-			check( _dbc.get(prev_round), "Err: prev round not found" );
+		election_round_t last_round(_gstate.last_election_round);
+		check( _dbc.get(last_round), "Err: last round not found" );
 
-			election_round.started_at = prev_round.ended_at;
-			election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-		}
+		election_round.started_at = last_round.ended_at;
+		election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+
+		_gstate.last_election_round = round_id;
 	}
 }
 
@@ -290,10 +284,20 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	// _gstate = global_t{};
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
-	_gstate.started_at = current_time_point();
+	auto ct = current_time_point();
+	_gstate.started_at = ct;
+	_gstate.last_election_round = 0;
+
+	auto days = ct.sec_since_epoch() / seconds_per_day;
+	auto start_secs = _gstate.election_round_start_hour * 3600;
+
+	election_round_t election_round(0);
+	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+	_dbc.set( election_round );
+
 }
 
 void mgp_bpvoting::config(

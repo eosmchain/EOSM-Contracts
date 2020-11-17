@@ -45,6 +45,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     asset total_voted;
     asset total_rewarded;
     time_point started_at;
+    uint64_t last_election_round;
 
     global_t() {
         max_tally_vote_iterate_steps    = 30;
@@ -68,7 +69,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
                                 (bp_rewards_per_day)(election_round_sec)(refund_delay_sec)(election_round_start_hour)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
                                 (total_listed)(total_voted)(total_rewarded)
-                                (started_at) )
+                                (started_at)(last_election_round) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
