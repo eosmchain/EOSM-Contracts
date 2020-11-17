@@ -65,7 +65,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void delist(const name& issuer); //candidate to delist self
 
     [[eosio::action]]
-    void claimrewards(const name& issuer); //voter to claim rewards
+    void claimrewards(const name& issuer, const bool is_voter); //voter/candidate to claim rewards
 
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);

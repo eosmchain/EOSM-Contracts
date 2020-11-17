@@ -339,12 +339,12 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	_dbc.set(voter);
 
 	_gstate.total_voted -= quantity;
-	
+
  	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
         transfer_act.send( _self, owner, quantity, "unvote" );
     }
-	
+
 }
 
 /**
@@ -352,7 +352,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
  */
 void mgp_bpvoting::delist(const name& issuer) {
 	require_auth( issuer );
-	
+
 	candidate_t candidate(issuer);
 	check( _dbc.get(candidate), issuer.to_string() + " is not a candidate" );
 	check( candidate.received_votes.amount == 0, "not fully unvoted" );
@@ -406,11 +406,41 @@ void mgp_bpvoting::execute(const name& issuer) {
 /**
  * ACTION:	voter to claim rewards
  */
-void mgp_bpvoting::claimrewards(const name& issuer) {
+void mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 	require_auth( issuer );
 
-	
-	
+	if (is_voter) { //voter
+		voter_t voter(issuer);
+		check( _dbc.get(voter), "not a voter" );
+		check( voter.unclaimed_rewards > 0, "rewards empty" );
+
+		{
+			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+			transfer_act.send( _self, issuer, voter.unclaimed_rewards , "claim" );
+		}
+
+		voter.total_claimed_rewards += voter.unclaimed_rewards;
+		voter.last_claimed_rewards = voter.unclaimed_rewards;
+		voter.unclaimed_rewards = asset(0, SYS_SYMBOL);
+		_dbc.set( voter );
+
+	} else { //candidate
+		candidate_t candidate(issuer);
+		check( _dbc.get(candidate), "not a candidate" );
+		check( candidate.unclaimed_rewards > 0, "rewards empty" );
+
+		{
+			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+			transfer_act.send( _self, issuer, candidate.unclaimed_rewards , "claim" );
+		}
+
+		candidate.total_claimed_rewards += candidate.unclaimed_rewards;
+		candidate.last_claimed_rewards = candidate.unclaimed_rewards;
+		candidate.unclaimed_rewards = asset(0, SYS_SYMBOL);
+		_dbc.set( candidate );
+
+	}
+
 }
 
 

@@ -137,6 +137,25 @@ struct CONTRACT_TBL candidate_t {
                                     (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
 };
 
+struct CONTRACT_TBL voter_t {
+    name                owner;                  //the voter
+    asset               total_staked;           //sum of all votes
+    asset               last_claimed_rewards;   //unclaimed total rewards
+    asset               total_claimed_rewards;  //unclaimed total rewards
+    asset               unclaimed_rewards;      //unclaimed total rewards
+
+    voter_t() {}
+    voter_t(const name& o): owner(o) {}
+
+    uint64_t primary_key() const { return owner.value; }
+    uint64_t scope() const { return 0; }
+
+    typedef eosio::multi_index<"voters"_n, voter_t> index_t;
+
+    EOSLIB_SERIALIZE( voter_t,  (owner)(total_staked)
+                                (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
+};
+
 /**
  *  vote table
  */
@@ -185,25 +204,6 @@ typedef eosio::multi_index < "votes"_n, vote_t,
     indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
     indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at> >
     > vote_multi_index_tbl;
-
-struct CONTRACT_TBL voter_t {
-    name                owner;                  //the voter
-    asset               total_staked;           //sum of all votes
-    asset               last_claimed_rewards;   //unclaimed total rewards
-    asset               total_claimed_rewards;  //unclaimed total rewards
-    asset               unclaimed_rewards;      //unclaimed total rewards
-
-    voter_t() {}
-    voter_t(const name& o): owner(o) {}
-
-    uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return 0; }
-
-    typedef eosio::multi_index<"voters"_n, voter_t> index_t;
-
-    EOSLIB_SERIALIZE( voter_t,  (owner)(total_staked)
-                                (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
-};
 
 /**
  *  Incoming rewards for whole bpvoting cohort
