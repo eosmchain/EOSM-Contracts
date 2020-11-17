@@ -372,9 +372,7 @@ void mgp_bpvoting::delist(const name& issuer) {
 /**
  *	ACTION: continuously invoked to execute election until target round is completed
  */
-void mgp_bpvoting::execute(const name& issuer) {
-	require_auth( issuer );	//anyone can kick off this action
-
+void mgp_bpvoting::execute() {
 	auto ct = current_time_point();
 	election_round_t curr_round;
 	_current_election_round(ct, curr_round);
