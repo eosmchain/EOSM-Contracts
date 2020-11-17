@@ -161,7 +161,7 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return 0; }
+    uint64_t scope() const { return owner.value; }
 
     vote_t() {}
     vote_t(name code, uint64_t scope) {

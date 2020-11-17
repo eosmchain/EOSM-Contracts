@@ -65,7 +65,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 	time_point ct = current_time_point();
 
-	vote_t vote(_self, _self.value);
+	vote_t vote(_self, owner.value);
 	vote.owner = owner;
 	vote.candidate = target;
 	vote.quantity = quantity;
@@ -337,12 +337,34 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( voter.total_staked >= quantity, "Err: unvote exceeds total staked" );
 	voter.total_staked -= quantity;
 	_dbc.set(voter);
+
+	_gstate.total_voted -= quantity;
 	
  	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
         transfer_act.send( _self, owner, quantity, "unvote" );
     }
+	
+}
 
+/**
+ * ACTION:	candidate to delist self
+ */
+void delist(const name& issuer) {
+	require_auth( issuer );
+	
+	candidate_t candidate(issuer);
+	check( _dbc.get(candidate), issuer.to_string() + " is not a candidate" );
+	check( candidate.received_votes.amount == 0, "not fully unvoted" );
+	check( candidate.staked_votes.amount > 0, "Err: none staked" );
+	_dbc.del( candidate );
+
+	auto to_claim = candidate.staked_votes + candidate.unclaimed_rewards;
+	{
+        token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+        transfer_act.send( _self, issuer, to_claim, "delist" );
+    }
+	
 }
 
 /**
@@ -377,6 +399,13 @@ void mgp_bpvoting::execute(const name& issuer) {
 		_reward_through_votes(target_round);
 		_dbc.set(target_round);
 	}
+}
+
+/**
+ * ACTION:	voter to claim rewards
+ */
+void claimrewards(const name& issuer) {
+	
 }
 
 

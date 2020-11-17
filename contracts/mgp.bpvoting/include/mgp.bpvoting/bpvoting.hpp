@@ -61,6 +61,12 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void execute(const name& issuer); //anyone can invoke, but usually by the platform
 
+    [[eosio::action]]
+    void delist(const name& issuer); //candidate to delist self
+
+    [[eosio::action]]
+    void claimrewards(const name& issuer); //voter to claim rewards
+
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
@@ -68,6 +74,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config >;
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute>;
+    using delist_action   = action_wrapper<name("delist"),   &mgp_bpvoting::delist>;
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit>;
 
   private:
