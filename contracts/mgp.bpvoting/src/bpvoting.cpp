@@ -350,7 +350,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 /**
  * ACTION:	candidate to delist self
  */
-void delist(const name& issuer) {
+void mgp_bpvoting::delist(const name& issuer) {
 	require_auth( issuer );
 	
 	candidate_t candidate(issuer);
@@ -364,7 +364,7 @@ void delist(const name& issuer) {
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
         transfer_act.send( _self, issuer, to_claim, "delist" );
     }
-	
+
 }
 
 /**
