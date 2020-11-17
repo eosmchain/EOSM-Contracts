@@ -44,16 +44,19 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     }
 
     [[eosio::action]]
-    void init();
+    void init();  //only code maintainer can init
 
     [[eosio::action]]
-    void config(const uint64_t& max_iterate_steps_tally_vote,
-                const uint64_t& max_iterate_steps_tally_unvote,
-                const uint64_t& max_iterate_steps_reward,
+    void config(const uint64_t& max_tally_vote_iterate_steps,
+                const uint64_t& max_tally_unvote_iterate_steps,
+                const uint64_t& max_reward_iterate_steps,
                 const uint64_t& max_bp_size,
-                const uint64_t& max_candidate_size,
+                const uint64_t& election_round_sec,
+                const uint64_t& refund_delay_sec,
+                const uint64_t& election_round_start_hour,
                 const asset& min_bp_list_quantity,
-                const asset& min_bp_accept_quantity);
+                const asset& min_bp_accept_quantity,
+                const asset& min_bp_vote_quantity);
 
     [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id, const asset& quantity);

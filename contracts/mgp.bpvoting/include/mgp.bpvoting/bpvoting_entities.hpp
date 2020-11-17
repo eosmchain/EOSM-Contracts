@@ -30,13 +30,13 @@ static constexpr uint32_t rewards_to_bp_per_day = 1580;
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
 
 struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
-    uint64_t max_iterate_steps_tally_vote;
-    uint64_t max_iterate_steps_tally_unvote;
-    uint64_t max_iterate_steps_reward;
+    uint64_t max_tally_vote_iterate_steps;
+    uint64_t max_tally_unvote_iterate_steps;
+    uint64_t max_reward_iterate_steps;
     uint64_t max_bp_size;
-    uint64_t max_candidate_size;
     uint64_t bp_rewards_per_day;            //for one BP
-    uint64_t refund_time;
+    uint64_t election_round_sec;                 
+    uint64_t refund_delay_sec;
     uint64_t election_round_start_hour;     //GMT+0 Time
     asset min_bp_list_quantity;
     asset min_bp_accept_quantity;
@@ -47,14 +47,14 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     time_point started_at;
 
     global_t() {
-        max_iterate_steps_tally_vote    = 30;
-        max_iterate_steps_tally_unvote  = 20;
-        max_iterate_steps_reward        = 50;
+        max_tally_vote_iterate_steps    = 30;
+        max_tally_unvote_iterate_steps  = 20;
+        max_reward_iterate_steps        = 50;
         max_bp_size                     = 21;
-        max_candidate_size              = 30;
         bp_rewards_per_day              = 1580;
-        refund_time                     = 3 * 24 * 3600; //3-days in sec
-        election_round_start_hour       = 0; //i.e. GMT+8 Shanghai Time, 24hrs per round
+        election_round_sec              = seconds_per_day;
+        refund_delay_sec                = 3 * seconds_per_day;
+        election_round_start_hour       = 1; //i.e. 9 AM for GMT+8 Shanghai Time, 24hrs per round
         min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
         min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
@@ -63,9 +63,9 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         total_rewarded                  = asset(0, SYS_SYMBOL);
     }
 
-    EOSLIB_SERIALIZE( global_t, (max_iterate_steps_tally_vote)(max_iterate_steps_tally_unvote)
-                                (max_iterate_steps_reward)(max_bp_size)(max_candidate_size)
-                                (bp_rewards_per_day)(refund_time)(election_round_start_hour)
+    EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)
+                                (max_reward_iterate_steps)(max_bp_size)
+                                (bp_rewards_per_day)(refund_delay_sec)(election_round_start_hour)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
                                 (total_listed)(total_voted)(total_rewarded)
                                 (started_at) )

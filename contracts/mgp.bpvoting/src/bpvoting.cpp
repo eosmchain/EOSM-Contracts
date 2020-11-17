@@ -19,20 +19,29 @@ using namespace wasm::safemath;
 
 uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
-
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
-	auto days = elapsed / seconds_per_day;
-	return days;
+	auto rounds = elapsed / _gstate.election_round_sec;
+	return rounds; //usually in days
 }
 
 void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& election_round) {
-	election_round.round_id = get_round_id(ct);
+	auto round_id = get_round_id(ct);
+	election_round.round_id = round_id;
 
 	if (!_dbc.get( election_round )) {
-		auto days = ct.sec_since_epoch() / seconds_per_day;
-		auto start_secs = _gstate.election_round_start_hour * 3600;
-		election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-		election_round.ended_at = election_round.started_at + eosio::seconds(seconds_per_day);
+		if (round_id == 0) {
+			auto days = ct.sec_since_epoch() / seconds_per_day;
+			auto start_secs = _gstate.election_round_start_hour * 3600;
+			election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+			election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+		
+		} else {
+			election_round_t prev_round(round_id - 1);
+			check( _dbc.get(prev_round), "Err: prev round not found" );
+
+			election_round.started_at = prev_round.ended_at;
+			election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+		}
 	}
 }
 
@@ -116,7 +125,7 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 	auto idx = vote_mi.get_index<"lvotallied"_n>();
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (step++ == _gstate.max_iterate_steps_tally_vote)
+		if (step++ == _gstate.max_tally_vote_iterate_steps)
 			break;
 
 		if (itr->last_vote_tallied_at > round.started_at) {
@@ -150,7 +159,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (step++ == _gstate.max_iterate_steps_tally_unvote)
+		if (step++ == _gstate.max_tally_unvote_iterate_steps)
 			break;
 
 		if (itr->last_unvote_tallied_at > round.ended_at) {
@@ -183,7 +192,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto idx = vote_mi.get_index<"lastrewarded"_n>();
 	int step = 0;
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (step++ == _gstate.max_iterate_steps_reward)
+		if (step++ == _gstate.max_reward_iterate_steps)
 			break;
 
 		if (itr->last_rewarded_at > round.started_at) {
@@ -288,23 +297,29 @@ void mgp_bpvoting::init() {
 }
 
 void mgp_bpvoting::config(
-		const uint64_t& max_iterate_steps_tally_vote,
-		const uint64_t& max_iterate_steps_tally_unvote,
-		const uint64_t& max_iterate_steps_reward,
+		const uint64_t& max_tally_vote_iterate_steps,
+		const uint64_t& max_tally_unvote_iterate_steps,
+		const uint64_t& max_reward_iterate_steps,
 		const uint64_t& max_bp_size,
-		const uint64_t& max_candidate_size,
+		const uint64_t& election_round_sec,
+		const uint64_t& refund_delay_sec,
+		const uint64_t& election_round_start_hour,
 		const asset& min_bp_list_quantity,
-		const asset& min_bp_accept_quantity) {
+		const asset& min_bp_accept_quantity,
+		const asset& min_bp_vote_quantity ) {
 
 	require_auth( _self );
 
-	_gstate.max_iterate_steps_tally_vote 	= max_iterate_steps_tally_vote;
-	_gstate.max_iterate_steps_tally_unvote 	= max_iterate_steps_tally_unvote;
-	_gstate.max_iterate_steps_reward 		= max_iterate_steps_reward;
+	_gstate.max_tally_vote_iterate_steps 	= max_tally_vote_iterate_steps;
+	_gstate.max_tally_unvote_iterate_steps 	= max_tally_unvote_iterate_steps;
+	_gstate.max_reward_iterate_steps 		= max_reward_iterate_steps;
 	_gstate.max_bp_size 					= max_bp_size;
-	_gstate.max_candidate_size 				= max_candidate_size;
+	_gstate.election_round_sec				= election_round_sec;
+	_gstate.refund_delay_sec				= refund_delay_sec;
+	_gstate.election_round_start_hour		= election_round_start_hour;
 	_gstate.min_bp_list_quantity 			= min_bp_list_quantity;
 	_gstate.min_bp_accept_quantity 			= min_bp_accept_quantity;
+	_gstate.min_bp_vote_quantity			= min_bp_vote_quantity;
 
 }
 
@@ -326,7 +341,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	check( _dbc.get(vote), "vote not found" );
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
 	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
-	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
+	check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
 	vote.unvoted_at = ct;
 	_dbc.set(vote);
 
