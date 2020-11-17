@@ -412,7 +412,7 @@ void mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 	if (is_voter) { //voter
 		voter_t voter(issuer);
 		check( _dbc.get(voter), "not a voter" );
-		check( voter.unclaimed_rewards > 0, "rewards empty" );
+		check( voter.unclaimed_rewards.amount > 0, "rewards empty" );
 
 		{
 			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
@@ -427,7 +427,7 @@ void mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 	} else { //candidate
 		candidate_t candidate(issuer);
 		check( _dbc.get(candidate), "not a candidate" );
-		check( candidate.unclaimed_rewards > 0, "rewards empty" );
+		check( candidate.unclaimed_rewards.amount > 0, "rewards empty" );
 
 		{
 			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
