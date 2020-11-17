@@ -326,6 +326,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 	vote_t vote(vote_id);
 	check( _dbc.get(vote), "vote not found" );
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
+	check( vote.owner == owner, "cannot unvote other's votes" );
 	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	check( elapsed > seconds_per_day * 3, "elapsed " + to_string(elapsed) + "sec, not allowed to unvote less than 3 days" );
 	vote.unvoted_at = ct;
