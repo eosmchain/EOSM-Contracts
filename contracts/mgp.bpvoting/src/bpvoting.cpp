@@ -30,9 +30,8 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 
 	if (!_dbc.get( election_round )) {
 		auto days = ct.sec_since_epoch() / seconds_per_day;
-		auto start_secs = _gstate.election_round_begin_at * 3600;
+		auto start_secs = _gstate.election_round_start_hour * 3600;
 		election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-
 		election_round.ended_at = election_round.started_at + eosio::seconds(seconds_per_day);
 	}
 }
@@ -283,6 +282,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
+	_gstate = global_t{};
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
 	_gstate.started_at = current_time_point();
