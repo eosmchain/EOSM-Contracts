@@ -65,8 +65,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 	time_point ct = current_time_point();
 
-	vote_t vote(_self, _self.value);
-	vote.owner = owner;
+	vote_t vote(_self, owner);
 	vote.candidate = target;
 	vote.quantity = quantity;
 	vote.voted_at = ct;
@@ -124,7 +123,7 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 			round.vote_tally_completed = true;
 			break;
 		}
-		vote_t vote(itr->id);
+		vote_t vote(itr->id, itr->owner);
 		_dbc.get(vote);
 		vote.last_vote_tallied_at = current_time_point();
 		_dbc.set(vote);
@@ -158,7 +157,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 			round.unvote_tally_completed = true;
 			break;
 		}
-		vote_t vote(itr->id);
+		vote_t vote(itr->id, itr->owner);
 		_dbc.get(vote);
 		vote.last_unvote_tallied_at = current_time_point();
 		_dbc.set(vote);
@@ -191,7 +190,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 			round.reward_completed = true;
 			break;
 		}
-		vote_t vote(itr->id);
+		vote_t vote(itr->id, itr->owner);
 		_dbc.get(vote);
 		vote.last_rewarded_at = current_time_point();
 		_dbc.set(vote);
@@ -323,7 +322,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 
 	auto ct = current_time_point();
 
-	vote_t vote(vote_id);
+	vote_t vote(vote_id, owner);
 	check( _dbc.get(vote), "vote not found" );
 	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
 	check( vote.owner == owner, "cannot unvote other's votes" );
