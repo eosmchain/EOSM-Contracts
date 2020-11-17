@@ -359,6 +359,8 @@ void mgp_bpvoting::delist(const name& issuer) {
 	check( candidate.staked_votes.amount > 0, "Err: none staked" );
 	_dbc.del( candidate );
 
+	_gstate.total_listed -= candidate.staked_votes;
+
 	auto to_claim = candidate.staked_votes + candidate.unclaimed_rewards;
 	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
@@ -404,7 +406,10 @@ void mgp_bpvoting::execute(const name& issuer) {
 /**
  * ACTION:	voter to claim rewards
  */
-void claimrewards(const name& issuer) {
+void mgp_bpvoting::claimrewards(const name& issuer) {
+	require_auth( issuer );
+
+	
 	
 }
 
