@@ -172,6 +172,7 @@ struct CONTRACT_TBL vote_t {
     time_point last_unvote_tallied_at;
     time_point last_rewarded_at;
 
+    uint64_t by_owner() const                   { return owner.value; }
     uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
     uint64_t by_unvoted_at() const              { return uint64_t(unvoted_at.sec_since_epoch());              }
     uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
@@ -180,7 +181,7 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return owner.value; }
+    uint64_t scope() const { return 0; }
 
     vote_t() {}
     vote_t(name code, uint64_t scope) {
@@ -197,6 +198,7 @@ struct CONTRACT_TBL vote_t {
 };
 
 typedef eosio::multi_index < "votes"_n, vote_t,
+    indexed_by<"owner"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_owner> >,
     indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at> >,
     indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at> >,
     indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at> >,
