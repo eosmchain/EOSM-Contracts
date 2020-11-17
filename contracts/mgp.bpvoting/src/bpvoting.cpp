@@ -258,7 +258,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 			check( _gstate.started_at != time_point(), "election not started" );
 
 			_vote(from, target, quantity);
-			_gstate.total_staked += quantity;
+			_gstate.total_voted += quantity;
 			return;
 
 		}

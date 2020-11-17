@@ -42,7 +42,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     asset min_bp_accept_quantity;
     asset min_bp_vote_quantity;
     asset total_listed;
-    asset total_staked;
+    asset total_voted;
     asset total_rewarded;
     time_point started_at;
 
@@ -59,7 +59,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
         min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
         total_listed                    = asset(0, SYS_SYMBOL);
-        total_staked                    = asset(0, SYS_SYMBOL);
+        total_voted                    = asset(0, SYS_SYMBOL);
         total_rewarded                  = asset(0, SYS_SYMBOL);
     }
 
@@ -67,7 +67,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
                                 (max_iterate_steps_reward)(max_bp_size)(max_candidate_size)
                                 (bp_rewards_per_day)(refund_time)(election_round_start_hour)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
-                                (total_listed)(total_staked)(total_rewarded)
+                                (total_listed)(total_voted)(total_rewarded)
                                 (started_at) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
