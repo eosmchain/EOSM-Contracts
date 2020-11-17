@@ -59,7 +59,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void unvote(const name& owner, const uint64_t vote_id, const asset& quantity);
 
     [[eosio::action]]
-    void execute(const name& issuer); //anyone can invoke, but usually by the platform
+    void execute(); //anyone can invoke, but usually by the platform
 
     [[eosio::action]]
     void delist(const name& issuer); //candidate to delist self
