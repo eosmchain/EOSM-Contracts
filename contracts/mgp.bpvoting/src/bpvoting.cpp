@@ -36,7 +36,8 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
 		election_round.ended_at = election_round.started_at + eosio::seconds(rounds * _gstate.election_round_sec);
-
+		_dbc.set( election_round );
+		
 		_gstate.last_election_round = round_id;
 	}
 }
