@@ -138,12 +138,12 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		// check( vote_itr != votes.end(), "Err: vote not found " 
-		// 	"vote_id: " + to_string(itr->id) +
-		// 	"owner: " + itr->owner.to_string() +
-		// 	"candidate: " + itr->candidate.to_string() + 
-		// 	"quantity: " + itr->quantity.to_string()
-		//  );
+		check( vote_itr != votes.end(), "Err: vote not found " 
+			"vote_id: " + to_string(itr->id) +
+			"owner: " + itr->owner.to_string() +
+			"candidate: " + itr->candidate.to_string() + 
+			"quantity: " + itr->quantity.to_string()
+		 );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
    		});
@@ -200,7 +200,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
 		round.unvote_count++;
-		
+
 	}
 
 	round.unvote_tally_completed = completed;
