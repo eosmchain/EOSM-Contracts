@@ -238,7 +238,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
-		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), share_boost);
+		auto bp_rewards = div( mul(_gstate.bp_rewards_per_day, bp.self_reward_share), share_boost );
 		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
@@ -250,6 +250,18 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 	round.reward_completed = completed;
 	_dbc.set( round );
+
+	if (completed) {
+		auto total_to_reward = round.elected_bps.size() * _gstate.bp_rewards_per_day;
+		check(total_to_reward <= _gstate.available_rewards, "Err: insufficient to reward" );
+		_gstate.available_rewards -= total_to_reward;
+		
+		if (_gstate.available_rewards > 0) {
+			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+			transfer_act.send( _self, "mgp.devshare", _gstate.available_rewards, "" );
+			_gstate.available_rewards = 0;
+		}
+	}
 
 }
 
@@ -305,7 +317,8 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	reward.created_at = current_time_point();
 	_dbc.set( reward );
 
-	_gstate.total_rewarded += quantity;
+	_gstate.total_received_rewards += quantity;
+	_gstate.available_rewards += quantity;
 
 }
 
