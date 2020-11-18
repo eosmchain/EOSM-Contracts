@@ -265,6 +265,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 			transfer_act.send( _self, "mgp.devshare", _gstate.available_rewards, "" );
 			_gstate.available_rewards = asset(0, SYS_SYMBOL);
 		}
+
+		_gstate.last_execution_round = round.round_id;
 	}
 
 }
@@ -442,11 +444,19 @@ void mgp_bpvoting::execute() {
 	_current_election_round(ct, curr_round);
 	auto curr_round_id = curr_round.round_id;
 	check( curr_round_id >= 2, "too early to execute election" );
-	
-	election_round_t target_round(curr_round_id - 1);
-	check( !target_round.reward_completed, "reward completed for target round" );
+	check( _gstate.last_execution_round < curr_round_id, "already executed" );
 
-	election_round_t last_round(curr_round_id - 2);
+	auto target_round_id = curr_round_id - 1;
+	if (_gstate.last_execution_round + 1 < target_round_id)
+		target_round_id = _gstate.last_execution_round + 1;
+
+	election_round_t target_round(target_round_id);
+	if (!_dbc.get(target_round)) {
+		_gstate.last_execution_round++;
+		return;
+	}
+
+	election_round_t last_round(target_round_id - 1);
 	if (_dbc.get(last_round) && !last_round.vote_tally_completed) {
 		_tally_votes_for_election_round(last_round);
 	}
