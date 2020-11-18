@@ -31,12 +31,15 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     global_t            _gstate;
     dbc                 _dbc;
 
+    vote_multi_index_t   _votes;
+
   public:
     using contract::contract;
     mgp_bpvoting(eosio::name receiver, eosio::name code, datastream<const char*> ds):
         contract(receiver, code, ds), _global(get_self(), get_self().value), _dbc(get_self())
     {
         _gstate = _global.exists() ? _global.get() : global_t{};
+        _votes = vote_multi_index_t(_self, _self.value);
     }
 
     ~mgp_bpvoting() {

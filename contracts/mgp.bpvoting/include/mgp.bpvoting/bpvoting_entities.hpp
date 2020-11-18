@@ -161,7 +161,8 @@ struct CONTRACT_TBL voter_t {
  *  vote table
  */
 struct CONTRACT_TBL vote_t {
-    uint64_t id;        //available_primary_key
+    uint64_t id;        //PK: available_primary_key
+
     name owner;         //voter
     name candidate;     //target candidiate to vote for
     asset quantity;
@@ -182,31 +183,31 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return 0; }
+    // uint64_t scope() const { return 0; }
 
     vote_t() {}
-    vote_t(const name& code) {
-        index_t tbl(code, code.value); //scope: o
-        id = tbl.available_primary_key();
-    }
+    // vote_t(const name& code) {
+    //     index_t tbl(code, code.value); //scope: o
+    //     id = tbl.available_primary_key();
+    // }
     vote_t(const uint64_t& pk): id(pk) {}
 
-    typedef eosio::multi_index<"votes"_n, vote_t> index_t;
-
-    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
-                                (voted_at)(unvoted_at)(restarted_at)
-                                (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
+    // EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
+    //                             (voted_at)(unvoted_at)(restarted_at)
+    //                             (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
 };
 
-typedef eosio::multi_index < "votes"_n, vote_t,
-    indexed_by<"owner"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_owner> >,
-    indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at> >,
-    indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at> >,
-    indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at> >,
-    indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at> >,
+typedef eosio::multi_index
+< "votes"_n, vote_t,
+    indexed_by<"owner"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_owner>                  >,
+    indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>               >,
+    indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>             >,
+    indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>           >,
+    indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at>   >,
     indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
-    indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at> >
-    > vote_multi_index_tbl;
+    indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at>       >
+> vote_multi_index_t;
+
 
 /**
  *  Incoming rewards for whole bpvoting cohort

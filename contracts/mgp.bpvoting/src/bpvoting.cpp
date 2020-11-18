@@ -119,17 +119,14 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 }
 
 void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
-	vote_multi_index_tbl vote_mi(_self, _self.value);
-	auto idx = vote_mi.get_index<"lvotallied"_n>();
+	auto idx = _votes.get_index<"lvotallied"_n>();
+	auto upper_itr = idx.upper_bound( round.started_at ); 
 	int step = 0;
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+
+	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps)
 			break;
 
-		if (itr->last_vote_tallied_at > round.started_at) {
-			round.vote_tally_completed = true;
-			break;
-		}
 		vote_t vote(itr->id);
 		_dbc.get(vote);
 		vote.last_vote_tallied_at = current_time_point();
@@ -147,23 +144,24 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage += coinage;
 
+		if (itr == upper_itr)
+			round.vote_tally_completed = true;
 	}
+
+	_dbc.set( round );
 
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
-	vote_multi_index_tbl unvote_mi(_self, _self.value);
-	auto idx = unvote_mi.get_index<"luvtallied"_n>();
-
+	vote_t vote;
+	auto idx = _dbc.get_index(vote, "luvtallied"_n);
+	auto upper_itr = idx.upper_bound( round.ended_at );
 	int step = 0;
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+
+	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps)
 			break;
 
-		if (itr->last_unvote_tallied_at > round.ended_at) {
-			round.unvote_tally_completed = true;
-			break;
-		}
 		vote_t vote(itr->id);
 		_dbc.get(vote);
 		vote.last_unvote_tallied_at = current_time_point();
@@ -182,21 +180,23 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
 
+		if (itr == upper_itr)
+			round.unvote_tally_completed = true;
 	}
+	
+	_dbc.set( round  );
 }
 
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
-	vote_multi_index_tbl vote_mi(_self, _self.value);
-	auto idx = vote_mi.get_index<"lastrewarded"_n>();
+	vote_t vote;
+	auto idx = _dbc.get_index(vote, "lastrewarded"_n);
+	auto upper_itr = idx.upper_bound( round.started_at );
 	int step = 0;
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+
+	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps)
 			break;
 
-		if (itr->last_rewarded_at > round.started_at) {
-			round.reward_completed = true;
-			break;
-		}
 		vote_t vote(itr->id);
 		_dbc.get(vote);
 		vote.last_rewarded_at = current_time_point();
@@ -220,7 +220,12 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		_dbc.set(bp);
 		_dbc.set(voter);
+
+		if (itr == upper_itr) 
+			round.reward_completed = true;
    	}
+	
+	_dbc.set( round );
 
 }
 
@@ -406,19 +411,16 @@ void mgp_bpvoting::execute() {
 	election_round_t last_round(curr_round_id - 2);
 	if (_dbc.get(last_round) && !last_round.vote_tally_completed) {
 		_tally_votes_for_election_round(last_round);
-		_dbc.set(last_round);
 	}
 
 	if (_dbc.get(target_round) && !target_round.unvote_tally_completed) {
 		_tally_unvotes_for_election_round(target_round);
-		_dbc.set(target_round);
 	}
 
 	if (target_round.unvote_tally_completed &&
 		last_round.vote_tally_completed &&
 		!target_round.reward_completed) {
 		_reward_through_votes(target_round);
-		_dbc.set(target_round);
 	}
 }
 
