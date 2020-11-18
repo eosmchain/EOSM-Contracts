@@ -135,7 +135,7 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found" );
+		check( vote_itr != votes.end(), "Err: vote not found " + to_string(itr->id)  );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
    		});
@@ -172,7 +172,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found" );
+		check( vote_itr != votes.end(), "Err: vote not found " + to_string(itr->id)  );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_unvote_tallied_at = current_time_point();
    		});
@@ -211,7 +211,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found" );
+		check( vote_itr != votes.end(), "Err: vote not found: " + to_string(itr->id) );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
    		});
