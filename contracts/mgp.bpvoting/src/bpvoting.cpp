@@ -71,16 +71,19 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 	time_point ct = current_time_point();
 
-	vote_t vote(_self);
-	vote.owner = owner;
-	vote.candidate = target;
-	vote.quantity = quantity;
-	vote.voted_at = ct;
-	vote.restarted_at = ct;
 	// vote.last_vote_tallied_at = vote.voted_at;
 	// vote.last_unvote_tallied_at = vote.voted_at;
 	// vote.last_rewarded_at = vote.voted_at;
-	_dbc.set( vote );
+
+	vote_tbl votes(_self, _self.value);
+	votes.emplace( _self, [&]( auto& row ) {
+		row.id = votes.available_primary_key();
+		row.owner = owner;
+		row.candidate = target;
+		row.quantity = quantity;
+		row.voted_at = ct;
+		row.restarted_at = ct;
+	});
 
 	voter_t voter(owner);
 	if (!_dbc.get( voter )) {
@@ -119,18 +122,22 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 }
 
 void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
-	auto idx = _votes.get_index<"lvotallied"_n>();
-	auto upper_itr = idx.upper_bound( round.started_at ); 
+	vote_tbl votes(_self, _self.value);
+	auto idx = votes.get_index<"lvotallied"_n>();
+	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
-		if (step++ == _gstate.max_tally_vote_iterate_steps)
+	bool completed = true;
+	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+		if (step++ == _gstate.max_tally_vote_iterate_steps) {
+			completed = false;
 			break;
+		}
 
-		vote_t vote(itr->id);
-		_dbc.get(vote);
-		vote.last_vote_tallied_at = current_time_point();
-		_dbc.set(vote);
+		auto vote_itr = votes.find(itr->id);
+		votes.modify( vote_itr, _self, [&]( auto& row ) {
+      		row.last_vote_tallied_at = current_time_point();
+   		});
 
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
@@ -142,31 +149,32 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		round.total_votes_in_coinage += coinage;
-
-		if (itr == upper_itr)
-			round.vote_tally_completed = true;
+		round.total_votes_in_coinage += coinage;		
 	}
 
+	round.vote_tally_completed = completed;
 	_dbc.set( round );
 
 }
 
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
-	vote_t vote;
-	auto idx = _dbc.get_index(vote, "luvtallied"_n);
-	auto upper_itr = idx.upper_bound( round.ended_at );
+	vote_tbl votes(_self, _self.value);
+	auto idx = votes.get_index<"luvtallied"_n>();
+	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
-		if (step++ == _gstate.max_tally_unvote_iterate_steps)
+	bool completed = true;
+	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
+			completed = false;
 			break;
+		}
 
-		vote_t vote(itr->id);
-		_dbc.get(vote);
-		vote.last_unvote_tallied_at = current_time_point();
-		_dbc.set(vote);
-
+		auto vote_itr = votes.find(itr->id);
+		votes.modify( vote_itr, _self, [&]( auto& row ) {
+      		row.last_unvote_tallied_at = current_time_point();
+   		});
+		   
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
 		check( candidate.received_votes >= itr->quantity, "Err: unvote exceeded" );
@@ -179,28 +187,31 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
-
-		if (itr == upper_itr)
-			round.unvote_tally_completed = true;
 	}
-	
+
+	round.unvote_tally_completed = completed;
+
 	_dbc.set( round  );
+
 }
 
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
-	vote_t vote;
-	auto idx = _dbc.get_index(vote, "lastrewarded"_n);
-	auto upper_itr = idx.upper_bound( round.started_at );
+	vote_tbl votes(_self, _self.value);
+	auto idx = votes.get_index<"lastrewarded"_n>();
+	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	for (auto itr = idx.begin(); itr <= upper_itr; itr++) {
-		if (step++ == _gstate.max_reward_iterate_steps)
+	bool completed = true;
+	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+		if (step++ == _gstate.max_reward_iterate_steps) {
+			completed = false;
 			break;
+		}
 
-		vote_t vote(itr->id);
-		_dbc.get(vote);
-		vote.last_rewarded_at = current_time_point();
-		_dbc.set(vote);
+		auto vote_itr = votes.find(itr->id);
+		votes.modify( vote_itr, _self, [&]( auto& row ) {
+      		row.last_rewarded_at = current_time_point();
+   		});
 
 		if (!round.elected_bps.count(itr->candidate))
 			continue;
@@ -221,10 +232,9 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		_dbc.set(bp);
 		_dbc.set(voter);
 
-		if (itr == upper_itr) 
-			round.reward_completed = true;
    	}
-	
+
+	round.reward_completed = completed;
 	_dbc.set( round );
 
 }
@@ -350,13 +360,15 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 
 	auto ct = current_time_point();
 
-	vote_t vote(vote_id);
-	check( _dbc.get(vote), "vote not found" );
-	check( vote.quantity >= quantity, "unvote overflowed: " + vote.quantity.to_string() );
-	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
+	vote_tbl votes(_self, _self.value);
+	auto vote_itr = votes.find(vote_id);
+	check( vote_itr != votes.end(), "vote not found" );
+	check( vote_itr->quantity >= quantity, "unvote overflowed: " + vote_itr->quantity.to_string() );
+	auto elapsed = ct.sec_since_epoch() - vote_itr->voted_at.sec_since_epoch();
 	check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
-	vote.unvoted_at = ct;
-	_dbc.set(vote);
+	votes.modify( vote_itr, _self, [&]( auto& row ) {
+		row.unvoted_at = ct;
+	});
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );

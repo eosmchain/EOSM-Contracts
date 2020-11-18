@@ -174,7 +174,8 @@ struct CONTRACT_TBL vote_t {
     time_point last_unvote_tallied_at;
     time_point last_rewarded_at;
 
-    uint64_t by_owner() const                   { return owner.value;                                         }
+    uint64_t by_voter() const                   { return owner.value;                                         }
+    uint64_t by_candidate() const               { return candidate.value;                                     }
     uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
     uint64_t by_unvoted_at() const              { return uint64_t(unvoted_at.sec_since_epoch());              }
     uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
@@ -192,21 +193,22 @@ struct CONTRACT_TBL vote_t {
     // }
     vote_t(const uint64_t& pk): id(pk) {}
 
-    // EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
-    //                             (voted_at)(unvoted_at)(restarted_at)
-    //                             (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
+    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
+                                (voted_at)(unvoted_at)(restarted_at)
+                                (last_vote_tallied_at)(last_unvote_tallied_at)(last_rewarded_at) )
 };
 
 typedef eosio::multi_index
 < "votes"_n, vote_t,
-    indexed_by<"owner"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_owner>                  >,
+    indexed_by<"voter"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>                  >,
+    indexed_by<"candidate"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>              >,
     indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>               >,
     indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>             >,
     indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>           >,
     indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at>   >,
     indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
     indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at>       >
-> vote_multi_index_t;
+> vote_tbl;
 
 
 /**
