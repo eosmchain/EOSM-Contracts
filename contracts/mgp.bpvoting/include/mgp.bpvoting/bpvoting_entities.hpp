@@ -35,10 +35,10 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     uint64_t max_tally_unvote_iterate_steps;
     uint64_t max_reward_iterate_steps;
     uint64_t max_bp_size;
-    uint64_t bp_rewards_per_day;            //for one BP
     uint64_t election_round_sec;                 
     uint64_t refund_delay_sec;
     uint64_t election_round_start_hour;     //GMT+0 Time
+    asset bp_rewards_per_day;            //for one BP
     asset min_bp_list_quantity;
     asset min_bp_accept_quantity;
     asset min_bp_vote_quantity;
@@ -54,10 +54,10 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         max_tally_unvote_iterate_steps  = 20;
         max_reward_iterate_steps        = 50;
         max_bp_size                     = 21;
-        bp_rewards_per_day              = 1580;
         election_round_sec              = seconds_per_day;
         refund_delay_sec                = 3 * seconds_per_day;
         election_round_start_hour       = 1; //i.e. 9 AM for GMT+8 Shanghai Time, 24hrs per round
+        bp_rewards_per_day              = asset(1580'0000ll, SYS_SYMBOL);
         min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
         min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
@@ -69,7 +69,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 
     EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)
                                 (max_reward_iterate_steps)(max_bp_size)
-                                (bp_rewards_per_day)(election_round_sec)(refund_delay_sec)(election_round_start_hour)
+                                (election_round_sec)(refund_delay_sec)(election_round_start_hour)(bp_rewards_per_day)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
                                 (total_listed)(total_voted)(total_received_rewards)(available_rewards)
                                 (started_at)(last_election_round) )

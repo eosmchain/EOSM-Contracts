@@ -153,7 +153,8 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		check( _dbc.get(voter), "Err: voter not found" );
 
 		candidate.received_votes += itr->quantity;
-		_elect(round.elected_bps, candidate);
+		if (candidate.staked_votes + candidate.received_votes >= _gstate.min_bp_accept_quantity)
+			_elect(round.elected_bps, candidate);
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
@@ -238,8 +239,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
-		auto bp_rewards = div( mul(_gstate.bp_rewards_per_day, bp.self_reward_share), share_boost );
-		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
+		auto bp_rewards = div( mul(_gstate.bp_rewards_per_day.amount, bp.self_reward_share), share_boost );
+		auto voter_rewards = _gstate.bp_rewards_per_day.amount - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
@@ -256,10 +257,10 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		check(total_to_reward <= _gstate.available_rewards, "Err: insufficient to reward" );
 		_gstate.available_rewards -= total_to_reward;
 		
-		if (_gstate.available_rewards > 0) {
+		if (_gstate.available_rewards.amount > 0) {
 			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
 			transfer_act.send( _self, "mgp.devshare", _gstate.available_rewards, "" );
-			_gstate.available_rewards = 0;
+			_gstate.available_rewards = asset(0, SYS_SYMBOL);
 		}
 	}
 
@@ -377,20 +378,14 @@ void mgp_bpvoting::config(
 /**
  *	ACTION: unvote fully or partially
  */
-void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset& quantity) {
+void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	require_auth( owner );
-
-	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
-	check( quantity.is_valid(), "Invalid quantity");
-	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity.amount > 0, "unvote quanity must be positive" );
 
 	auto ct = current_time_point();
 
 	vote_tbl votes(_self, _self.value);
 	auto vote_itr = votes.find(vote_id);
 	check( vote_itr != votes.end(), "vote not found" );
-	check( vote_itr->quantity >= quantity, "unvote overflowed: " + vote_itr->quantity.to_string() );
 	auto elapsed = ct.sec_since_epoch() - vote_itr->voted_at.sec_since_epoch();
 	check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
 	votes.modify( vote_itr, _self, [&]( auto& row ) {
@@ -399,15 +394,16 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id, const asset
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
-	check( voter.total_staked >= quantity, "Err: unvote exceeds total staked" );
-	voter.total_staked -= quantity;
+	check( voter.total_staked >= vote_itr->quantity, "Err: unvote exceeds total staked" );
+	voter.total_staked -= vote_itr->quantity;
 	_dbc.set(voter);
 
-	_gstate.total_voted -= quantity;
+	check( _gstate.total_voted >= vote_itr->quantity, "Err: unvote exceeds global total staked" );
+	_gstate.total_voted -= vote_itr->quantity;
 
  	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
-        transfer_act.send( _self, owner, quantity, "unvote" );
+        transfer_act.send( _self, owner, vote_itr->quantity, "unvote" );
     }
 
 }
