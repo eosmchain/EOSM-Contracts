@@ -199,6 +199,8 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
+		round.unvote_count++;
+		
 	}
 
 	round.unvote_tally_completed = completed;
