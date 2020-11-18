@@ -37,7 +37,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		auto rounds = elapsed / _gstate.election_round_sec;
 		election_round.ended_at = election_round.started_at + time_point(eosio::seconds(rounds * _gstate.election_round_sec));
 		_dbc.set( election_round );
-		
+
 	}
 }
 
@@ -443,9 +443,9 @@ void mgp_bpvoting::execute() {
 	_current_election_round(ct, curr_round);
 	auto curr_round_id = curr_round.round_id;
 	check( curr_round_id >= 2, "too early to execute election" );
-	check( _gstate.last_execution_round < curr_round_id, "already executed" );
-
 	auto target_round_id = curr_round_id - 1;
+	check( _gstate.last_execution_round < target_round_id, "already executed" );
+
 	if (_gstate.last_execution_round + 1 < target_round_id)
 		target_round_id = _gstate.last_execution_round + 1;
 
