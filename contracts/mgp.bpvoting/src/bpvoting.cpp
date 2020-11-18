@@ -99,6 +99,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	election_round_t election_round;
 	_current_election_round(ct, election_round);
 	election_round.vote_count++;
+	election_round.total_votes += quantity;
 	_dbc.set( election_round );
 
 }
