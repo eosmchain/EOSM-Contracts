@@ -26,6 +26,7 @@ static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
 static constexpr uint32_t rewards_to_bp_per_day = 1580;
+static constexpr uint32_t share_boost           = 10000;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
 
@@ -200,14 +201,14 @@ struct CONTRACT_TBL vote_t {
 
 typedef eosio::multi_index
 < "votes"_n, vote_t,
-    indexed_by<"voter"_n,           const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>                  >,
-    indexed_by<"candidate"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>              >,
-    indexed_by<"voteda"_n,          const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>               >,
-    indexed_by<"unvoteda"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>             >,
-    indexed_by<"restarted"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>           >,
-    indexed_by<"lvotallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at>   >,
-    indexed_by<"luvtallied"_n,      const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
-    indexed_by<"lastrewarded"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at>       >
+    indexed_by<"voter"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>                  >,
+    indexed_by<"candidate"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>              >,
+    indexed_by<"voteda"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>               >,
+    indexed_by<"unvoteda"_n,     const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>             >,
+    indexed_by<"restarted"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>           >,
+    indexed_by<"lvotallied"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at>   >,
+    indexed_by<"luvtallied"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_last_unvote_tallied_at> >,
+    indexed_by<"lastrewarded"_n, const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at>       >
 > vote_tbl;
 
 

@@ -107,12 +107,13 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 	elected_bps[candidate.owner] = candidate.received_votes;
 
 	typedef std::pair<name, asset> bp_info_t;
-	auto cmp = [](bp_info_t a, bp_info_t b) { return a.second >= b.second; };
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_info_t> bps;
 	for (auto& it : elected_bps) {
 		bps.push_back(it);
 	}
+
+	auto cmp = [](bp_info_t a, bp_info_t b) { return a.second >= b.second; };
 	std::sort(bps.begin(), bps.end(), cmp);
 	elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
@@ -124,23 +125,24 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"lvotallied"_n>();
-	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
+	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
+	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+	for (auto itr = lower_itr; itr != upper_itr; itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found " 
-			"vote_id: " + to_string(itr->id) +
-			"owner: " + itr->owner.to_string() +
-			"candidate: " + itr->candidate.to_string() + 
-			"quantity: " + itr->quantity.to_string()
-		 );
+		// check( vote_itr != votes.end(), "Err: vote not found " 
+		// 	"vote_id: " + to_string(itr->id) +
+		// 	"owner: " + itr->owner.to_string() +
+		// 	"candidate: " + itr->candidate.to_string() + 
+		// 	"quantity: " + itr->quantity.to_string()
+		//  );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
    		});
@@ -166,18 +168,19 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"luvtallied"_n>();
+	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+	for (auto itr = lower_itr; itr != upper_itr; itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found " + to_string(itr->id)  );
+		check( vote_itr != votes.end(), "Err: vote not found " + to_string(itr->id) );
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_unvote_tallied_at = current_time_point();
    		});
@@ -221,8 +224,11 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
       		row.last_rewarded_at = current_time_point();
    		});
 
+		if (itr->unvoted_at < round.ended_at)
+			continue;	//skip unovted before new round
+
 		if (!round.elected_bps.count(itr->candidate))
-			continue;
+			continue;	//skip vote with its canddiate unelected
 
 		candidate_t bp(itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
@@ -232,7 +238,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
-		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), 10000);
+		auto bp_rewards = div(mul(_gstate.bp_rewards_per_day, bp.self_reward_share), share_boost);
 		auto voter_rewards = _gstate.bp_rewards_per_day - bp_rewards;
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
@@ -424,9 +430,9 @@ void mgp_bpvoting::execute() {
 	_current_election_round(ct, curr_round);
 	auto curr_round_id = curr_round.round_id;
 	check( curr_round_id >= 2, "too early to execute election" );
-
+	
 	election_round_t target_round(curr_round_id - 1);
-	check( !target_round.execute_completed, "target round is completed" );
+	check( !target_round.reward_completed, "reward completed for target round" );
 
 	election_round_t last_round(curr_round_id - 2);
 	if (_dbc.get(last_round) && !last_round.vote_tally_completed) {
@@ -437,9 +443,7 @@ void mgp_bpvoting::execute() {
 		_tally_unvotes_for_election_round(target_round);
 	}
 
-	if (target_round.unvote_tally_completed &&
-		last_round.vote_tally_completed &&
-		!target_round.reward_completed) {
+	if (target_round.unvote_tally_completed && last_round.vote_tally_completed) {
 		_reward_through_votes(target_round);
 	}
 }
