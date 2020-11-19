@@ -215,6 +215,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
+	string ids = "";
+
 	bool completed = true;
 	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
@@ -223,8 +225,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		if (vote_itr == votes.end())
-			continue;
+		ids += to_string(itr->id) + ", ";
+		continue;
 
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
@@ -253,7 +255,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		_dbc.set(voter);
 
    	}
-
+	check( false, "ids = " + ids );
+	
 	round.reward_completed = completed;
 	_dbc.set( round );
 
