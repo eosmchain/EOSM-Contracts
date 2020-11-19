@@ -462,6 +462,7 @@ void mgp_bpvoting::execute() {
 		_gstate.last_execution_round++;
 		return;
 	}
+	check( !target_round.execute_completed, "round[ " + to_string(target_round.round_id) + " ] already executed" );
 
 	election_round_t last_round(target_round_id - 1);
 	bool last_round_exists = _dbc.get(last_round);
