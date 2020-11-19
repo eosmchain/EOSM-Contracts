@@ -187,6 +187,12 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_last_unvote_tallied_at() const  { return uint64_t(last_unvote_tallied_at.sec_since_epoch());  }
     uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
 
+    string to_string() const {
+        return 
+            ", owner="+ owner.to_string() + 
+            ", quantity=" + quantity.to_string();
+    }
+
     uint64_t primary_key() const { return id; }
     // uint64_t scope() const { return 0; }
 
