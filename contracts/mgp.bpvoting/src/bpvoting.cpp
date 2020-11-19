@@ -457,19 +457,16 @@ void mgp_bpvoting::execute() {
 	}
 
 	election_round_t last_round(target_round_id - 1);
-	if (!_dbc.get(last_round)) {
-		last_round.vote_tally_completed = true;
-	} else if (!last_round.vote_tally_completed) {
+	bool last_round_exists = _dbc.get(last_round);
+	if (last_round_exists && !last_round.vote_tally_completed)
 		_tally_votes_for_election_round(last_round);
-	}
 
-	if (!target_round.unvote_tally_completed) {
+	if (!target_round.unvote_tally_completed)
 		_tally_unvotes_for_election_round(target_round);
-	}
 
-	if (target_round.unvote_tally_completed && last_round.vote_tally_completed) {
-		_reward_through_votes(target_round);
-	}
+	if (target_round.unvote_tally_completed && 
+		(!last_round_exists || (last_round_exists && last_round.vote_tally_completed)) ) 
+			_reward_through_votes(target_round);
 }
 
 /**
