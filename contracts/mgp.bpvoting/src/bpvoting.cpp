@@ -223,7 +223,9 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: (reward) vote not found: id=" + to_string(itr->id) + ", " + itr->to_string() );
+		check( vote_itr != votes.end(), "Err: (reward) vote not found: id=" + to_string(itr->id) + ", " 
+										+ itr->to_string() + ", steps=" + to_string(steps) );
+										
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
    		});
