@@ -131,20 +131,13 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = lower_itr; itr != upper_itr; itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
 		}
-
-		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found " 
-			"vote_id: " + to_string(itr->id) +
-			"owner: " + itr->owner.to_string() +
-			"candidate: " + itr->candidate.to_string() + 
-			"quantity: " + itr->quantity.to_string()
-		 );
-		votes.modify( vote_itr, _self, [&]( auto& row ) {
+		auto v_itr = votes.find(itr->id);
+		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
    		});
 
@@ -175,15 +168,14 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = lower_itr; itr != upper_itr; itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
 		}
 
-		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: vote not found: id=" + to_string(itr->id) + ", " + itr->to_string() );
-		votes.modify( vote_itr, _self, [&]( auto& row ) {
+		auto v_itr = votes.find(itr->id);
+		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_unvote_tallied_at = current_time_point();
    		});
 		   
@@ -215,22 +207,15 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	string ids = "";
-
 	bool completed = true;
-	for (auto itr = idx.begin(); itr != upper_itr; itr++) {
+	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
 			completed = false;
 			break;
 		}
 
-		auto vote_itr = votes.find(itr->id);
-		auto found = vote_itr != votes.end();
-
-		ids += "[" + to_string(itr->id) + ", " + to_string(found) + "]";
-		continue;
-
-		votes.modify( vote_itr, _self, [&]( auto& row ) {
+		auto v_itr = votes.find(itr->id);
+		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
    		});
 
@@ -257,7 +242,6 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		_dbc.set(voter);
 
    	}
-	check( false, "ids = " + ids );
 
 	round.reward_completed = completed;
 	_dbc.set( round );
@@ -396,26 +380,26 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	auto ct = current_time_point();
 
 	vote_tbl votes(_self, _self.value);
-	auto vote_itr = votes.find(vote_id);
-	check( vote_itr != votes.end(), "vote not found" );
-	auto elapsed = ct.sec_since_epoch() - vote_itr->voted_at.sec_since_epoch();
+	auto v_itr = votes.find(vote_id);
+	check( v_itr != votes.end(), "vote not found" );
+	auto elapsed = ct.sec_since_epoch() - v_itr->voted_at.sec_since_epoch();
 	check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
-	votes.modify( vote_itr, _self, [&]( auto& row ) {
+	votes.modify( v_itr, _self, [&]( auto& row ) {
 		row.unvoted_at = ct;
 	});
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
-	check( voter.total_staked >= vote_itr->quantity, "Err: unvote exceeds total staked" );
-	voter.total_staked -= vote_itr->quantity;
+	check( voter.total_staked >= v_itr->quantity, "Err: unvote exceeds total staked" );
+	voter.total_staked -= v_itr->quantity;
 	_dbc.set(voter);
 
-	check( _gstate.total_voted >= vote_itr->quantity, "Err: unvote exceeds global total staked" );
-	_gstate.total_voted -= vote_itr->quantity;
+	check( _gstate.total_voted >= v_itr->quantity, "Err: unvote exceeds global total staked" );
+	_gstate.total_voted -= v_itr->quantity;
 
  	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
-        transfer_act.send( _self, owner, vote_itr->quantity, "unvote" );
+        transfer_act.send( _self, owner, v_itr->quantity, "unvote" );
     }
 
 }
