@@ -223,8 +223,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		check( vote_itr != votes.end(), "Err: (reward) vote not found: id=" + to_string(itr->id) + ", " 
-										+ itr->to_string() + ", steps=" + to_string(step) );
+		if (vote_itr == votes.end())
+			continue;
 
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
@@ -452,8 +452,6 @@ void mgp_bpvoting::execute() {
 	if (_gstate.last_execution_round + 1 < target_round_id)
 		target_round_id = _gstate.last_execution_round + 1;
 
-	check( false, "target_round_id: " + to_string(target_round_id) );
-	
 	election_round_t target_round(target_round_id);
 	if (!_dbc.get(target_round)) {
 		_gstate.last_execution_round++;
@@ -468,9 +466,8 @@ void mgp_bpvoting::execute() {
 	if (!target_round.unvote_tally_completed)
 		_tally_unvotes_for_election_round(target_round);
 
-	if (target_round.unvote_tally_completed && 
-		(!last_round_exists || (last_round_exists && last_round.vote_tally_completed)) ) 
-			_reward_through_votes(target_round);
+	if (target_round.unvote_tally_completed && (!last_round_exists || (last_round_exists && last_round.vote_tally_completed)) ) 
+		_reward_through_votes(target_round);
 }
 
 /**
