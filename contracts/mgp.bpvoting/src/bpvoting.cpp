@@ -225,7 +225,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto vote_itr = votes.find(itr->id);
-		ids += "[" + to_string(itr->id) + ", " + to_string(voter_itr->id) + "]";
+		ids += "[" + to_string(itr->id) + ", " + to_string(vote_itr->id) + "]";
 		continue;
 
 		votes.modify( vote_itr, _self, [&]( auto& row ) {
