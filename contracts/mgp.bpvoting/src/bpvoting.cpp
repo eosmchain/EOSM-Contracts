@@ -452,6 +452,8 @@ void mgp_bpvoting::execute() {
 	if (_gstate.last_execution_round + 1 < target_round_id)
 		target_round_id = _gstate.last_execution_round + 1;
 
+	check( false, "target_round_id: " + to_string(target_round_id) );
+	
 	election_round_t target_round(target_round_id);
 	if (!_dbc.get(target_round)) {
 		_gstate.last_execution_round++;
