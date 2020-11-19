@@ -370,6 +370,11 @@ void mgp_bpvoting::config(
 
 }
 
+void mgp_bpvoting::setelect(const uint64_t& last_election_round, const uint64_t& last_execution_round) {
+	_gstate.last_election_round = last_election_round;
+	_gstate.last_execution_round = last_execution_round;
+
+}
 
 /**
  *	ACTION: unvote fully or partially

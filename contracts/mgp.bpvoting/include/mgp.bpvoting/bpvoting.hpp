@@ -59,6 +59,9 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
                 const asset& min_bp_vote_quantity);
 
     [[eosio::action]]
+    void setelect(const uint64_t& last_election_round, const uint64_t& last_execution_round);
+
+    [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id);
 
     [[eosio::action]]
@@ -73,12 +76,13 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
-    using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init   >;
-    using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config >;
-    using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote >;
-    using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute>;
-    using delist_action   = action_wrapper<name("delist"),   &mgp_bpvoting::delist>;
-    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit>;
+    using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
+    using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config   >;
+    using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
+    using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
+    using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
+    using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
+    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
 
   private:
     uint64_t get_round_id(const time_point& ct);
