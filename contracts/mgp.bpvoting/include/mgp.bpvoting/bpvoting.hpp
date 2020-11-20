@@ -38,8 +38,8 @@ if ( debug ) {                               \
    str += std::string(__FUNCTION__);        \
    str += std::string("]");                 \
    while(str.size() <= WASM_FUNCTION_PRINT_LENGTH) str += std::string(" ");\
-   print(str);                                                             \
-   print( __VA_ARGS__ ); }}
+   eosio::print(str);                                                             \
+   eosio::print( __VA_ARGS__ ); }}
 
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
