@@ -372,7 +372,7 @@ void mgp_bpvoting::config(
 
 void mgp_bpvoting::setelect(const uint64_t& last_election_round, const uint64_t& last_execution_round) {
 	require_auth( _self );
-	
+
 	_gstate.last_election_round = last_election_round;
 	_gstate.last_execution_round = last_execution_round;
 
@@ -394,6 +394,12 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	votes.modify( v_itr, _self, [&]( auto& row ) {
 		row.unvoted_at = ct;
 	});
+
+	candidate_t candidate(v_itr->candidate);
+	check( _dbc.get(candidate), "Err: vote's candidate not found" );
+	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient" );
+	candidate.received_votes -= v_itr->quantity;
+	_dbc.set(candidate);
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
