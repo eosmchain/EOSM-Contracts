@@ -49,10 +49,10 @@ level=$1
 
 [ $level == "deploy" ] && deploy
 
-[ $level == 0 ] && init
-[ $level == 1 ] && reward
-[ $level == 2 ] && list
-[ $level == 3 ] && vote
-[ $level == 4 ] && exec
+[ $level == "init" ]  && init
+[ $level == "reward" ] && reward
+[ $level == "list" ] && list
+[ $level == "vote" ] && vote
+[ $level == "exec" ] && exec
 
 
