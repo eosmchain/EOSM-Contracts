@@ -125,6 +125,7 @@ struct CONTRACT_TBL candidate_t {
     uint32_t self_reward_share;     //boost by 10000
     asset staked_votes;             //self staked
     asset received_votes;           //other voted
+    asset tallied_votes;            //received only, updated upon vote/unvote tally
     asset last_claimed_rewards;     //unclaimed total rewards
     asset total_claimed_rewards;    //unclaimed total rewards
     asset unclaimed_rewards;        //unclaimed total rewards
@@ -138,7 +139,7 @@ struct CONTRACT_TBL candidate_t {
     typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
 
     EOSLIB_SERIALIZE(candidate_t,   (owner)(self_reward_share)
-                                    (staked_votes)(received_votes)
+                                    (staked_votes)(received_votes)(tallied_votes)
                                     (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
 };
 

@@ -146,8 +146,8 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		candidate.received_votes += itr->quantity;
-		if (candidate.staked_votes + candidate.received_votes >= _gstate.min_bp_accept_quantity)
+		candidate.tallied_votes += itr->quantity;
+		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
 			_elect(round.elected_bps, candidate);
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
@@ -181,8 +181,8 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		   
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
-		check( candidate.received_votes >= itr->quantity, "Err: unvote exceeded" );
-		candidate.received_votes -= itr->quantity;
+		check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
+		candidate.tallied_votes -= itr->quantity;
 		_elect(round.elected_bps, candidate);
 
 		voter_t voter(itr->owner);
