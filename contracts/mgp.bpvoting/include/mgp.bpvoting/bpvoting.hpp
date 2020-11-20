@@ -25,6 +25,22 @@ using eosio::unsigned_int;
 
 using std::string;
 
+static constexpr bool DEBUG = true;
+
+#define WASM_FUNCTION_PRINT_LENGTH 50
+
+#define MGP_LOG( debug, exception, ... ) {  \
+if ( debug ) {                               \
+   std::string str = std::string(__FILE__); \
+   str += std::string(":");                 \
+   str += std::to_string(__LINE__);         \
+   str += std::string(":[");                \
+   str += std::string(__FUNCTION__);        \
+   str += std::string("]");                 \
+   while(str.size() <= WASM_FUNCTION_PRINT_LENGTH) str += std::string(" ");\
+   print(str);                                                             \
+   print( __VA_ARGS__ ); }}
+
 class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     global_singleton    _global;

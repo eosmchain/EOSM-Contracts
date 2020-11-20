@@ -130,8 +130,11 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
+	MGP_LOG(DEBUG, "tally_vote:: last_round_id: ", round.round_id);
+
 	bool completed = true;
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+		MGP_LOG(DEBUG, "itr->id: ", itr->id);
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
@@ -139,6 +142,7 @@ void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
 		auto v_itr = votes.find(itr->id);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
+			MGP_LOG(DEBUG, "itr->last_vote_tallied_at: ", row.last_vote_tallied_at.sec_since_epoch());
    		});
 
 		candidate_t candidate(itr->candidate);
@@ -167,8 +171,10 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
+	MGP_LOG(DEBUG, "unvote:: target_round_id: ", round.round_id);
 	bool completed = true;
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+		MGP_LOG(DEBUG, "itr->id: ", itr->id);
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
@@ -177,6 +183,7 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 		auto v_itr = votes.find(itr->id);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_unvote_tallied_at = current_time_point();
+			MGP_LOG(DEBUG, "itr->last_unvote_tallied_at: ", row.last_unvote_tallied_at.sec_since_epoch());
    		});
 		   
 		candidate_t candidate(itr->candidate);
@@ -451,8 +458,11 @@ void mgp_bpvoting::execute() {
 	auto target_round_id = curr_round_id - 1;
 	check( _gstate.last_execution_round < target_round_id, "already executed" );
 
+print("target_round_id: ", target_round_id);
 	if (_gstate.last_execution_round + 1 < target_round_id)
 		target_round_id = _gstate.last_execution_round + 1;
+
+print("new target_round_id: ", target_round_id);
 
 	election_round_t target_round(target_round_id);
 	if (!_dbc.get(target_round)) {

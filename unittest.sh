@@ -48,7 +48,6 @@ level=$1
 #[ -z "$level" ] && level=0
 
 [ $level == "deploy" ] && deploy
-
 [ $level == "init" ]  && init
 [ $level == "reward" ] && reward
 [ $level == "list" ] && list
