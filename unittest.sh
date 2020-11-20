@@ -42,16 +42,24 @@ function exec {
   cleos push action $con execute '[]' -p masteraychen
 }
 
-. ./env
+function tbl() {
+  echo "show table rows..."
+  echo ""
 
-level=$1
+  cleos get table $con $con $*
+}
+
+. ./env
+cmd=$1
 #[ -z "$level" ] && level=0
 
-[ $level == "deploy" ] && deploy
-[ $level == "init" ]  && init
-[ $level == "reward" ] && reward
-[ $level == "list" ] && list
-[ $level == "vote" ] && vote
-[ $level == "exec" ] && exec
+[ $cmd == "deploy" ] && deploy
+[ $cmd == "init" ]  && init
+[ $cmd == "reward" ] && reward
+[ $cmd == "list" ] && list
+[ $cmd == "vote" ] && vote
+[ $cmd == "exec" ] && exec
+[ $cmd == "tbl" ] && tbl $2 $3
 
+###############   END ###################
 
