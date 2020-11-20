@@ -469,6 +469,7 @@ print("new target_round_id: ", target_round_id, "\n");
 		_gstate.last_execution_round++;
 		return;
 	}
+	MGP_LOG( DEBUG, "round: ", target_round_id);
 	check( !target_round.execute_completed, "round[ " + to_string(target_round.round_id) + " ] already executed" );
 
 	election_round_t last_round(target_round_id - 1);
