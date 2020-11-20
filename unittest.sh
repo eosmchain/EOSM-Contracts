@@ -3,6 +3,7 @@ function deploy {
     cleos set account permission $con active '{"threshold": 1,"keys": [{"key": "'$pubkey'","weight": 1}],"accounts": [{"permission":{"actor":"'$con'","permission":"eosio.code"},"weight":1}]}' owner -p $con
 
 }
+
 function init {
   echo "0. conf & init"
   echo ""
@@ -40,13 +41,13 @@ function exec {
   cleos push action $con execute '[]' -p masteraychen
 }
 
-
 . ./env
 
 level=$1
-[ -z "$level" ] && level=0
+#[ -z "$level" ] && level=0
 
 [ $level == "deploy" ] && deploy
+
 [ $level == 0 ] && init
 [ $level == 1 ] && reward
 [ $level == 2 ] && list
