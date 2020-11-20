@@ -458,11 +458,11 @@ void mgp_bpvoting::execute() {
 	auto target_round_id = curr_round_id - 1;
 	check( _gstate.last_execution_round < target_round_id, "already executed" );
 
-print("target_round_id: ", target_round_id, "\n");
+	MGP_LOG(DEBUG, "target_round_id: ", target_round_id, "\n");
 	if (_gstate.last_execution_round + 1 < target_round_id)
 		target_round_id = _gstate.last_execution_round + 1;
 
-print("new target_round_id: ", target_round_id, "\n");
+	MGP_LOG(DEBUG, "new target_round_id: ", target_round_id, "\n");
 
 	election_round_t target_round(target_round_id);
 	if (!_dbc.get(target_round)) {
