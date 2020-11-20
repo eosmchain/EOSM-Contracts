@@ -474,6 +474,10 @@ void mgp_bpvoting::execute() {
 
 	election_round_t last_round(target_round_id - 1);
 	bool last_round_exists = _dbc.get(last_round);
+	MGP_LOG( DEBUG, "last_round_exists : ", last_round_exists,
+					"last_round.vote_tally_completed: ", last_round.vote_tally_completed,
+					"\n" )
+
 	if (last_round_exists && !last_round.vote_tally_completed)
 		_tally_votes_for_election_round(last_round);
 
