@@ -54,12 +54,12 @@ cmd=$1
 #[ -z "$level" ] && level=0
 
 [ $cmd == "deploy" ] && deploy
-[ $cmd == "init" ]  && init
+[ $cmd == "init"   ] && init
 [ $cmd == "reward" ] && reward
-[ $cmd == "list" ] && list
-[ $cmd == "vote" ] && vote
-[ $cmd == "exec" ] && exec
-[ $cmd == "tbl" ] && tbl $2 $3
+[ $cmd == "list"   ] && list
+[ $cmd == "vote"   ] && vote
+[ $cmd == "exec"   ] && exec
+[ $cmd == "tbl"    ] && tbl $2 $3
 
 ###############   END ###################
 
