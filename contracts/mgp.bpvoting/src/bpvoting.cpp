@@ -212,7 +212,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	check( round.elected_bps.size() > 0, "none elected" );
+	check( round.elected_bps.size() > 0, "none elected for round[" + to_string(round.round_id) + "]" );
 	auto per_bp_rewards = div( _gstate.available_rewards.amount, round.elected_bps.size() );
 
 	bool completed = true;
