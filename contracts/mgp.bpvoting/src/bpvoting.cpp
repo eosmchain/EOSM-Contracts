@@ -209,11 +209,6 @@ void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
 
 //reward target_round
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
-	vote_tbl votes(_self, _self.value);
-	auto idx = votes.get_index<"lastrewarded"_n>();
-	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
-	int step = 0;
-
 	if (round.elected_bps.size() == 0) {
 		round.reward_completed = true;
 		_dbc.set( round );
@@ -221,9 +216,13 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		return;
 	}
 
+	vote_tbl votes(_self, _self.value);
+	auto idx = votes.get_index<"lastrewarded"_n>();
+	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
+	
 	auto per_bp_rewards = div( _gstate.available_rewards.amount, round.elected_bps.size() );
-
 	bool completed = true;
+	int step = 0;
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
 			completed = false;
@@ -231,15 +230,13 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		}
 
 		auto v_itr = votes.find(itr->id);
+		check( v_itr != votes.end(), "vote[" + to_string(itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_rewarded_at = current_time_point();
    		});
 
-		if (itr->unvoted_at < round.ended_at)
-			continue;	//skip unovted before new round
-
 		if (!round.elected_bps.count(itr->candidate))
-			continue;	//skip vote with its canddiate unelected
+			continue;	//skip vote with its candidate unelected
 
 		candidate_t bp(itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
@@ -477,7 +474,7 @@ void mgp_bpvoting::execute() {
 	if (!target_round.unvote_apply_completed)
 		_apply_unvotes_for_target_round(target_round);
 
-	if (target_round.unvote_apply_completed && last_round.vote_tally_completed) 
+	if (last_round.vote_tally_completed && target_round.unvote_apply_completed) 
 		_reward_through_votes(target_round);
 }
 
