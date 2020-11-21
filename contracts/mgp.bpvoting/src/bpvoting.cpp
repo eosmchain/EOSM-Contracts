@@ -451,7 +451,7 @@ void mgp_bpvoting::execute() {
 
 	auto target_round_id = last_round.next_round_id;
 	election_round_t target_round(target_round_id);
-	check( !_dbc.get(target_round), "Err: target round[ " + to_string(target_round_id) + " ] not found" );
+	check( _dbc.get(target_round), "Err: target round[ " + to_string(target_round_id) + " ] not found" );
 	check( !target_round.execute_completed, "target round[ " + to_string(target_round_id) + " ] already executed" );
 
 	if (!last_round.vote_tally_completed)
