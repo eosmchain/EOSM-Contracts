@@ -34,6 +34,10 @@ function vote {
   cleos transfer eosio $con "100.0000 MGP" "vote:masteraychen"
   cleos transfer eosio $con "200.0000 MGP" "vote:richard.chen"
   cleos transfer eosio $con "300.0000 MGP" "vote:raymond.chen"
+  cleos transfer masteraychen $con "30.0000 MGP" "vote:raymond.chen"
+  cleos transfer masteraychen $con "40.0000 MGP" "vote:raymond.chen"
+  cleos transfer masteraychen $con "50.0000 MGP" "vote:richard.chen"
+  cleos transfer masteraychen $con "60.0000 MGP" "vote:masteraychen"
 }
 
 function exec {
