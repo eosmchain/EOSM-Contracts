@@ -173,7 +173,7 @@ void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
 
 	bool completed = true;
 	// string ids = "";
-	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
@@ -213,7 +213,13 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	check( round.elected_bps.size() > 0, "none elected for round[" + to_string(round.round_id) + "]" );
+	if (round.elected_bps.size() == 0) {
+		round.reward_completed = true;
+		_dbc.set( round );
+		_gstate.last_execution_round = round.round_id;
+		return;
+	}
+
 	auto per_bp_rewards = div( _gstate.available_rewards.amount, round.elected_bps.size() );
 
 	bool completed = true;
