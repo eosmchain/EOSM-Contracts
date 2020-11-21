@@ -164,10 +164,10 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
 
 }
 
-void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
+void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
-	auto idx = votes.get_index<"luvtallied"_n>();
-	// auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
+	auto idx = votes.get_index<"unvoteda"_n>();
+	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
@@ -181,9 +181,8 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 		// ids += to_string(itr->id) + ", ";
 
 		auto v_itr = votes.find(itr->id);
-		votes.modify( v_itr, _self, [&]( auto& row ) {
-      		row.last_unvote_tallied_at = current_time_point();
-   		});
+		check( v_itr != votes.end(), "Err: vote[" + to_string(itr->id) + "] not found" );
+		votes.erase( v_itr );
 		   
 		candidate_t candidate(itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
@@ -202,7 +201,7 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 	}
 	// check( false, ids );
 
-	round.unvote_tally_completed = completed;
+	round.unvote_apply_completed = completed;
 
 	_dbc.set( round  );
 
@@ -462,10 +461,10 @@ void mgp_bpvoting::execute() {
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round(last_round);
 
-	if (!target_round.unvote_tally_completed)
-		_tally_unvotes_for_target_round(target_round);
+	if (!target_round.unvote_apply_completed)
+		_apply_unvotes_for_target_round(target_round);
 
-	if (target_round.unvote_tally_completed && last_round.vote_tally_completed) 
+	if (target_round.unvote_apply_completed && last_round.vote_tally_completed) 
 		_reward_through_votes(target_round);
 }
 
