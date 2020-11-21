@@ -172,13 +172,13 @@ struct CONTRACT_TBL vote_t {
     uint64_t last_tally_round;
     uint64_t last_reward_round;
 
-    uint64_t by_voter() const             { return owner.value;                                 }
-    uint64_t by_candidate() const         { return candidate.value;                             }
-    uint64_t by_voted_at() const          { return uint64_t(voted_at.sec_since_epoch());        }
-    uint64_t by_unvoted_at() const        { return uint64_t(unvoted_at.sec_since_epoch());      }
-    uint64_t by_restarted_at() const      { return uint64_t(restarted_at.sec_since_epoch());    }
-    uint64_t by_last_tally_round() const  { return last_tally_round;                            }
-    uint64_t by_last_reward_round() const { return last_reward_round;                           }
+    uint64_t by_voter() const             { return owner.value;                              }
+    uint64_t by_candidate() const         { return candidate.value;                          }
+    uint64_t by_voted_at() const          { return uint64_t(voted_at.sec_since_epoch());     }
+    uint64_t by_unvoted_at() const        { return uint64_t(unvoted_at.sec_since_epoch());   }
+    uint64_t by_restarted_at() const      { return uint64_t(restarted_at.sec_since_epoch()); }
+    uint64_t by_last_tally_round() const  { return last_tally_round;                         }
+    uint64_t by_last_reward_round() const { return last_reward_round;                        }
 
     uint64_t primary_key() const { return id; }
     // uint64_t scope() const { return 0; }

@@ -126,15 +126,15 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 	}
 }
 
-void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
+void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& target_round, election_round_t& last_round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"lasttallyr"_n>();
-	// auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
-	auto upper_itr = idx.upper_bound( round.round_id ); 
+	auto lower_itr = idx.lower_bound( last_round.round_id ); 
+	auto upper_itr = idx.upper_bound( last_round.round_id ); 
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
@@ -142,7 +142,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
 		auto v_itr = votes.find(itr->id);
 		check( v_itr != votes.end(), "Err: vote[" + to_string(itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
-      		row.last_tally_round = round.round_id;
+      		row.last_tally_round = target_round.round_id;
    		});
 
 		candidate_t candidate(itr->candidate);
@@ -152,15 +152,15 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
 
 		candidate.tallied_votes += itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
-			_elect(round.elected_bps, candidate);
+			_elect(last_round.elected_bps, candidate);
 
-		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto age = last_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		round.total_votes_in_coinage += coinage;		
+		last_round.total_votes_in_coinage += coinage;		
 	}
 
-	round.vote_tally_completed = completed;
-	_dbc.set( round );
+	target_round.vote_tally_completed = completed;
+	_dbc.set( target_round );
 
 }
 
@@ -469,7 +469,7 @@ void mgp_bpvoting::execute() {
 	check( !target_round.reward_completed, "target round[ " + to_string(target_round_id) + " ] already rewarded" );
 
 	if (!last_round.vote_tally_completed)
-		_tally_votes_for_last_round(last_round);
+		_tally_votes_for_last_round(target_round, last_round);
 
 	if (!target_round.unvote_apply_completed)
 		_apply_unvotes_for_target_round(target_round);
