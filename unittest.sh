@@ -60,6 +60,10 @@ cmd=$1
 [ $cmd == "vote"   ] && vote
 [ $cmd == "exec"   ] && exec
 [ $cmd == "tbl"    ] && tbl $2 $3
+[ $cmd == "global" ] && tbl global $2
+[ $cmd == "candidates" ] && tbl candidates $2
+[ $cmd == "electrounds" ] && tbl electrounds $2
+[ $cmd == "votes" ] && tbl votes $2
 
 echo ""
 ###############   END ###################
