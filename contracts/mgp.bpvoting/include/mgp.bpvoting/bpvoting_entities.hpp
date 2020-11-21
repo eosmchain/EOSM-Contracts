@@ -87,7 +87,6 @@ struct CONTRACT_TBL election_round_t{
 
     uint64_t vote_count             = 0;
     uint64_t unvote_count           = 0;
-    uint64_t vote_tallied_count     = 0;
 
     bool     vote_tally_completed   = false;
     bool     unvote_apply_completed = false;
@@ -96,7 +95,6 @@ struct CONTRACT_TBL election_round_t{
 
     asset total_votes               = asset(0, SYS_SYMBOL);
     asset total_votes_in_coinage    = asset(0, SYS_SYMBOL);
-    asset available_rewards         = asset(0, SYS_SYMBOL); //rewards from last inflation distribution
     asset total_rewards             = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
     std::map<name, asset> elected_bps;      //max 21 bps
@@ -110,9 +108,9 @@ struct CONTRACT_TBL election_round_t{
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)
-                                        (vote_count)(unvote_count)(vote_tallied_count)
+                                        (vote_count)(unvote_count)
                                         (vote_tally_completed)(unvote_apply_completed)(reward_completed)(execute_completed)
-                                        (total_votes)(total_votes_in_coinage)(available_rewards)(total_rewards)
+                                        (total_votes)(total_votes_in_coinage)(total_rewards)
                                         (elected_bps) )
 };
 
