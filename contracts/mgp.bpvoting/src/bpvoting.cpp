@@ -24,19 +24,21 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	return rounds; //usually in days
 }
 
-void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& election_round) {
+void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& curr_round) {
 	auto round_id = get_round_id(ct);
-	election_round.round_id = round_id;
+	curr_round.round_id = round_id;
 
-	if (!_dbc.get( election_round )) {
+	if (!_dbc.get( curr_round )) {
 		election_round_t last_round(_gstate.last_election_round);
 		check( _dbc.get(last_round), "Err: last round not found" );
+		last_round.next_round_id = curr_round.round_id;
+		_dbc.set( last_round );
 
-		election_round.started_at = last_round.ended_at;
+		curr_round.started_at = last_round.ended_at;
 		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
-		election_round.ended_at = election_round.started_at + time_point(eosio::seconds(rounds * _gstate.election_round_sec));
-		_dbc.set( election_round );
+		curr_round.ended_at = curr_round.started_at + time_point(eosio::seconds(rounds * _gstate.election_round_sec));
+		_dbc.set( curr_round );
 
 		_gstate.last_election_round = round_id;
 	}
@@ -96,11 +98,11 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	voter.total_staked += quantity;
 	_dbc.set( voter );
 
-	election_round_t election_round;
-	_current_election_round(ct, election_round);
-	election_round.vote_count++;
-	election_round.total_votes += quantity;
-	_dbc.set( election_round );
+	election_round_t curr_round;
+	_current_election_round(ct, curr_round);
+	curr_round.vote_count++;
+	curr_round.total_votes += quantity;
+	_dbc.set( curr_round );
 
 }
 
@@ -123,26 +125,23 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 	}
 }
 
-void mgp_bpvoting::_tally_votes_for_election_round(election_round_t& round) {
+void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"lvotallied"_n>();
 	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	MGP_LOG(DEBUG, "tally_vote:: last_round_id: ", round.round_id);
-
 	bool completed = true;
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
-		MGP_LOG(DEBUG, "itr->id: ", itr->id);
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
 		}
 		auto v_itr = votes.find(itr->id);
+		check( v_itr != votes.end(), "Err: vote[" + to_string(itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_vote_tallied_at = current_time_point();
-			MGP_LOG(DEBUG, "itr->last_vote_tallied_at: ", row.last_vote_tallied_at.sec_since_epoch());
    		});
 
 		candidate_t candidate(itr->candidate);
@@ -171,7 +170,6 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) ); 
 	int step = 0;
 
-	MGP_LOG(DEBUG, "unvote:: target_round_id: ", round.round_id);
 	bool completed = true;
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		MGP_LOG(DEBUG, "itr->id: ", itr->id);
@@ -214,6 +212,9 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto upper_itr = idx.upper_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
 	int step = 0;
 
+	check( round.elected_bps.size() > 0, "none elected" );
+	auto per_bp_rewards = div( _gstate.available_rewards.amount, round.elected_bps.size() );
+
 	bool completed = true;
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
@@ -237,11 +238,16 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
+		auto elapsed = round.started_at.sec_since_epoch() - itr->voted_at.sec_since_epoch();
+		auto mons = elapsed % (30 * seconds_per_day);
+		votes.modify( v_itr, _self, [&]( auto& row ) {
+      		row.restarted_at += microseconds(30 * mons * seconds_per_day * 1000'000ll);
+   		});
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
-		auto bp_rewards = div( mul(_gstate.bp_rewards_per_day.amount, bp.self_reward_share), share_boost );
-		auto voter_rewards = _gstate.bp_rewards_per_day.amount - bp_rewards;
+		auto bp_rewards = div( mul(per_bp_rewards, bp.self_reward_share), share_boost );
+		auto voter_rewards = mul( ratio, per_bp_rewards - bp_rewards );
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
@@ -253,19 +259,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	round.reward_completed = completed;
 	_dbc.set( round );
 
-	if (completed) {
-		auto total_to_reward = round.elected_bps.size() * _gstate.bp_rewards_per_day;
-		check(total_to_reward <= _gstate.available_rewards, "Err: insufficient to reward" );
-		_gstate.available_rewards -= total_to_reward;
-		
-		if (_gstate.available_rewards.amount > 0) {
-			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
-			transfer_act.send( _self, "mgp.devshare", _gstate.available_rewards, "" );
-			_gstate.available_rewards = asset(0, SYS_SYMBOL);
-		}
-
+	if (completed)
 		_gstate.last_execution_round = round.round_id;
-	}
 
 }
 
@@ -450,42 +445,22 @@ void mgp_bpvoting::delist(const name& issuer) {
  *	ACTION: continuously invoked to execute election until target round is completed
  */
 void mgp_bpvoting::execute() {
-	auto ct = current_time_point();
-	election_round_t curr_round;
-	_current_election_round(ct, curr_round);
-	auto curr_round_id = curr_round.round_id;
-	check( curr_round_id >= 2, "too early to execute election" );
-	auto target_round_id = curr_round_id - 1;
-	check( _gstate.last_execution_round < target_round_id, "already executed" );
+	election_round_t last_round = _gstate.last_execution_round;
+	check( _dbc.get(last_round), "Err: last round[" + to_string(_gstate.last_execution_round) + "] not found" );
+	check( last_round.next_round_id > 0, "next round not set" );
 
-	MGP_LOG(DEBUG, "execute:: target_round_id: ", target_round_id, "\n");
-
-	if (_gstate.last_execution_round + 1 < target_round_id)
-		target_round_id = _gstate.last_execution_round + 1;
-
-	MGP_LOG(DEBUG, "execute:: new target_round_id: ", target_round_id, "\n");
-
+	auto target_round_id = last_round.next_round_id;
 	election_round_t target_round(target_round_id);
-	if (!_dbc.get(target_round)) {
-		_gstate.last_execution_round++;
-		return;
-	}
-	MGP_LOG( DEBUG, "round: ", target_round_id);
-	check( !target_round.execute_completed, "round[ " + to_string(target_round.round_id) + " ] already executed" );
+	check( !_dbc.get(target_round), "Err: target round[ " + to_string(target_round_id) + " ] not found" );
+	check( !target_round.execute_completed, "target round[ " + to_string(target_round_id) + " ] already executed" );
 
-	election_round_t last_round(target_round_id - 1);
-	bool last_round_exists = _dbc.get(last_round);
-	MGP_LOG( DEBUG, "last_round_exists : ", last_round_exists,
-					"last_round.vote_tally_completed: ", last_round.vote_tally_completed,
-					"\n" )
-
-	if (last_round_exists && !last_round.vote_tally_completed)
-		_tally_votes_for_election_round(last_round);
+	if (!last_round.vote_tally_completed)
+		_tally_votes_for_last_round(last_round);
 
 	if (!target_round.unvote_tally_completed)
 		_tally_unvotes_for_election_round(target_round);
 
-	if (target_round.unvote_tally_completed && (!last_round_exists || (last_round_exists && last_round.vote_tally_completed)) ) 
+	if (target_round.unvote_tally_completed && last_round.vote_tally_completed) 
 		_reward_through_votes(target_round);
 }
 

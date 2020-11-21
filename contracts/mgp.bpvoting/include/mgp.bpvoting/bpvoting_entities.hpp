@@ -25,7 +25,6 @@ static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
-static constexpr uint32_t rewards_to_bp_per_day = 1580;
 static constexpr uint32_t share_boost           = 10000;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
@@ -38,7 +37,6 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     uint64_t election_round_sec;                 
     uint64_t refund_delay_sec;
     uint64_t election_round_start_hour;     //GMT+0 Time
-    asset bp_rewards_per_day;            //for one BP
     asset min_bp_list_quantity;
     asset min_bp_accept_quantity;
     asset min_bp_vote_quantity;
@@ -58,7 +56,6 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         election_round_sec              = seconds_per_day;
         refund_delay_sec                = 3 * seconds_per_day;
         election_round_start_hour       = 1; //i.e. 9 AM for GMT+8 Shanghai Time, 24hrs per round
-        bp_rewards_per_day              = asset(1580'0000ll, SYS_SYMBOL);
         min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
         min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
         min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
@@ -70,7 +67,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 
     EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)
                                 (max_reward_iterate_steps)(max_bp_size)
-                                (election_round_sec)(refund_delay_sec)(election_round_start_hour)(bp_rewards_per_day)
+                                (election_round_sec)(refund_delay_sec)(election_round_start_hour)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
                                 (total_listed)(total_voted)(total_received_rewards)(available_rewards)
                                 (started_at)(last_election_round)(last_execution_round) )
@@ -83,7 +80,8 @@ typedef eosio::singleton< "global"_n, global_t > global_singleton;
  * for current onging round,
  */
 struct CONTRACT_TBL election_round_t{
-    uint64_t round_id;          //one day one round
+    uint64_t round_id = 0;          //usually one day one round
+    uint64_t next_round_id = 0;     //upon arrival of new round, record it here
     time_point started_at;
     time_point ended_at;
 
@@ -112,7 +110,7 @@ struct CONTRACT_TBL election_round_t{
 
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
-    EOSLIB_SERIALIZE(election_round_t,  (round_id)(started_at)(ended_at)
+    EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)
                                         (vote_count)(unvote_count)(vote_tallied_count)(unvote_tallied_count)
                                         (vote_tally_completed)(unvote_tally_completed)(reward_completed)(execute_completed)
                                         (total_votes)(total_votes_in_coinage)(available_rewards)(total_rewards)
