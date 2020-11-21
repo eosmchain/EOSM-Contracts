@@ -52,6 +52,7 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_
 		check( quantity >= _gstate.min_bp_list_quantity, "insufficient quantity to list as a candidate" );
 		candidate.staked_votes 				= asset(0, SYS_SYMBOL);
 		candidate.received_votes 			= asset(0, SYS_SYMBOL);
+		candidate.tallied_votes				= asset(0, SYS_SYMBOL);
 		candidate.last_claimed_rewards 		= asset(0, SYS_SYMBOL);
 		candidate.total_claimed_rewards 	= asset(0, SYS_SYMBOL);
 		candidate.unclaimed_rewards			= asset(0, SYS_SYMBOL);
@@ -171,13 +172,13 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 	int step = 0;
 
 	bool completed = true;
-	string ids = "";
+	// string ids = "";
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
 		}
-		ids += to_string(itr->id) + ", ";
+		// ids += to_string(itr->id) + ", ";
 
 		auto v_itr = votes.find(itr->id);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
@@ -199,8 +200,7 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 		round.unvote_count++;
 
 	}
-
-	check( false, ids );
+	// check( false, ids );
 
 	round.unvote_tally_completed = completed;
 
@@ -250,11 +250,11 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
 		auto bp_rewards = div( mul(per_bp_rewards, bp.self_reward_share), share_boost );
 		auto voter_rewards = mul( ratio, per_bp_rewards - bp_rewards );
-		check( false, "bp_rewards: " + to_string((uint64_t) bp_rewards) + 
-					 ",voter_rewards: " + to_string((uint64_t) voter_rewards) );
+		// check( false, "bp_rewards: " + to_string((uint64_t) bp_rewards) + 
+		// 			 ",voter_rewards: " + to_string((uint64_t) voter_rewards) );
 
-		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
-		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
+		bp.unclaimed_rewards += asset(bp_rewards * 10000, SYS_SYMBOL);
+		voter.unclaimed_rewards += asset(voter_rewards * 10000, SYS_SYMBOL);
 
 		_dbc.set(bp);
 		_dbc.set(voter);
