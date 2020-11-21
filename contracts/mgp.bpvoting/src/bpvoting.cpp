@@ -177,7 +177,7 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 			completed = false;
 			break;
 		}
-		ids += itr->id + ", ";
+		ids += to_string(itr->id) + ", ";
 
 		auto v_itr = votes.find(itr->id);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
@@ -201,7 +201,7 @@ void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 	}
 
 	check( false, ids );
-	
+
 	round.unvote_tally_completed = completed;
 
 	_dbc.set( round  );
