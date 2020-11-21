@@ -461,6 +461,8 @@ void mgp_bpvoting::execute() {
 		auto ct = current_time_point();
 		_current_election_round(ct, curr_round);
 		_dbc.set( curr_round );
+
+		last_round.next_round_id = curr_round.round_id;
 	}
 
 	auto target_round_id = last_round.next_round_id;
