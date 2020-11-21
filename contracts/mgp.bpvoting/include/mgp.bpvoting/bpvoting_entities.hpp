@@ -169,22 +169,16 @@ struct CONTRACT_TBL vote_t {
     time_point voted_at;
     time_point unvoted_at;
     time_point restarted_at;   //restart age counting every 30-days
-    time_point last_vote_tallied_at;
-    time_point last_rewarded_at;
+    uint64_t last_tally_round;
+    uint64_t last_reward_round;
 
-    uint64_t by_voter() const                   { return owner.value;                                         }
-    uint64_t by_candidate() const               { return candidate.value;                                     }
-    uint64_t by_voted_at() const                { return uint64_t(voted_at.sec_since_epoch());                }
-    uint64_t by_unvoted_at() const              { return uint64_t(unvoted_at.sec_since_epoch());              }
-    uint64_t by_restarted_at() const            { return uint64_t(restarted_at.sec_since_epoch());            }
-    uint64_t by_last_vote_tallied_at() const    { return uint64_t(last_vote_tallied_at.sec_since_epoch());    }
-    uint64_t by_last_rewarded_at() const        { return uint64_t(last_rewarded_at.sec_since_epoch());        }
-
-    string to_string() const {
-        return 
-            ", owner="+ owner.to_string() + 
-            ", quantity=" + quantity.to_string();
-    }
+    uint64_t by_voter() const             { return owner.value;                                 }
+    uint64_t by_candidate() const         { return candidate.value;                             }
+    uint64_t by_voted_at() const          { return uint64_t(voted_at.sec_since_epoch());        }
+    uint64_t by_unvoted_at() const        { return uint64_t(unvoted_at.sec_since_epoch());      }
+    uint64_t by_restarted_at() const      { return uint64_t(restarted_at.sec_since_epoch());    }
+    uint64_t by_last_tally_round() const  { return last_tally_round;                            }
+    uint64_t by_last_reward_round() const { return last_reward_round;                           }
 
     uint64_t primary_key() const { return id; }
     // uint64_t scope() const { return 0; }
@@ -198,18 +192,18 @@ struct CONTRACT_TBL vote_t {
 
     EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
                                 (voted_at)(unvoted_at)(restarted_at)
-                                (last_vote_tallied_at)(last_rewarded_at) )
+                                (last_tally_round)(last_reward_round) )
 };
 
 typedef eosio::multi_index
 < "votes"_n, vote_t,
-    indexed_by<"voter"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>                  >,
-    indexed_by<"candidate"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>              >,
-    indexed_by<"voteda"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>               >,
-    indexed_by<"unvoteda"_n,     const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>             >,
-    indexed_by<"restarted"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>           >,
-    indexed_by<"lvotallied"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_last_vote_tallied_at>   >,
-    indexed_by<"lastrewarded"_n, const_mem_fun<vote_t, uint64_t, &vote_t::by_last_rewarded_at>       >
+    indexed_by<"voter"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>              >,
+    indexed_by<"candidate"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>          >,
+    indexed_by<"voteda"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>           >,
+    indexed_by<"unvoteda"_n,     const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>         >,
+    indexed_by<"restarted"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>       >,
+    indexed_by<"lasttallyr"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_last_tally_round>   >,
+    indexed_by<"lastrewardr"_n, const_mem_fun<vote_t, uint64_t, &vote_t::by_last_reward_round>   >
 > vote_tbl;
 
 
