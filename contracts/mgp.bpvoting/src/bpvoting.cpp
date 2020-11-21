@@ -207,6 +207,7 @@ void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
 
 }
 
+//reward target_round
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"lastrewarded"_n>();
