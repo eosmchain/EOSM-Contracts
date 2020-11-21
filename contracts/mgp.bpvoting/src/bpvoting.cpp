@@ -163,7 +163,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& round) {
 
 }
 
-void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
+void mgp_bpvoting::_tally_unvotes_for_target_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"luvtallied"_n>();
 	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
@@ -171,17 +171,17 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 	int step = 0;
 
 	bool completed = true;
+	string ids = "";
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
-		MGP_LOG(DEBUG, "itr->id: ", itr->id);
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
 		}
+		ids += itr->id + ", ";
 
 		auto v_itr = votes.find(itr->id);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.last_unvote_tallied_at = current_time_point();
-			MGP_LOG(DEBUG, "itr->last_unvote_tallied_at: ", row.last_unvote_tallied_at.sec_since_epoch());
    		});
 		   
 		candidate_t candidate(itr->candidate);
@@ -200,6 +200,8 @@ void mgp_bpvoting::_tally_unvotes_for_election_round(election_round_t& round) {
 
 	}
 
+	check( false, ids );
+	
 	round.unvote_tally_completed = completed;
 
 	_dbc.set( round  );
@@ -458,7 +460,7 @@ void mgp_bpvoting::execute() {
 		_tally_votes_for_last_round(last_round);
 
 	if (!target_round.unvote_tally_completed)
-		_tally_unvotes_for_election_round(target_round);
+		_tally_unvotes_for_target_round(target_round);
 
 	if (target_round.unvote_tally_completed && last_round.vote_tally_completed) 
 		_reward_through_votes(target_round);
