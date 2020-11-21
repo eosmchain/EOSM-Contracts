@@ -458,7 +458,12 @@ void mgp_bpvoting::delist(const name& issuer) {
 void mgp_bpvoting::execute() {
 	election_round_t last_round = _gstate.last_execution_round;
 	check( _dbc.get(last_round), "Err: last round[" + to_string(_gstate.last_execution_round) + "] not found" );
-	check( last_round.next_round_id > 0, "next round not set" );
+	if (last_round.next_round_id == 0) {
+		election_round_t curr_round;
+		auto ct = current_time_point();
+		_current_election_round(ct, curr_round);
+		_dbc.set( curr_round );
+	}
 
 	auto target_round_id = last_round.next_round_id;
 	election_round_t target_round(target_round_id);
