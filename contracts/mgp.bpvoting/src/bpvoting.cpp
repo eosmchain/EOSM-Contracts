@@ -208,7 +208,6 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 //reward target_round
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
-		round.reward_completed = true;
 		_dbc.set( round );
 		_gstate.last_execution_round = round.round_id;
 		return;
@@ -259,7 +258,6 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
    	}
 
-	round.reward_completed = completed;
 	if (completed) {
 		round.total_rewards = _gstate.available_rewards;
 		_gstate.available_rewards = asset(0, SYS_SYMBOL);
@@ -349,7 +347,6 @@ void mgp_bpvoting::init() {
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
 	election_round.vote_tally_completed = false;
 	election_round.unvote_apply_completed = true;
-	election_round.reward_completed = false;
 	_dbc.set( election_round );
 
 }
@@ -470,7 +467,6 @@ void mgp_bpvoting::execute() {
 	election_round_t execution_round(execution_round_id);
 	check( _dbc.get(execution_round), "Err: execution round[" + to_string(execution_round_id) + "] not found" );
 	check( execution_round.next_round_id > 0, "execution round[" + to_string(execution_round_id) + "] not ended yet" );
-	check( !last_round.reward_completed, "last round[" + to_string(last_round.round_id) + "] already rewarded" );
 
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round( last_round );
