@@ -136,28 +136,31 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& target_round, e
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end();) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
 		}
-		auto v_itr = votes.find(itr->id);
-		check( v_itr != votes.end(), "Err: vote[" + to_string(itr->id) + "] not found" );
+
+		auto old_itr = itr;
+		itr++;
+		auto v_itr = votes.find(old_itr->id);
+		check( v_itr != votes.end(), "Err: vote[" + to_string(old_itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.election_round = target_round.round_id;
    		});
 
-		candidate_t candidate(itr->candidate);
+		candidate_t candidate(old_itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
-		voter_t voter(itr->owner);
+		voter_t voter(old_itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		candidate.tallied_votes += itr->quantity;
+		candidate.tallied_votes += old_itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
 			_elect(last_round.elected_bps, candidate);
 
-		auto age = last_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto age = last_round.started_at.sec_since_epoch() - old_itr->restarted_at.sec_since_epoch();
+		auto coinage = old_itr->quantity * age;
 		last_round.total_votes_in_coinage += coinage;		
 	}
 
@@ -175,28 +178,30 @@ void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
 
 	bool completed = true;
 	// string ids = "";
-	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end();) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
 		}
 		// ids += to_string(itr->id) + ", ";
+		auto old_itr = itr;
+		itr++;
 
-		auto v_itr = votes.find(itr->id);
-		check( v_itr != votes.end(), "Err: vote[" + to_string(itr->id) + "] not found" );
+		auto v_itr = votes.find(old_itr->id);
+		check( v_itr != votes.end(), "Err: vote[" + to_string(old_itr->id) + "] not found" );
 		votes.erase( v_itr );
 		   
-		candidate_t candidate(itr->candidate);
+		candidate_t candidate(old_itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
-		check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
-		candidate.tallied_votes -= itr->quantity;
+		check( candidate.tallied_votes >= old_itr->quantity, "Err: unvote exceeded" );
+		candidate.tallied_votes -= old_itr->quantity;
 		_elect(round.elected_bps, candidate);
 
-		voter_t voter(itr->owner);
+		voter_t voter(old_itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto age = round.started_at.sec_since_epoch() - old_itr->restarted_at.sec_since_epoch();
+		auto coinage = old_itr->quantity * age;
 		round.total_votes_in_coinage -= coinage;
 		round.unvote_count++;
 
@@ -225,33 +230,35 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto per_bp_rewards = div( _gstate.available_rewards.amount, round.elected_bps.size() );
 	bool completed = true;
 	int step = 0;
-	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end();) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
 			completed = false;
 			break;
 		}
+		auto old_itr = itr;
+		itr++;
 
-		auto v_itr = votes.find(itr->id);
-		check( v_itr != votes.end(), "vote[" + to_string(itr->id) + "] not found" );
+		auto v_itr = votes.find(old_itr->id);
+		check( v_itr != votes.end(), "vote[" + to_string(old_itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.reward_round = round.round_id;
    		});
 
-		if (!round.elected_bps.count(itr->candidate))
+		if (!round.elected_bps.count(old_itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
-		candidate_t bp(itr->candidate);
+		candidate_t bp(old_itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
-		voter_t voter(itr->owner);
+		voter_t voter(old_itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		auto elapsed = round.started_at.sec_since_epoch() - itr->voted_at.sec_since_epoch();
+		auto elapsed = round.started_at.sec_since_epoch() - old_itr->voted_at.sec_since_epoch();
 		auto mons = elapsed % (30 * seconds_per_day);
 		votes.modify( v_itr, _self, [&]( auto& row ) {
       		row.restarted_at += microseconds(30 * mons * seconds_per_day * 1000'000ll);
    		});
-		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto age = round.started_at.sec_since_epoch() - old_itr->restarted_at.sec_since_epoch();
+		auto coinage = old_itr->quantity * age;
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
 		auto bp_rewards = div( mul(per_bp_rewards, bp.self_reward_share), share_boost );
 		auto voter_rewards = mul( ratio, per_bp_rewards - bp_rewards );
