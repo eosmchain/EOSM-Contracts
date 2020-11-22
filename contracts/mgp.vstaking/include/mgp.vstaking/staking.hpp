@@ -47,7 +47,7 @@ class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
     ACTION encorrection( bool enable_data_correction );
     ACTION bindaddress(const name& account, const string& address);
     ACTION delbind(const name& account, const string& address);
-    ACTION redeem(const name& issuer);
+    ACTION redeem(name issuer);
     ACTION reloadnum(const name& from, const name& to, const asset& quant);
 	
     /// NOTE: 

@@ -163,7 +163,7 @@ void smart_mgp::delbind(const name& account, const string& address) {
 	
 }
 
-void smart_mgp::redeem(const name& account){
+void smart_mgp::redeem(name account){
 	require_auth( account );
 	
 	configs config(get_self(), get_self().value);
