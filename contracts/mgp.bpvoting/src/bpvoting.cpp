@@ -215,7 +215,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.upper_bound( round.round_id ); 
 	
-	auto per_bp_rewards = div( _gstate.available_rewards.amount, 10000*round.elected_bps.size() );
+	auto per_bp_rewards = div( div( _gstate.available_rewards.amount, round.elected_bps.size() ), 10000 );
 	bool completed = true;
 	int step = 0;
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end();) {
