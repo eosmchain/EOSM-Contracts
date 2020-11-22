@@ -236,7 +236,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto v_itr = votes.find(old_itr->id);
 		check( v_itr != votes.end(), "vote[" + to_string(old_itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
-      		row.reward_round = round.round_id;
+      		row.reward_round = round.next_round_id;
    		});
 
 		if (!round.elected_bps.count(old_itr->candidate))
@@ -268,7 +268,6 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	round.reward_completed = completed;
 	if (completed) {
 		round.total_rewards = _gstate.available_rewards;
-		
 		_gstate.available_rewards = asset(0, SYS_SYMBOL);
 		_gstate.last_execution_round = round.round_id;
 	}
@@ -486,7 +485,7 @@ void mgp_bpvoting::execute() {
 		_apply_unvotes_for_target_round( target_round );
 
 	if (last_round.vote_tally_completed && target_round.unvote_apply_completed) 
-		_reward_through_votes( target_round );
+		_reward_through_votes( last_round );
 }
 
 /**
