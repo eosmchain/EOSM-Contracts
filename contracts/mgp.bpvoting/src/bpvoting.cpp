@@ -269,7 +269,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	if (completed) {
 		round.total_rewards = _gstate.available_rewards;
 		_gstate.available_rewards = asset(0, SYS_SYMBOL);
-		_gstate.last_execution_round = round.round_id;
+		_gstate.last_execution_round = round.next_round_id;
 	}
 
 	_dbc.set( round );
