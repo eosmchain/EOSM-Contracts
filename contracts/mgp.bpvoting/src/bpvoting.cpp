@@ -123,7 +123,7 @@ void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& cand
 	}
 }
 
-void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& target_round, election_round_t& last_round) {
+void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"electround"_n>();
 	auto lower_itr = idx.lower_bound( last_round.round_id ); 
@@ -142,7 +142,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& target_round, e
 		auto v_itr = votes.find(old_itr->id);
 		check( v_itr != votes.end(), "Err: vote[" + to_string(old_itr->id) + "] not found" );
 		votes.modify( v_itr, _self, [&]( auto& row ) {
-      		row.election_round = target_round.round_id;
+      		row.election_round = last_round.next_round_id;
    		});
 
 		candidate_t candidate(old_itr->candidate);
@@ -159,8 +159,8 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& target_round, e
 		last_round.total_votes_in_coinage += coinage;		
 	}
 
-	target_round.vote_tally_completed = completed;
-	_dbc.set( target_round );
+	last_round.vote_tally_completed = completed;
+	_dbc.set( last_round );
 
 }
 
@@ -355,6 +355,7 @@ void mgp_bpvoting::init() {
 	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
 	election_round.vote_tally_completed = true;
+	election_round.unvote_apply_completed = true;
 	election_round.reward_completed = true;
 	_dbc.set( election_round );
 
@@ -402,6 +403,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	require_auth( owner );
 
 	auto ct = current_time_point();
+	check( get_round_id(ct) > 0, "unvote not allowed in round-0" );
 
 	vote_tbl votes(_self, _self.value);
 	auto v_itr = votes.find(vote_id);
@@ -473,8 +475,8 @@ void mgp_bpvoting::execute() {
 
 	auto target_round_id = last_round.next_round_id;
 	election_round_t target_round(target_round_id);
-	check( _dbc.get(target_round), "Err: target round[ " + to_string(target_round_id) + " ] not found" );
-	check( !target_round.reward_completed, "target round[ " + to_string(target_round_id) + " ] already rewarded" );
+	check( _dbc.get(target_round), "Err: target round[" + to_string(target_round_id) + "] not found" );
+	check( !target_round.reward_completed, "target round[" + to_string(target_round_id) + "] already rewarded" );
 
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round(target_round, last_round);
