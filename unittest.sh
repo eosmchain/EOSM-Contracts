@@ -31,9 +31,7 @@ function list {
 function vote {
   echo "3. cast votes..."
   echo ""
-  cleos transfer eosio $con "100.0000 MGP" "vote:masteraychen"
   cleos transfer eosio $con "300.0000 MGP" "vote:raymond.chen"
-  cleos transfer masteraychen $con "30.0000 MGP" "vote:raymond.chen"
   cleos transfer masteraychen $con "60.0000 MGP" "vote:richard.chen"
 }
 
