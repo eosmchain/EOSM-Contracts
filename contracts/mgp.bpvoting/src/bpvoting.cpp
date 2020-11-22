@@ -164,7 +164,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 
 }
 
-void mgp_bpvoting::_apply_unvotes_for_target_round(election_round_t& round) {
+void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"unvoteda"_n>();
 	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) ); 
@@ -472,19 +472,19 @@ void mgp_bpvoting::execute() {
 		last_round.next_round_id = curr_round.round_id;
 	}
 
-	auto target_round_id = last_round.next_round_id;
-	election_round_t target_round(target_round_id);
-	check( _dbc.get(target_round), "Err: target round[" + to_string(target_round_id) + "] not found" );
-	check( target_round.next_round_id > 0, "target round[" + to_string(target_round_id) + "] not ended yet" );
-	check( !target_round.reward_completed, "target round[" + to_string(target_round_id) + "] already rewarded" );
+	auto execution_round_id = last_round.next_round_id;
+	election_round_t execution_round(execution_round_id);
+	check( _dbc.get(execution_round), "Err: execution round[" + to_string(execution_round_id) + "] not found" );
+	check( execution_round.next_round_id > 0, "execution round[" + to_string(execution_round_id) + "] not ended yet" );
+	check( !last_round.reward_completed, "last round[" + to_string(last_round.round_id) + "] already rewarded" );
 
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round( last_round );
 
-	if (last_round.vote_tally_completed && !target_round.unvote_apply_completed)
-		_apply_unvotes_for_target_round( target_round );
+	if (last_round.vote_tally_completed && !execution_round.unvote_apply_completed)
+		_apply_unvotes_for_execution_round( execution_round );
 
-	if (last_round.vote_tally_completed && target_round.unvote_apply_completed) 
+	if (last_round.vote_tally_completed && execution_round.unvote_apply_completed) 
 		_reward_through_votes( last_round );
 }
 
