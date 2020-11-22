@@ -178,14 +178,9 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 			completed = false;
 			break;
 		}
-		// ids += to_string(itr->id) + ", ";
 		auto old_itr = itr;
 		itr++;
 
-		auto v_itr = votes.find(old_itr->id);
-		check( v_itr != votes.end(), "Err: vote[" + to_string(old_itr->id) + "] not found" );
-		votes.erase( v_itr );
-		   
 		candidate_t candidate(old_itr->candidate);
 		check( _dbc.get(candidate), "Err: candidate not found" );
 		check( candidate.tallied_votes >= old_itr->quantity, "Err: unvote exceeded" );
@@ -200,6 +195,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 		round.total_votes_in_coinage -= coinage;
 		round.unvote_count++;
 
+		votes.erase( *old_itr );
 	}
 	// check( false, ids );
 
@@ -233,9 +229,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto old_itr = itr;
 		itr++;
 
-		auto v_itr = votes.find(old_itr->id);
-		check( v_itr != votes.end(), "vote[" + to_string(old_itr->id) + "] not found" );
-		votes.modify( v_itr, _self, [&]( auto& row ) {
+		votes.modify( *old_itr, _self, [&]( auto& row ) {
       		row.reward_round = round.next_round_id;
    		});
 
@@ -249,7 +243,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		auto elapsed = round.started_at.sec_since_epoch() - old_itr->voted_at.sec_since_epoch();
 		auto mons = elapsed % (30 * seconds_per_day);
-		votes.modify( v_itr, _self, [&]( auto& row ) {
+		votes.modify( *old_itr, _self, [&]( auto& row ) {
       		row.restarted_at += microseconds(30 * mons * seconds_per_day * 1000'000ll);
    		});
 		auto age = round.started_at.sec_since_epoch() - old_itr->restarted_at.sec_since_epoch();
