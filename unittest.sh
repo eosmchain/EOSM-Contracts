@@ -23,9 +23,9 @@ function reward {
 function list {
   echo "2. list masteraychen, richard.chen, raymond.chen"
   echo ""
-  cleos transfer masteraychen $con "1000.0000 MGP" "list:2000"
-  cleos transfer richard.chen $con "200.0000 MGP" "list:3000"
-  cleos transfer raymond.chen $con "3000.0000 MGP" "list:5000"
+  cleos transfer masteraychen $con "100.0000 MGP" "list:2000"
+  cleos transfer richard.chen $con "100.0000 MGP" "list:3000"
+  cleos transfer raymond.chen $con "100.0000 MGP" "list:5000"
 }
 
 function vote {
