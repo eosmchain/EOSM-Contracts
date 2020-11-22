@@ -66,7 +66,7 @@ cmd=$1
 [ $cmd == "electrounds" ] && tbl electrounds $2
 [ $cmd == "votes" ] && tbl votes $2
 [ $cmd == "voters" ] && tbl voters $2
-
+[ $cmd == "rewards" ] && tbl rewards $2
 echo ""
 ###############   END ###################
 
