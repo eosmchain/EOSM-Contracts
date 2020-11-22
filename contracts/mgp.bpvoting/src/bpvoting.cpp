@@ -354,7 +354,7 @@ void mgp_bpvoting::init() {
 	election_round_t election_round(0);
 	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-	election_round.vote_tally_completed = true;
+	election_round.vote_tally_completed = false;
 	election_round.unvote_apply_completed = true;
 	election_round.reward_completed = true;
 	_dbc.set( election_round );
