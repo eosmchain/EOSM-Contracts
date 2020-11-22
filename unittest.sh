@@ -1,4 +1,4 @@
-function deploy {
+function setcode {
     cd /opt/src/MGP-Contracts && cleos set contract $con ./build/contracts/mgp.bpvoting/
     cleos set account permission $con active '{"threshold": 1,"keys": [{"key": "'$pubkey'","weight": 1}],"accounts": [{"permission":{"actor":"'$con'","permission":"eosio.code"},"weight":1}]}' owner -p $con
 
@@ -52,7 +52,7 @@ function tbl() {
 cmd=$1
 #[ -z "$level" ] && level=0
 
-[ $cmd == "deploy" ] && deploy
+[ $cmd == "setcode"] && setcode
 [ $cmd == "init"   ] && init
 [ $cmd == "reward" ] && reward
 [ $cmd == "list"   ] && list

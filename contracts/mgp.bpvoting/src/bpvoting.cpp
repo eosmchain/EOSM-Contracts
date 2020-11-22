@@ -139,9 +139,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 
 		auto old_itr = itr;
 		itr++;
-		auto v_itr = votes.find(old_itr->id);
-		check( v_itr != votes.end(), "Err: vote[" + to_string(old_itr->id) + "] not found" );
-		votes.modify( v_itr, _self, [&]( auto& row ) {
+		votes.modify( *old_itr, _self, [&]( auto& row ) {
       		row.election_round = last_round.next_round_id;
    		});
 
