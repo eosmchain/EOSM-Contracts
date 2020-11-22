@@ -482,7 +482,7 @@ void mgp_bpvoting::execute() {
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round( last_round );
 
-	if (!target_round.unvote_apply_completed)
+	if (last_round.vote_tally_completed && !target_round.unvote_apply_completed)
 		_apply_unvotes_for_target_round( target_round );
 
 	if (last_round.vote_tally_completed && target_round.unvote_apply_completed) 
