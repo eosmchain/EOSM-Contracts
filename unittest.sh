@@ -52,7 +52,7 @@ function tbl() {
 cmd=$1
 #[ -z "$level" ] && level=0
 
-[ $cmd == "setcode"] && setcode
+[ $cmd == "setcode" ] && setcode
 [ $cmd == "init"   ] && init
 [ $cmd == "reward" ] && reward
 [ $cmd == "list"   ] && list
