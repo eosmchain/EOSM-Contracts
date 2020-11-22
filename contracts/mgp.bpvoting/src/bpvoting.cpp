@@ -257,8 +257,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
 		auto bp_rewards = div( mul(per_bp_rewards, bp.self_reward_share), share_boost );
 		auto voter_rewards = mul( ratio, per_bp_rewards - bp_rewards );
-		bp.unclaimed_rewards += asset(bp_rewards * 10000, SYS_SYMBOL);
-		voter.unclaimed_rewards += asset(voter_rewards * 10000, SYS_SYMBOL);
+		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
+		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
 		_dbc.set(bp);
 		_dbc.set(voter);
