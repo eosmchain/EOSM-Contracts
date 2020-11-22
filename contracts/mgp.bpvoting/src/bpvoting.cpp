@@ -34,6 +34,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		last_round.next_round_id = curr_round.round_id;
 		_dbc.set( last_round );
 
+
 		curr_round.started_at = last_round.ended_at;
 		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
@@ -88,11 +89,6 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 		row.restarted_at = ct;
 		row.election_round = curr_round.round_id;
 		row.reward_round = curr_round.round_id;
-
-		if (curr_round.round_id == 0) {
-			row.vote_tally_completed = true;
-			row.reward_completed = true;
-		}
 	});
 
 	voter_t voter(owner);
@@ -358,6 +354,8 @@ void mgp_bpvoting::init() {
 	election_round_t election_round(0);
 	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+	election_round.vote_tally_completed = true;
+	election_round.reward_completed = true;
 	_dbc.set( election_round );
 
 }
