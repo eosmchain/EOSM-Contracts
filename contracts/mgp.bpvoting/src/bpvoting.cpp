@@ -479,13 +479,13 @@ void mgp_bpvoting::execute() {
 	check( !target_round.reward_completed, "target round[" + to_string(target_round_id) + "] already rewarded" );
 
 	if (!last_round.vote_tally_completed)
-		_tally_votes_for_last_round(target_round, last_round);
+		_tally_votes_for_last_round( last_round );
 
 	if (!target_round.unvote_apply_completed)
-		_apply_unvotes_for_target_round(target_round);
+		_apply_unvotes_for_target_round( target_round );
 
 	if (last_round.vote_tally_completed && target_round.unvote_apply_completed) 
-		_reward_through_votes(target_round);
+		_reward_through_votes( target_round );
 }
 
 /**
