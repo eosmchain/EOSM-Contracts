@@ -4,6 +4,10 @@ using namespace eosio;
 using namespace std;
 using std::string;
 
+/// REF OLD VERSION: 
+///      https://gitlab.com/mgpchain/mgp-contracts/-/blob/master/smart_mgp.cpp
+///
+
 //deployed account: addressbookt
 namespace mgp {
 
