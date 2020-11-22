@@ -78,12 +78,6 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	candidate.received_votes += quantity;
 	_dbc.set(candidate);
 
-	
-
-	// vote.last_vote_tallied_at = vote.voted_at;
-	// vote.last_unvote_tallied_at = vote.voted_at;
-	// vote.last_rewarded_at = vote.voted_at;
-
 	vote_tbl votes(_self, _self.value);
 	votes.emplace( _self, [&]( auto& row ) {
 		row.id = votes.available_primary_key();
@@ -94,6 +88,11 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 		row.restarted_at = ct;
 		row.election_round = curr_round.round_id;
 		row.reward_round = curr_round.round_id;
+
+		if (curr_round.round_id == 0) {
+			row.vote_tally_completed = true;
+			row.reward_completed = true;
+		}
 	});
 
 	voter_t voter(owner);
