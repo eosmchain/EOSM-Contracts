@@ -215,7 +215,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.upper_bound( round.round_id ); 
 	
-	auto per_bp_rewards = div(div(div( _gstate.available_rewards.amount, round.elected_bps.size() ), 10000), 10000);
+	auto per_bp_rewards = (uint64_t) ((double) _gstate.available_rewards.amount / round.elected_bps.size());
 	bool completed = true;
 	int step = 0;
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end();) {
@@ -245,9 +245,9 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
    		});
 		auto age = round.started_at.sec_since_epoch() - old_itr->restarted_at.sec_since_epoch();
 		auto coinage = old_itr->quantity * age;
-		auto ratio = div( coinage.amount, round.total_votes_in_coinage.amount );
-		auto bp_rewards = div( mul(per_bp_rewards, bp.self_reward_share), share_boost );
-		auto voter_rewards = div( mul( ratio, per_bp_rewards - bp_rewards ), share_boost );
+		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
+		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
+		auto voter_rewards = (uint64_t) ((per_bp_rewards - bp_rewards) * ratio);
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
