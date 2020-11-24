@@ -255,7 +255,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
    	}
 
-	for (auto& vote_id : round_vote_ids) {
+	for (auto& vote_id : vote_ids) {
 		auto itr = votes.find(vote_id);
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
 
