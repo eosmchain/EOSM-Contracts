@@ -101,6 +101,9 @@ cmd=$1
 [ $cmd == "votes" ] && tbl votes $2
 [ $cmd == "voters" ] && tbl voters $2
 [ $cmd == "rewards" ] && tbl rewards $2
+[ $cmd == "r0" ] && r0
+[ $cmd == "r1" ] && r1
+[ $cmd == "r2" ] && r2
 echo ""
 ###############   END ###################
 
