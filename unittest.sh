@@ -35,6 +35,42 @@ function vote {
   cleos transfer masteraychen $con "60.0000 MGP" "vote:richard.chen"
 }
 
+function r0 {
+  echo "Conduct round-0..."
+  echo "1) reward w 200 MGP"
+  cleos transfer eosio $con "200.0000 MGP"
+  echo "2) lists"
+  cleos transfer masteraychen $con "10.0000 MGP" "list:2000"
+  cleos transfer richard.chen $con "20.0000 MGP" "list:2000"
+  cleos transfer raymond.chen $con "100.0000 MGP" "list:4000"
+  echo "3) votes"
+  cleos transfer eosio $con "10.0000 MGP" "vote:masteraychen"
+  cleos transfer masteraychen $con "30.0000 MGP" "vote:richard.chen"
+  cleos transfer masteraychen $con "100.0000 MGP" "vote:raymond.chen"
+}
+
+function r1 {
+  echo "Conduct round-1..."
+  echo "1) reward w 300 MGP"
+  cleos transfer eosio $con "300.0000 MGP"
+  echo "2) lists - none"
+  echo "3) votes"
+  cleos transfer eosio $con "10.0000 MGP" "vote:masteraychen"
+  cleos transfer masteraychen $con "150.0000 MGP" "vote:richard.chen"
+  cleos transfer masteraychen $con "100.0000 MGP" "vote:raymond.chen"
+}
+
+function r2 {
+  echo "Conduct round-2..."
+  echo "1) reward w 200 MGP"
+  cleos transfer eosio $con "200.0000 MGP"
+  echo "2) lists - none"
+  echo "3) votes"
+  cleos transfer masteraychen $con "100.0000 MGP" "vote:richard.chen"
+  cleos transfer masteraychen $con "100.0000 MGP" "vote:raymond.chen"
+  cleos push action masteraychen $con unvote '["raymond.chen", 5]' -p @masteraychen
+}
+
 function exec {
   echo "4. execute election..."
   echo ""
