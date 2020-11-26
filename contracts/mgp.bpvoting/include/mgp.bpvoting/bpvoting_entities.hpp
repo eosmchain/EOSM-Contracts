@@ -89,6 +89,7 @@ struct CONTRACT_TBL election_round_t{
     uint64_t next_round_id = 0;     //upon arrival of new round, record it here
     time_point started_at;
     time_point ended_at;
+    time_point created_at;
 
     uint64_t vote_count             = 0;
     uint64_t unvote_count           = 0;
@@ -111,7 +112,7 @@ struct CONTRACT_TBL election_round_t{
 
     typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
 
-    EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)
+    EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
                                         (vote_count)(unvote_count)
                                         (vote_tally_completed)(unvote_apply_completed)(reward_allocation_completed)
                                         (total_votes)(total_votes_in_coinage)(total_rewards)

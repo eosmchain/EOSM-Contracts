@@ -39,6 +39,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
 		curr_round.ended_at = curr_round.started_at + time_point(eosio::seconds(rounds * _gstate.election_round_sec));
+		curr_round.created_at = ct;
 		_dbc.set( curr_round );
 
 		_gstate.last_election_round = round_id;
@@ -106,7 +107,10 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candidate) {
 	auto bp_info = last_round.elected_bps[ candidate.owner ];
-	bp_info.received_votes += candidate.received_votes;
+	if (bp_info.received_votes.amount == 0)
+		bp_info.received_votes = candidate.received_votes;
+	else
+		bp_info.received_votes += candidate.received_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
@@ -377,6 +381,7 @@ void mgp_bpvoting::init() {
 	election_round_t election_round(0);
 	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+	election_round.created_at = ct;
 	election_round.vote_tally_completed = false;
 	election_round.unvote_apply_completed = true;
 	_dbc.set( election_round );
