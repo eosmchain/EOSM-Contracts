@@ -43,6 +43,7 @@ function r0 {
   cleos transfer masteraychen $con "10.0000 MGP" "list:2000"
   cleos transfer richard.chen $con "20.0000 MGP" "list:2000"
   cleos transfer raymond.chen $con "100.0000 MGP" "list:4000"
+  sleep 3
   echo "3) votes"
   cleos transfer eosio $con "10.0000 MGP" "vote:masteraychen"
   cleos transfer masteraychen $con "30.0000 MGP" "vote:richard.chen"
