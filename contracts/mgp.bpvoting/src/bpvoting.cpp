@@ -104,17 +104,18 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 }
 
-void mgp_bpvoting::_elect(map<name, tuple<asset, asset, asset>>& elected_bps, const candidate_t& candidate) {
-	std::get<0>( elected_bps[candidate.owner] ) = candidate.received_votes;
+void mgp_bpvoting::_elect(map<name, bp_info_t>& elected_bps, const candidate_t& candidate) {
+	auto bp_info = elected_bps[ candidate.owner ];
+	bp_info.received_votes = candidate.received_votes;
 
-	typedef std::pair<name, tuple<asset, asset, asset> > bp_info_t;
+	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
-	std::vector<bp_info_t> bps;
+	std::vector<bp_entry_t> bps;
 	for (auto& it : elected_bps) {
 		bps.push_back(it);
 	}
 
-	auto cmp = [](bp_info_t a, bp_info_t b) { return std::get<0>(a.second) >= std::get<0>(b.second); };
+	auto cmp = [](bp_entry_t a, bp_entry_t b) { return a.second.received_votes >= b.second.received_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
 	elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
@@ -218,8 +219,8 @@ void mgp_bpvoting::_reward_allocation(election_round_t& round) {
 
 		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
 		auto voter_rewards = per_bp_rewards - bp_rewards;
-		std::get<0>(item.second) = asset(bp_rewards, SYS_SYMBOL);
-		std::get<1>(item.second) = asset(voter_rewards, SYS_SYMBOL);
+		item.second.allocated_bp_rewards = asset(bp_rewards, SYS_SYMBOL);
+		item.second.allocated_voter_rewards = asset(voter_rewards, SYS_SYMBOL);
 		
 		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
 		_dbc.set(bp);		
@@ -273,7 +274,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto coinage = itr->quantity * age;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
 
-		auto voter_rewards = (uint64_t) std::get<1>(elected_bp_info).amount * ratio;
+		auto voter_rewards = (uint64_t) elected_bp_info.allocated_voter_rewards.amount * ratio;
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
 		_dbc.set(voter);
