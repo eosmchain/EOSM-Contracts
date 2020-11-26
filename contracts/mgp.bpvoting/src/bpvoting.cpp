@@ -148,6 +148,8 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 		candidate.tallied_votes += itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
 			_elect(last_round.elected_bps, candidate);
+		
+		_dbc.set( candidate );
 
 		auto age = last_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
