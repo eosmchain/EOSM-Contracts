@@ -88,14 +88,16 @@ struct CONTRACT_TBL election_round_t{
     uint64_t vote_count             = 0;
     uint64_t unvote_count           = 0;
 
-    bool     vote_tally_completed   = false;
-    bool     unvote_apply_completed = false;
+    bool    vote_tally_completed        = false;
+    bool    unvote_apply_completed      = false;
+    bool    reward_allocation_completed = false;
 
-    asset total_votes               = asset(0, SYS_SYMBOL);
-    asset total_votes_in_coinage    = asset(0, SYS_SYMBOL);
-    asset total_rewards             = asset(0, SYS_SYMBOL); //total received accumualted rewards
+    asset total_votes                   = asset(0, SYS_SYMBOL);
+    asset total_votes_in_coinage        = asset(0, SYS_SYMBOL);
+    asset total_rewards                 = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
-    std::map<name, asset> elected_bps;      //max 21 bps
+    //bp -> (vote quantity, bp rewards, voters rewards)
+    std::map<name, tuple<asset, asset, asset>> elected_bps;      //max 21 bps
 
     election_round_t() {}
     election_round_t(uint64_t rid): round_id(rid) {}
@@ -107,7 +109,7 @@ struct CONTRACT_TBL election_round_t{
 
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)
                                         (vote_count)(unvote_count)
-                                        (vote_tally_completed)(unvote_apply_completed)
+                                        (vote_tally_completed)(unvote_apply_completed)(reward_allocation_completed)
                                         (total_votes)(total_votes_in_coinage)(total_rewards)
                                         (elected_bps) )
 };

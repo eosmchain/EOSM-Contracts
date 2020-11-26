@@ -104,17 +104,17 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 }
 
-void mgp_bpvoting::_elect(map<name, asset>& elected_bps, const candidate_t& candidate) {
-	elected_bps[candidate.owner] = candidate.received_votes;
+void mgp_bpvoting::_elect(map<name, tuple<asset, asset, asset>>& elected_bps, const candidate_t& candidate) {
+	std::get<0>( elected_bps[candidate.owner] ) = candidate.received_votes;
 
-	typedef std::pair<name, asset> bp_info_t;
+	typedef std::pair<name, tuple<asset, asset, asset> > bp_info_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_info_t> bps;
 	for (auto& it : elected_bps) {
 		bps.push_back(it);
 	}
 
-	auto cmp = [](bp_info_t a, bp_info_t b) { return a.second >= b.second; };
+	auto cmp = [](bp_info_t a, bp_info_t b) { return std::get<0>(a.second) >= std::get<0>(b.second); };
 	std::sort(bps.begin(), bps.end(), cmp);
 	elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
@@ -206,6 +206,30 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 
 }
 
+void mgp_bpvoting::_reward_allocation(election_round_t& round) {
+	if (round.reward_allocation_completed)
+		return;
+
+	auto per_bp_rewards = (uint64_t) ((double) _gstate.available_rewards.amount / round.elected_bps.size());
+	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
+	for (auto& item : round.elected_bps) {
+		candidate_t bp(item.first);
+		check( _dbc.get(bp), "Err: bp (" + bp.owner.to_string() + ") not found" );
+
+		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
+		auto voter_rewards = per_bp_rewards - bp_rewards;
+		std::get<0>(item.second) = asset(bp_rewards, SYS_SYMBOL);
+		std::get<1>(item.second) = asset(voter_rewards, SYS_SYMBOL);
+		
+		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
+		_dbc.set(bp);		
+	}
+
+	round.reward_allocation_completed = true;
+	_dbc.set( round );
+
+}
+
 //reward target_round
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
@@ -218,7 +242,6 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.upper_bound( round.round_id );
 
-	auto per_bp_rewards = (uint64_t) ((double) _gstate.available_rewards.amount / round.elected_bps.size());
 	bool completed = true;
 	int step = 0;
 	vector<uint64_t> vote_ids;
@@ -231,6 +254,8 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
+
+		auto elected_bp_info = round.elected_bps[itr->candidate];
 
 		vote_ids.push_back(itr->id);
 
@@ -247,12 +272,10 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
-		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
-		auto voter_rewards = (uint64_t) ((per_bp_rewards - bp_rewards) * ratio);
-		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
+
+		auto voter_rewards = (uint64_t) std::get<1>(elected_bp_info).amount * ratio;
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
-		_dbc.set(bp);
 		_dbc.set(voter);
 
    	}
@@ -485,8 +508,16 @@ void mgp_bpvoting::execute() {
 		_apply_unvotes_for_execution_round( execution_round );
 	}
 
-	if (last_round.vote_tally_completed && execution_round.unvote_apply_completed)
+	if (last_round.vote_tally_completed && 
+		execution_round.unvote_apply_completed && 
+		!execution_round.reward_allocation_completed )
+		_reward_allocation( last_round );
+
+	if (last_round.vote_tally_completed && 
+		execution_round.unvote_apply_completed && 
+		execution_round.reward_allocation_completed ) {
 		_reward_through_votes( last_round );
+	}
 }
 
 /**
