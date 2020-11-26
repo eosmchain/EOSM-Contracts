@@ -208,7 +208,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
 		_dbc.set( round );
-		_gstate.last_execution_round = round.round_id;
+		_gstate.last_execution_round = round.next_round_id;
 		return;
 	}
 

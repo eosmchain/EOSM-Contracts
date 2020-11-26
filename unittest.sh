@@ -13,11 +13,9 @@ function init {
 }
 
 function reward {
-  echo "1. send rewards"
+  echo "1. send rewards (300)"
   echo ""
-  cleos transfer eosio $con "1000.0000 MGP" 
-  cleos transfer eosio $con "500.0000 MGP" 
-  cleos transfer eosio $con "50.0000 MGP" 
+  cleos transfer eosio $con "300.0000 MGP"
 }
 
 function list {
