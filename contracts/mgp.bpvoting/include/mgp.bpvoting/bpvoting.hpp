@@ -105,7 +105,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     void _list(const name& owner, const asset& quantity, const uint32_t& voter_reward_share_percent);
     void _vote(const name& owner, const name& target, const asset& quantity);
-    void _elect(map<name, bp_info_t>& elected_bps, const candidate_t& candidate);
+    void _elect(election_round_t& last_round, const candidate_t& candidate);
     void _current_election_round(const time_point& ct, election_round_t& election_round);
     void _tally_votes_for_last_round(election_round_t& last_round);
     void _apply_unvotes_for_execution_round(election_round_t& round);

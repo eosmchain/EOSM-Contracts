@@ -104,23 +104,23 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 }
 
-void mgp_bpvoting::_elect(map<name, bp_info_t>& elected_bps, const candidate_t& candidate) {
-	auto bp_info = elected_bps[ candidate.owner ];
-	bp_info.received_votes = candidate.received_votes;
+void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candidate) {
+	auto bp_info = last_round.elected_bps[ candidate.owner ];
+	bp_info.received_votes += candidate.received_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_entry_t> bps;
-	for (auto& it : elected_bps) {
+	for (auto& it : last_round.elected_bps) {
 		bps.push_back(it);
 	}
 
 	auto cmp = [](bp_entry_t a, bp_entry_t b) { return a.second.received_votes >= b.second.received_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
-	elected_bps.clear();
+	last_round.elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
 	for (int i = 0; i < size; i++) {
-		elected_bps.emplace(bps[i].first, bps[i].second);
+		last_round.elected_bps.emplace(bps[i].first, bps[i].second);
 	}
 }
 
@@ -148,7 +148,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 
 		candidate.tallied_votes += itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
-			_elect(last_round.elected_bps, candidate);
+			_elect(last_round, candidate);
 		
 		_dbc.set( candidate );
 
@@ -188,7 +188,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 		check( _dbc.get(candidate), "Err: candidate not found" );
 		check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
 		candidate.tallied_votes -= itr->quantity;
-		_elect(round.elected_bps, candidate);
+		_elect(round, candidate);
 
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
