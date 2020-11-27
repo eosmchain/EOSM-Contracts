@@ -30,7 +30,8 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 
 	if (!_dbc.get( curr_round )) {
 		election_round_t last_round(_gstate.last_election_round);
-		check( _dbc.get(last_round), "Err: last round not found" );
+		check( _dbc.get(last_round), "Err: last round[" + to_string(_gstate.last_execution_round) + "] not found" );
+		check( last_round.next_round_id == 0, "Err: next_round_id already set" );
 		last_round.next_round_id = curr_round.round_id;
 		_dbc.set( last_round );
 
@@ -211,7 +212,7 @@ void mgp_bpvoting::_reward_allocation(election_round_t& round) {
 	if (round.reward_allocation_completed)
 		return;
 
-	auto per_bp_rewards = (uint64_t) ((double) _gstate.available_rewards.amount / round.elected_bps.size());
+	auto per_bp_rewards = (uint64_t) ((double) round.total_received_rewards.amount / round.elected_bps.size());
 	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
 	for (auto& item : round.elected_bps) {
 		candidate_t bp(item.first);
@@ -291,8 +292,6 @@ void mgp_bpvoting::_reward_for_last_round(election_round_t& round) {
 	}
 
 	if (completed) {
-		round.total_rewards = _gstate.available_rewards;
-		_gstate.available_rewards = asset(0, SYS_SYMBOL);
 		_gstate.last_execution_round = round.next_round_id;
 	}
 
@@ -347,13 +346,18 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 	}
 
 	//all other cases will be handled as rewards
-	reward_t reward(_self, _self.value);
+	auto ct = current_time_point();
+	reward_t reward( _self, _self.value );
 	reward.quantity = quantity;
-	reward.created_at = current_time_point();
+	reward.created_at = ct;
 	_dbc.set( reward );
 
+	election_round_t curr_round;
+	_current_election_round( ct, curr_round );
+	curr_round.total_received_rewards += quantity;
+	_dbc.set( curr_round );
+
 	_gstate.total_received_rewards += quantity;
-	_gstate.available_rewards += quantity;
 
 }
 

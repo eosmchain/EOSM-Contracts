@@ -43,7 +43,6 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     asset total_listed;
     asset total_voted;
     asset total_received_rewards;
-    asset available_rewards;
     time_point started_at;
     uint64_t last_election_round;
     uint64_t last_execution_round;
@@ -62,14 +61,13 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         total_listed                    = asset(0, SYS_SYMBOL);
         total_voted                     = asset(0, SYS_SYMBOL);
         total_received_rewards          = asset(0, SYS_SYMBOL);
-        available_rewards               = asset(0, SYS_SYMBOL);
     }
 
     EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)
                                 (max_reward_iterate_steps)(max_bp_size)
                                 (election_round_sec)(refund_delay_sec)(election_round_start_hour)
                                 (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
-                                (total_listed)(total_voted)(total_received_rewards)(available_rewards)
+                                (total_listed)(total_voted)(total_received_rewards)
                                 (started_at)(last_election_round)(last_execution_round) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
@@ -108,7 +106,7 @@ struct CONTRACT_TBL election_round_t{
 
     asset total_votes                   = asset(0, SYS_SYMBOL);
     asset total_votes_in_coinage        = asset(0, SYS_SYMBOL);
-    asset total_rewards                 = asset(0, SYS_SYMBOL); //total received accumualted rewards
+    asset total_received_rewards        = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
     std::map<name, bp_info_t> elected_bps;      //max 21 bps
 
@@ -123,7 +121,7 @@ struct CONTRACT_TBL election_round_t{
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
                                         (vote_count)(unvote_count)
                                         (vote_tally_completed)(unvote_apply_completed)(reward_allocation_completed)
-                                        (total_votes)(total_votes_in_coinage)(total_rewards)
+                                        (total_votes)(total_votes_in_coinage)(total_received_rewards)
                                         (elected_bps) )
 };
 
