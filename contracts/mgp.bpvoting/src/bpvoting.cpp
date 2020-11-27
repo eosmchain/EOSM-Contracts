@@ -491,6 +491,8 @@ void mgp_bpvoting::execute() {
 		last_round.next_round_id = 1;	//last_round is virtual
 		last_round.vote_tally_completed = true;
 		last_round.reward_allocation_completed = true;
+	} else {
+		check( _dbc.get(last_round), "last_round[" + to_string(last_round.round_id) + "] not found" );
 	}
 
 	if (last_round.next_round_id == 0) {
