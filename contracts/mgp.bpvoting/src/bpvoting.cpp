@@ -106,10 +106,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 }
 
 void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candidate) {
-	if (last_round.elected_bps[ candidate.owner ].received_votes.amount == 0)
-		last_round.elected_bps[ candidate.owner ].received_votes = candidate.received_votes;
-	else
-		last_round.elected_bps[ candidate.owner ].received_votes += candidate.received_votes;
+	last_round.elected_bps[ candidate.owner ].received_votes += candidate.received_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
@@ -141,7 +138,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 			completed = false;
 			break;
 		}
-
+	
 		vote_ids.push_back(itr->id);
 
 		candidate_t candidate(itr->candidate);
@@ -235,7 +232,7 @@ void mgp_bpvoting::_reward_allocation(election_round_t& round) {
 }
 
 //reward target_round
-void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
+void mgp_bpvoting::_reward_for_last_round(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
 		_dbc.set( round );
 		_gstate.last_execution_round = round.next_round_id;
@@ -268,7 +265,7 @@ void mgp_bpvoting::_reward_through_votes(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		auto elapsed = round.started_at.sec_since_epoch() - itr->voted_at.sec_since_epoch();
+		auto elapsed = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto mons = elapsed % (30 * seconds_per_day);
 		votes.modify( *itr, _self, [&]( auto& row ) {
       		row.restarted_at += microseconds(30 * mons * seconds_per_day * 1000'000ll);
@@ -521,7 +518,7 @@ void mgp_bpvoting::execute() {
 	if (last_round.vote_tally_completed && 
 		last_round.reward_allocation_completed &&
 		execution_round.unvote_apply_completed) {
-		_reward_through_votes( last_round );
+		_reward_for_last_round( last_round );
 	}
 }
 

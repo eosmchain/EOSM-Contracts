@@ -110,7 +110,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void _tally_votes_for_last_round(election_round_t& last_round);
     void _apply_unvotes_for_execution_round(election_round_t& round);
     void _reward_allocation(election_round_t& round);
-    void _reward_through_votes(election_round_t& round);
+    void _reward_for_last_round(election_round_t& round);
 
 };
 
