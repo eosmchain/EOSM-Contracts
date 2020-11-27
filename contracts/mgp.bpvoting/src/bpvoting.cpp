@@ -288,6 +288,7 @@ void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
 	}
 
 	if (completed) {
+		round.reward_allocation_completed = true;
 		_gstate.last_execution_round = round.round_id;
 	}
 
