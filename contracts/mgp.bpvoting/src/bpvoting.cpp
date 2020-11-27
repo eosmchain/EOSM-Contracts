@@ -233,9 +233,8 @@ void mgp_bpvoting::_reward_allocation(election_round_t& round) {
 }
 
 //reward target_round
-void mgp_bpvoting::_reward_for_last_round(election_round_t& round) {
+void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
-		_dbc.set( round );
 		_gstate.last_execution_round = round.next_round_id;
 		return;
 	}
@@ -287,12 +286,12 @@ void mgp_bpvoting::_reward_for_last_round(election_round_t& round) {
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
 
 		votes.modify( *itr, _self, [&]( auto& row ) {
-      		row.reward_round = round.next_round_id;
+      		row.reward_round = round.round_id;
    		});
 	}
 
 	if (completed) {
-		_gstate.last_execution_round = round.next_round_id;
+		_gstate.last_execution_round = round.round_id;
 	}
 
 	_dbc.set( round );
@@ -522,7 +521,7 @@ void mgp_bpvoting::execute() {
 	if (last_round.vote_tally_completed && 
 		last_round.reward_allocation_completed &&
 		execution_round.unvote_apply_completed) {
-		_reward_for_last_round( last_round );
+		_reward_execution_round( execution_round );
 	}
 }
 
