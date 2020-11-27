@@ -30,7 +30,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 
 	if (!_dbc.get( curr_round )) {
 		election_round_t last_round(_gstate.last_election_round);
-		check( _dbc.get(last_round), "Err: last round[" + to_string(_gstate.last_execution_round) + "] not found" );
+		check( _dbc.get(last_round), "Err: last election round[" + to_string(_gstate.last_execution_round) + "] not found" );
 		check( last_round.next_round_id == 0, "Err: next_round_id already set" );
 		last_round.next_round_id = curr_round.round_id;
 		_dbc.set( last_round );
@@ -368,18 +368,19 @@ void mgp_bpvoting::init() {
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
 	auto ct = current_time_point();
-	_gstate.started_at = ct;
-	_gstate.last_election_round = 0;
+	_gstate.started_at 						= ct;
+	_gstate.last_election_round 			= 1;
+	_gstate.last_execution_round 			= 0;
 
 	auto days = ct.sec_since_epoch() / seconds_per_day;
 	auto start_secs = _gstate.election_round_start_hour * 3600;
 
 	election_round_t election_round(1);
-	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-	election_round.created_at = ct;
-	election_round.vote_tally_completed = false;
-	election_round.unvote_apply_completed = true;
+	election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+	election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+	election_round.created_at 				= ct;
+	election_round.vote_tally_completed 	= false;
+	election_round.unvote_apply_completed 	= true;
 	_dbc.set( election_round );
 
 }
