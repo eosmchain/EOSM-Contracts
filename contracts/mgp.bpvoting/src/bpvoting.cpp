@@ -520,8 +520,8 @@ void mgp_bpvoting::execute() {
 		_reward_allocation( last_round );
 
 	if (last_round.vote_tally_completed && 
-		execution_round.unvote_apply_completed && 
-		execution_round.reward_allocation_completed ) {
+		last_round.reward_allocation_completed &&
+		execution_round.unvote_apply_completed) {
 		_reward_through_votes( last_round );
 	}
 }
