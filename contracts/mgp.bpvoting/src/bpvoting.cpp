@@ -256,8 +256,6 @@ void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
-		auto elected_bp_info = round.elected_bps[itr->candidate];
-
 		vote_ids.push_back(itr->id);
 
 		candidate_t bp(itr->candidate);
@@ -273,8 +271,7 @@ void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
-
-		auto voter_rewards = (uint64_t) elected_bp_info.allocated_voter_rewards.amount * ratio;
+		auto voter_rewards = (uint64_t) round.elected_bps[itr->candidate].allocated_voter_rewards.amount * ratio;
 		voter.unclaimed_rewards += asset(voter_rewards, SYS_SYMBOL);
 
 		_dbc.set(voter);
@@ -377,7 +374,7 @@ void mgp_bpvoting::init() {
 	auto days = ct.sec_since_epoch() / seconds_per_day;
 	auto start_secs = _gstate.election_round_start_hour * 3600;
 
-	election_round_t election_round(0);
+	election_round_t election_round(1);
 	election_round.started_at = time_point() + eosio::seconds(days * seconds_per_day + start_secs);
 	election_round.ended_at = election_round.started_at + eosio::seconds(_gstate.election_round_sec);
 	election_round.created_at = ct;
@@ -488,14 +485,19 @@ void mgp_bpvoting::delist(const name& issuer) {
  *	ACTION: continuously invoked to execute election until target round is completed
  */
 void mgp_bpvoting::execute() {
-	election_round_t last_round = _gstate.last_execution_round;
-	check( _dbc.get(last_round), "Err: last round[" + to_string(_gstate.last_execution_round) + "] not found" );
+	election_round_t last_round(_gstate.last_execution_round);
+	if (last_round.round_id == 0) {
+		last_round.next_round_id = 1;	//last_round is virtual
+		last_round.vote_tally_completed = true;
+		last_round.reward_allocation_completed = true;
+	}
+
 	if (last_round.next_round_id == 0) {
 		election_round_t curr_round;
 		_current_election_round( current_time_point(), curr_round );
-		_dbc.set( curr_round );
-
 		last_round.next_round_id = curr_round.round_id;
+		_dbc.set( last_round );
+		_dbc.set( curr_round );
 	}
 
 	auto execution_round_id = last_round.next_round_id;
@@ -507,7 +509,7 @@ void mgp_bpvoting::execute() {
 		_tally_votes_for_last_round( last_round );
 
 	if (last_round.vote_tally_completed && !execution_round.unvote_apply_completed) {
-		if (execution_round.elected_bps.size() == 0)
+		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
 			execution_round.elected_bps = last_round.elected_bps;
 
 		_apply_unvotes_for_execution_round( execution_round );
