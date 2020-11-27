@@ -521,7 +521,7 @@ void mgp_bpvoting::execute() {
 	if (last_round.vote_tally_completed && 
 		execution_round.unvote_apply_completed && 
 		!execution_round.reward_allocation_completed )
-		_reward_allocation( last_round );
+		_reward_allocation( execution_round );
 
 	if (last_round.vote_tally_completed && 
 		last_round.reward_allocation_completed &&
