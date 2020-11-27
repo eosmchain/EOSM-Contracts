@@ -209,9 +209,6 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_reward_allocation(election_round_t& round) {
-	if (round.reward_allocation_completed)
-		return;
-
 	auto per_bp_rewards = (uint64_t) ((double) round.total_received_rewards.amount / round.elected_bps.size());
 	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
 	for (auto& item : round.elected_bps) {
@@ -288,7 +285,6 @@ void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
 	}
 
 	if (completed) {
-		round.reward_allocation_completed = true;
 		_gstate.last_execution_round = round.round_id;
 	}
 
