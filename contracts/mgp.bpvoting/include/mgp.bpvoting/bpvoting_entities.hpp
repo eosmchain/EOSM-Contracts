@@ -84,6 +84,8 @@ struct bp_info_t {
         allocated_bp_rewards = asset(0, SYS_SYMBOL);
         allocated_voter_rewards = asset(0, SYS_SYMBOL);
     }
+
+    EOSLIB_SERIALIZE(bp_info_t, (received_votes)(allocated_bp_rewards)(allocated_voter_rewards) )
 };
 /**
  * election round table, one record per day
