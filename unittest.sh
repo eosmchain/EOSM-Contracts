@@ -9,7 +9,7 @@ function init {
   echo ""
   cleos push action $con config '[20,30,50,21,180,600,1,"100.0000 MGP","200.0000 MGP","10.0000 MGP"]' -p $con
   cleos push action $con init '[]' -p $con
-  cleos push action $con setelect '[0,0]' -p $con 
+  cleos push action $con setelect '[1,0]' -p $con 
 }
 
 function reward {
