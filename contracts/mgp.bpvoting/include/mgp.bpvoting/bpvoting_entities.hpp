@@ -78,6 +78,12 @@ struct bp_info_t {
     asset received_votes;
     asset allocated_bp_rewards;
     asset allocated_voter_rewards;
+
+    bp_info_t() {
+        received_votes = asset(0, SYS_SYMBOL);
+        allocated_bp_rewards = asset(0, SYS_SYMBOL);
+        allocated_voter_rewards = asset(0, SYS_SYMBOL);
+    }
 };
 /**
  * election round table, one record per day
