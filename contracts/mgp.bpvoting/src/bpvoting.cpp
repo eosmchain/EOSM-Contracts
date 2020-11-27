@@ -106,11 +106,10 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 }
 
 void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candidate) {
-	auto bp_info = last_round.elected_bps[ candidate.owner ];
-	if (bp_info.received_votes.amount == 0)
-		bp_info.received_votes = candidate.received_votes;
+	if (last_round.elected_bps[ candidate.owner ].received_votes.amount == 0)
+		last_round.elected_bps[ candidate.owner ].received_votes = candidate.received_votes;
 	else
-		bp_info.received_votes += candidate.received_votes;
+		last_round.elected_bps[ candidate.owner ].received_votes += candidate.received_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
