@@ -92,7 +92,7 @@ cmd=$1
 [ $cmd == "reward" ] && reward
 [ $cmd == "list"   ] && list
 [ $cmd == "vote"   ] && vote
-[ $cmd == "exec"   ] && exec
+[ $cmd == "exe"    ] && exec
 [ $cmd == "tbl"    ] && tbl $2 $3
 [ $cmd == "global" ] && tbl global $2
 [ $cmd == "candidates" ] && tbl candidates $2
