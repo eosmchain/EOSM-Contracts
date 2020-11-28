@@ -210,8 +210,11 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_reward_allocation(election_round_t& round) {
-	if (round.total_received_rewards.amount == 0)
+	if (round.total_received_rewards.amount == 0) {
+		round.reward_allocation_completed = true;
+		_dbc.set( round );
 		return;
+	}
 
 	if (round.elected_bps.size() == 0) {
 		election_round_t next_round(round.next_round_id);
