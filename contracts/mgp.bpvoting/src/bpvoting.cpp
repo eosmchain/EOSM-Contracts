@@ -23,7 +23,7 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	auto rounds = elapsed / _gstate.election_round_sec;
 	if (rounds == 0)
 		rounds = 1;
-		
+
 	return rounds; //usually in days
 }
 
@@ -42,7 +42,8 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		curr_round.started_at = last_round.ended_at;
 		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
-		curr_round.ended_at = curr_round.started_at + time_point(eosio::seconds(rounds * _gstate.election_round_sec));
+		check( rounds > 0, "Too early to create a new round" );
+		curr_round.ended_at = curr_round.started_at + eosio::seconds(rounds * _gstate.election_round_sec);
 		curr_round.created_at = ct;
 		_dbc.set( curr_round );
 
