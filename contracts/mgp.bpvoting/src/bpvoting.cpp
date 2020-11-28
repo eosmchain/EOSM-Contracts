@@ -491,10 +491,10 @@ void mgp_bpvoting::execute() {
 		last_execution_round.vote_tally_completed = true;
 	}
 	_dbc.get(last_execution_round);
-	
+
 	election_round_t execution_round(last_execution_round.next_round_id);
-	check( execution_round.round_id > 0, "Err: execution round[" + to_string(execution_round.round_id) + "] not set correctly" );
-	check( execution_round.next_round_id > 0, "execution round[" + to_string(execution_round.round_id) + "] not ended yet" );
+	check( _dbc.get(execution_round), "Err: execution_round[" + to_string(execution_round.round_id) + "] not exist" );
+	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
 		_tally_votes_for_last_round( last_execution_round );
