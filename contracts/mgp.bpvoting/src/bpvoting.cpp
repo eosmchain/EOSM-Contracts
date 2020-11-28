@@ -20,9 +20,7 @@ using namespace wasm::safemath;
 uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
-	auto rounds = elapsed / _gstate.election_round_sec;
-	if (rounds == 0)
-		rounds = 1;
+	auto rounds = elapsed / _gstate.election_round_sec + 1;
 
 	return rounds; //usually in days
 }
