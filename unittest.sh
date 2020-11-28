@@ -96,11 +96,13 @@ cmd=$1
 [ $cmd == "tbl"    ] && tbl $2 $3
 [ $cmd == "global" ] && tbl global $2
 [ $cmd == "candidates" ] && tbl candidates $2
+[ $cmd == "cas" ] && tbl candidates $2
 [ $cmd == "electrounds" ] && tbl electrounds $2
 [ $cmd == "ers" ] && tbl electrounds $2
 [ $cmd == "votes" ] && tbl votes $2
 [ $cmd == "voters" ] && tbl voters $2
 [ $cmd == "rewards" ] && tbl rewards $2
+[ $cmd == "rws" ] && tbl rewards $2
 [ $cmd == "r0" ] && r0
 [ $cmd == "r1" ] && r1
 [ $cmd == "r2" ] && r2
