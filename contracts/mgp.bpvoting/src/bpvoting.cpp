@@ -203,7 +203,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 		votes.erase( *itr );
 	}
 
-	round.unvote_apply_completed = completed;
+	round.unvote_last_round_completed = completed;
 
 	_dbc.set( round  );
 
@@ -378,7 +378,7 @@ void mgp_bpvoting::init() {
 	election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
 	election_round.created_at 				= ct;
 	election_round.vote_tally_completed 	= false;
-	election_round.unvote_apply_completed 	= true;
+	election_round.unvote_last_round_completed 	= true;
 	_dbc.set( election_round );
 
 }
@@ -503,7 +503,7 @@ void mgp_bpvoting::execute() {
 	if (!last_round.vote_tally_completed)
 		_tally_votes_for_last_round( last_round );
 
-	if (last_round.vote_tally_completed && !execution_round.unvote_apply_completed) {
+	if (last_round.vote_tally_completed && !execution_round.unvote_last_round_completed) {
 		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
 			execution_round.elected_bps = last_round.elected_bps;
 
@@ -511,13 +511,13 @@ void mgp_bpvoting::execute() {
 	}
 
 	if (last_round.vote_tally_completed && 
-		execution_round.unvote_apply_completed && 
+		execution_round.unvote_last_round_completed && 
 		!execution_round.reward_allocation_completed )
 		_reward_allocation( execution_round );
 
 	if (last_round.vote_tally_completed && 
 		last_round.reward_allocation_completed &&
-		execution_round.unvote_apply_completed) {
+		execution_round.unvote_last_round_completed) {
 		_reward_execution_round( execution_round );
 	}
 }

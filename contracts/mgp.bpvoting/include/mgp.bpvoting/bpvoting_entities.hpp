@@ -101,7 +101,7 @@ struct CONTRACT_TBL election_round_t{
     uint64_t unvote_count               = 0;
 
     bool    vote_tally_completed        = false;
-    bool    unvote_apply_completed      = false;
+    bool    unvote_last_round_completed      = false;
     bool    reward_allocation_completed = false;
 
     asset total_votes                   = asset(0, SYS_SYMBOL);
@@ -120,7 +120,7 @@ struct CONTRACT_TBL election_round_t{
 
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
                                         (vote_count)(unvote_count)
-                                        (vote_tally_completed)(unvote_apply_completed)(reward_allocation_completed)
+                                        (vote_tally_completed)(unvote_last_round_completed)(reward_allocation_completed)
                                         (total_votes)(total_votes_in_coinage)(total_received_rewards)
                                         (elected_bps) )
 };
