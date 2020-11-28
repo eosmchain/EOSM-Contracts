@@ -529,7 +529,7 @@ void mgp_bpvoting::execute() {
 	}
 
 	if (last_execution_round.vote_tally_completed && 
-		last_execution_round.reward_allocation_completed &&
+		execution_round.reward_allocation_completed &&
 		execution_round.unvote_last_round_completed) 
 	{
 		_reward_execution_round( execution_round );
