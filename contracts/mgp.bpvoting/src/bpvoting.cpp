@@ -156,7 +156,7 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 		_dbc.set( candidate );
 
 		auto age = last_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto coinage = itr->quantity * age / 10000.0;
 		last_round.total_votes_in_coinage += coinage;
 	}
 	for (auto& vote_id : vote_ids) {
@@ -196,7 +196,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 		check( _dbc.get(voter), "Err: voter not found" );
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto coinage = itr->quantity * age / 10000.0;
 		round.total_votes_in_coinage -= coinage;
 		round.unvote_count++;
 
@@ -267,7 +267,7 @@ void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
       		row.restarted_at += microseconds(30 * mons * seconds_per_day * 1000'000ll);
    		});
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto coinage = itr->quantity * age;
+		auto coinage = itr->quantity * age / 10000.0;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
 		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * ratio;
 		voter.unclaimed_rewards += voter_rewards;
