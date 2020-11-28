@@ -97,8 +97,8 @@ struct CONTRACT_TBL election_round_t{
     time_point ended_at;
     time_point created_at;
 
-    uint64_t vote_count             = 0;
-    uint64_t unvote_count           = 0;
+    uint64_t vote_count                 = 0;
+    uint64_t unvote_count               = 0;
 
     bool    vote_tally_completed        = false;
     bool    unvote_apply_completed      = false;

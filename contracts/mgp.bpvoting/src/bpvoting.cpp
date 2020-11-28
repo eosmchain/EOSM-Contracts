@@ -368,7 +368,7 @@ void mgp_bpvoting::init() {
 	auto ct = current_time_point();
 	_gstate.started_at 						= ct;
 	_gstate.last_election_round 			= 1;
-	_gstate.last_execution_round 			= 0;
+	_gstate.last_execution_round 			= 1;
 
 	auto days = ct.sec_since_epoch() / seconds_per_day;
 	auto start_secs = _gstate.election_round_start_hour * 3600;
@@ -485,13 +485,7 @@ void mgp_bpvoting::delist(const name& issuer) {
  */
 void mgp_bpvoting::execute() {
 	election_round_t last_round(_gstate.last_execution_round);
-	if (last_round.round_id == 0) {
-		last_round.next_round_id = 1;	//last_round is virtual
-		last_round.vote_tally_completed = true;
-		last_round.reward_allocation_completed = true;
-	} else {
-		check( _dbc.get(last_round), "last_round[" + to_string(last_round.round_id) + "] not found" );
-	}
+	check( _dbc.get(last_round), "last_round[" + to_string(last_round.round_id) + "] not found" );
 
 	if (last_round.next_round_id == 0) {
 		election_round_t curr_round;
