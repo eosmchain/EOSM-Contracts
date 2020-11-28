@@ -21,6 +21,9 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
 	auto rounds = elapsed / _gstate.election_round_sec;
+	if (rounds == 0)
+		rounds = 1;
+		
 	return rounds; //usually in days
 }
 
@@ -157,7 +160,6 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 		auto coinage = itr->quantity * age;
 		last_round.total_votes_in_coinage += coinage;
 	}
-
 	for (auto& vote_id : vote_ids) {
 		auto itr = votes.find(vote_id);
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
