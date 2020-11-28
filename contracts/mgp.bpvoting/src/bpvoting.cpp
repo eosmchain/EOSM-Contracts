@@ -210,6 +210,16 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 }
 
 void mgp_bpvoting::_reward_allocation(election_round_t& round) {
+	if (round.total_received_rewards.amount == 0)
+		return;
+
+	if (round.elected_bps.size() == 0) {
+		election_round_t next_round(round.next_round_id);
+		check(_dbc.get(next_round), "Err: next round[" + to_string(round.next_round_id) +"] not exist" );
+		next_round.total_received_rewards += round.total_received_rewards;
+		_dbc.set(next_round);
+	}
+
 	auto per_bp_rewards = (uint64_t) ((double) round.total_received_rewards.amount / round.elected_bps.size());
 	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
 	for (auto& item : round.elected_bps) {
