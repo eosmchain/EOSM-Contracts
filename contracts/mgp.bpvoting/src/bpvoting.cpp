@@ -489,6 +489,7 @@ void mgp_bpvoting::execute() {
 	if (last_execution_round.round_id == 0) {
 		last_execution_round.next_round_id = 1;
 		last_execution_round.vote_tally_completed = true;
+		last_execution_round.reward_allocation_completed = true;
 	}
 	_dbc.get(last_execution_round);
 
