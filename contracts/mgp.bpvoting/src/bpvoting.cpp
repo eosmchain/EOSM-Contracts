@@ -127,7 +127,7 @@ void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candi
 	}
 }
 
-void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
+void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& execution_round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"electround"_n>();
 	auto lower_itr = idx.lower_bound( last_round.round_id );
@@ -155,10 +155,12 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 		
 		_dbc.set( candidate );
 
-		auto age = last_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto age = execution_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age / 10000.0;
-		last_round.total_votes_in_coinage += coinage;
+		execution_round.total_votes_in_coinage += coinage;
+		_dbc.set( execution_round );
 	}
+
 	for (auto& vote_id : vote_ids) {
 		auto itr = votes.find(vote_id);
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
@@ -166,13 +168,12 @@ void mgp_bpvoting::_tally_votes_for_last_round(election_round_t& last_round) {
 			row.election_round = last_round.next_round_id;
 		});
 	}
-
 	last_round.vote_tally_completed = completed;
 	_dbc.set( last_round );
 
 }
 
-void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
+void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"unvoteda"_n>();
 	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
@@ -209,7 +210,7 @@ void mgp_bpvoting::_apply_unvotes_for_execution_round(election_round_t& round) {
 
 }
 
-void mgp_bpvoting::_reward_allocation(election_round_t& round) {
+void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 	if (round.total_received_rewards.amount == 0) {
 		round.reward_allocation_completed = true;
 		_dbc.set( round );
@@ -244,7 +245,7 @@ void mgp_bpvoting::_reward_allocation(election_round_t& round) {
 }
 
 //reward target_round
-void mgp_bpvoting::_reward_execution_round(election_round_t& round) {
+void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
 		_gstate.last_execution_round = round.round_id;
 		return;
@@ -511,28 +512,28 @@ void mgp_bpvoting::execute() {
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
-		_tally_votes_for_last_round( last_execution_round );
+		_tally_votes( last_execution_round, execution_round);
 
 	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
 	{
 		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
 			execution_round.elected_bps = last_execution_round.elected_bps;
 
-		_apply_unvotes_for_execution_round( execution_round );
+		_apply_unvotes( execution_round );
 	}
 
 	if (last_execution_round.vote_tally_completed && 
 		execution_round.unvote_last_round_completed && 
 		!execution_round.reward_allocation_completed ) 
 	{
-		_reward_allocation( execution_round );
+		_allocate_rewards( execution_round );
 	}
 
 	if (last_execution_round.vote_tally_completed && 
 		execution_round.reward_allocation_completed &&
 		execution_round.unvote_last_round_completed) 
 	{
-		_reward_execution_round( execution_round );
+		_execute_rewards( execution_round );
 	}
 }
 
