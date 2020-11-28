@@ -30,15 +30,15 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 	curr_round.round_id = round_id;
 
 	if (!_dbc.get( curr_round )) {
-		election_round_t last_round(_gstate.last_election_round);
-		check( _dbc.get(last_round), "Err: last election round[" + to_string(_gstate.last_execution_round) + "] not found" );
-		check( last_round.next_round_id == 0, "Err: next_round_id already set" );
-		last_round.next_round_id = curr_round.round_id;
-		_dbc.set( last_round );
+		election_round_t last_election_round(_gstate.last_election_round);
+		check( _dbc.get(last_election_round), "Err: last_election_round[" + to_string(_gstate.last_election_round) + "] not found" );
+		check( last_election_round.next_round_id == 0, "Err: next_round_id already set" );
+		last_election_round.next_round_id = curr_round.round_id;
+		_dbc.set( last_election_round );
 
 		//create a new current round
-		curr_round.started_at = last_round.ended_at;
-		auto elapsed = ct.sec_since_epoch() - last_round.ended_at.sec_since_epoch();
+		curr_round.started_at = last_election_round.ended_at;
+		auto elapsed = ct.sec_since_epoch() - last_election_round.ended_at.sec_since_epoch();
 		auto rounds = elapsed / _gstate.election_round_sec;
 		check( rounds > 0, "Too early to create a new round" );
 		curr_round.ended_at = curr_round.started_at + eosio::seconds(rounds * _gstate.election_round_sec);
@@ -368,10 +368,10 @@ void mgp_bpvoting::init() {
 	auto ct = current_time_point();
 	_gstate.started_at 						= ct;
 	_gstate.last_election_round 			= 1;
-	_gstate.last_execution_round 			= 1;
+	_gstate.last_execution_round 			= 0;
 
-	auto days = ct.sec_since_epoch() / seconds_per_day;
-	auto start_secs = _gstate.election_round_start_hour * 3600;
+	auto days 								= ct.sec_since_epoch() / seconds_per_day;
+	auto start_secs 						= _gstate.election_round_start_hour * 3600;
 
 	election_round_t election_round(1);
 	election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
@@ -410,11 +410,11 @@ void mgp_bpvoting::config(
 
 }
 
-void mgp_bpvoting::setelect(const uint64_t& last_election_round, const uint64_t& last_execution_round) {
+void mgp_bpvoting::setelect(const uint64_t& election_round, const uint64_t& execution_round) {
 	require_auth( _self );
 
-	_gstate.last_election_round = last_election_round;
-	_gstate.last_execution_round = last_execution_round;
+	_gstate.last_election_round = election_round;
+	_gstate.last_execution_round = execution_round;
 
 }
 
@@ -484,40 +484,40 @@ void mgp_bpvoting::delist(const name& issuer) {
  *	ACTION: continuously invoked to execute election until target round is completed
  */
 void mgp_bpvoting::execute() {
-	election_round_t last_round(_gstate.last_execution_round);
-	check( _dbc.get(last_round), "last_round[" + to_string(last_round.round_id) + "] not found" );
 
-	if (last_round.next_round_id == 0) {
-		election_round_t curr_round;
-		_current_election_round( current_time_point(), curr_round );
-		last_round.next_round_id = curr_round.round_id;
-		_dbc.set( last_round );
-		_dbc.set( curr_round );
+	election_round_t last_execution_round(_gstate.last_execution_round);
+	if (last_execution_round.round_id == 0) {
+		last_execution_round.next_round_id = 1;
+		last_execution_round.vote_tally_completed = true;
 	}
+	check( _dbc.get(last_execution_round), "Err: last_execution_round[" + to_string(last_execution_round.round_id) + "] not found" );
 
-	auto execution_round_id = last_round.next_round_id;
-	election_round_t execution_round(execution_round_id);
-	check( _dbc.get(execution_round), "Err: execution round[" + to_string(execution_round_id) + "] not found" );
-	check( execution_round.next_round_id > 0, "execution round[" + to_string(execution_round_id) + "] not ended yet" );
+	election_round_t execution_round(last_execution_round.next_round_id);
+	check( execution_round.round_id > 0, "Err: execution round[" + to_string(execution_round.round_id) + "] not set correctly" );
+	check( execution_round.next_round_id > 0, "execution round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
-	if (!last_round.vote_tally_completed)
-		_tally_votes_for_last_round( last_round );
+	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
+		_tally_votes_for_last_round( last_execution_round );
 
-	if (last_round.vote_tally_completed && !execution_round.unvote_last_round_completed) {
+	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
+	{
 		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
-			execution_round.elected_bps = last_round.elected_bps;
+			execution_round.elected_bps = last_execution_round.elected_bps;
 
 		_apply_unvotes_for_execution_round( execution_round );
 	}
 
-	if (last_round.vote_tally_completed && 
+	if (last_execution_round.vote_tally_completed && 
 		execution_round.unvote_last_round_completed && 
-		!execution_round.reward_allocation_completed )
+		!execution_round.reward_allocation_completed ) 
+	{
 		_reward_allocation( execution_round );
+	}
 
-	if (last_round.vote_tally_completed && 
-		last_round.reward_allocation_completed &&
-		execution_round.unvote_last_round_completed) {
+	if (last_execution_round.vote_tally_completed && 
+		last_execution_round.reward_allocation_completed &&
+		execution_round.unvote_last_round_completed) 
+	{
 		_reward_execution_round( execution_round );
 	}
 }

@@ -75,7 +75,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
                 const asset& min_bp_vote_quantity);
 
     [[eosio::action]]
-    void setelect(const uint64_t& last_election_round, const uint64_t& last_execution_round);
+    void setelect(const uint64_t& election_round, const uint64_t& execution_round);
 
     [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id);

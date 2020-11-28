@@ -44,8 +44,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
     asset total_voted;
     asset total_received_rewards;
     time_point started_at;
-    uint64_t last_election_round;
-    uint64_t last_execution_round;
+    uint64_t last_election_round;   // most recently added
+    uint64_t last_execution_round;  // most recently finished
 
     global_t() {
         max_tally_vote_iterate_steps    = 30;
