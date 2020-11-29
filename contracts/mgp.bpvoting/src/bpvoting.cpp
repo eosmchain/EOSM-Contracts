@@ -500,7 +500,7 @@ void mgp_bpvoting::delist(const name& issuer) {
 void mgp_bpvoting::execute() {
 
 	election_round_t last_execution_round(_gstate.last_execution_round);
-	if (last_execution_round.round_id == 0) {
+	if (last_execution_round.round_id == 0) { //virtual round (non-existent)
 		last_execution_round.next_round_id = 1;
 		last_execution_round.vote_tally_completed = true;
 		last_execution_round.reward_allocation_completed = true;

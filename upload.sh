@@ -1,1 +1,1 @@
-scp -r ./build/contracts m1:/opt/mgp/wallet
+scp -r ./build/contracts jw:/opt/mgp/wallet
