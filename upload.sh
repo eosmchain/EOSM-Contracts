@@ -1,2 +1,4 @@
-scp -r ./build/contracts jw:/opt/mgp/wallet
-scp ./unittest.sh jw:/opt/mgp/wallet/
+host=m1
+#host=jw
+scp -r ./build/contracts ${host}:/opt/mgp/wallet
+scp ./unittest.sh ${host}:/opt/mgp/wallet/
