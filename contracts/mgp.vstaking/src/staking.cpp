@@ -85,7 +85,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 		// ).send();
 
 		action(
-			permission_level{ _self, "active"_n },	SYS_BANK, "burn"_n,
+			permission_level{ from, "active"_n },	SYS_BANK, "burn"_n,
 			std::make_tuple( from, to_burn, std::string("staking burn"))
 		).send();
 	}
