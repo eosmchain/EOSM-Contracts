@@ -222,6 +222,10 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 		check(_dbc.get(next_round), "Err: next round[" + to_string(round.next_round_id) +"] not exist" );
 		next_round.total_received_rewards += round.total_received_rewards;
 		_dbc.set(next_round);
+
+		round.reward_allocation_completed = true;
+		_dbc.set( round );
+		return;
 	}
 
 	auto per_bp_rewards = (uint64_t) ((double) round.total_received_rewards.amount / round.elected_bps.size());
@@ -504,8 +508,8 @@ void mgp_bpvoting::execute() {
 		last_execution_round.next_round_id = 1;
 		last_execution_round.vote_tally_completed = true;
 		last_execution_round.reward_allocation_completed = true;
-	}
-	_dbc.get(last_execution_round);
+	} else
+		_dbc.get(last_execution_round);
 
 	election_round_t execution_round(last_execution_round.next_round_id);
 	check( _dbc.get(execution_round), "Err: execution_round[" + to_string(execution_round.round_id) + "] not exist" );
