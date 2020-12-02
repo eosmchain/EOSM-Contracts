@@ -237,10 +237,10 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 
 		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
 		auto voter_rewards = per_bp_rewards - bp_rewards;
-		item.second.allocated_bp_rewards = asset(bp_rewards, SYS_SYMBOL);
-		item.second.allocated_voter_rewards = asset(voter_rewards, SYS_SYMBOL);
+		item.second.allocated_bp_rewards.amount = bp_rewards;
+		item.second.allocated_voter_rewards.amount = voter_rewards;
 		
-		bp.unclaimed_rewards += asset(bp_rewards, SYS_SYMBOL);
+		bp.unclaimed_rewards.amount += bp_rewards;
 		_dbc.set(bp);		
 	}
 
