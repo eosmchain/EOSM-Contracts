@@ -280,11 +280,16 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
+		if (round.started_at.sec_since_epoch() <= itr->restarted_at.sec_since_epoch())
+			continue;
+			
 		auto elapsed = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto mons = elapsed % (30 * seconds_per_day);
-		votes.modify( *itr, _self, [&]( auto& row ) {
-      		row.restarted_at += seconds(mons * 30 * seconds_per_day);
-   		});
+		auto mons = elapsed / (30 * seconds_per_day);
+		if (mons > 0) {
+			votes.modify( *itr, _self, [&]( auto& row ) {
+				row.restarted_at += seconds(mons * 30 * seconds_per_day);
+			});
+		}
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
@@ -300,7 +305,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
 
 		votes.modify( *itr, _self, [&]( auto& row ) {
-      		row.reward_round = round.round_id;
+      		row.reward_round = round.next_round_id;
    		});
 	}
 
