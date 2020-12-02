@@ -223,6 +223,7 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 		next_round.total_received_rewards += round.total_received_rewards;
 		_dbc.set(next_round);
 
+		round.total_received_rewards.amount = 0;
 		round.reward_allocation_completed = true;
 		_dbc.set( round );
 		return;
