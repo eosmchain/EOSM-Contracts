@@ -315,16 +315,6 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 	if (completed) {
 		_gstate.last_execution_round = round.round_id;
-
-		if (round.total_votes_in_coinage.amount > 0) {
-			election_round_t next_round(round.next_round_id);
-			check( _dbc.get(next_round), "Err: next round[" + to_string(next_round.round_id) + "] not exist" );
-			next_round.total_votes_in_coinage  += round.total_votes_in_coinage;
-			round.total_votes_in_coinage.amount = 0;
-
-			_dbc.set(next_round);
-			_dbc.set(round);
-		}
 	}
 
 
