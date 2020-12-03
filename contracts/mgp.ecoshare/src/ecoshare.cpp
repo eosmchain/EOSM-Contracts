@@ -34,7 +34,6 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo) {
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 
 	asset to_bps_voting_quant = _gstate.bps_voting_share * quantity / 10000.0;
-
 	action(
 		permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
 		std::make_tuple( _self, _gstate.bps_voting_account, to_bps_voting_quant, 
@@ -48,10 +47,11 @@ void mgp_ecoshare::transfer(name from, name to, asset quantity, string memo) {
 								std::string("staking reward") )
 	).send();
 
-	auto tid = gen_new_id(T_COUNTER);
-	transfer_t transfer(tid, _gstate.bps_voting_account, _gstate.stake_mining_account,
-						to_bps_voting_quant, to_stake_mining_quant);
-
+	transfer_t transfer( _self, _self.value ); 
+	transfer.bps_voting_account 	= _gstate.bps_voting_account;
+	transfer.stake_mining_account 	= _gstate.stake_mining_account;
+	transfer.bps_voting_share 		= to_bps_voting_quant;
+	transfer.stake_mining_share 	= to_stake_mining_quant;
 	_dbc.set(transfer);
 	
 }
