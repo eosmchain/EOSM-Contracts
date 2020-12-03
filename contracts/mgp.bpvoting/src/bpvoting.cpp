@@ -108,22 +108,22 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 }
 
-void mgp_bpvoting::_elect(election_round_t& last_round, const candidate_t& candidate) {
-	last_round.elected_bps[ candidate.owner ].received_votes = candidate.tallied_votes;
+void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate) {
+	round.elected_bps[ candidate.owner ].received_votes = candidate.tallied_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_entry_t> bps;
-	for (auto& it : last_round.elected_bps) {
+	for (auto& it : round.elected_bps) {
 		bps.push_back(it);
 	}
 
 	auto cmp = [](bp_entry_t a, bp_entry_t b) { return a.second.received_votes >= b.second.received_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
-	last_round.elected_bps.clear();
+	round.elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
 	for (int i = 0; i < size; i++) {
-		last_round.elected_bps.emplace(bps[i].first, bps[i].second);
+		round.elected_bps.emplace(bps[i].first, bps[i].second);
 	}
 }
 
@@ -151,9 +151,20 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 		candidate.tallied_votes += itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
-			_elect(last_round, candidate);
+			_elect(execution_round, candidate);
 		
 		_dbc.set( candidate );
+
+		if (execution_round.started_at <= itr->restarted_at)
+			continue;
+
+		auto elapsed = execution_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
+		auto mons = elapsed / (30 * seconds_per_day);
+		if (mons > 0) {
+			votes.modify( *itr, _self, [&]( auto& row ) {
+				row.restarted_at += seconds(mons * 30 * seconds_per_day);
+			});
+		}
 
 		auto age = execution_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
@@ -173,7 +184,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 }
 
-void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
+void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"unvoteda"_n>();
 	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
@@ -195,6 +206,9 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
+
+		if (round.started_at <= itr->restarted_at)
+			continue;
 
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
@@ -283,13 +297,6 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		if (round.started_at.sec_since_epoch() <= itr->restarted_at.sec_since_epoch())
 			continue;
 			
-		auto elapsed = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto mons = elapsed / (30 * seconds_per_day);
-		if (mons > 0) {
-			votes.modify( *itr, _self, [&]( auto& row ) {
-				row.restarted_at += seconds(mons * 30 * seconds_per_day);
-			});
-		}
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
 		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
@@ -522,14 +529,16 @@ void mgp_bpvoting::execute() {
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
-		_tally_votes( last_execution_round, execution_round);
-
-	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
 	{
 		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
 			execution_round.elected_bps = last_execution_round.elected_bps;
 
-		_apply_unvotes( execution_round );
+		_tally_votes( last_execution_round, execution_round );
+	}
+
+	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
+	{
+		_tally_unvotes( execution_round );
 	}
 
 	if (last_execution_round.vote_tally_completed && 
