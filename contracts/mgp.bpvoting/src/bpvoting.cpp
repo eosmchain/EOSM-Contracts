@@ -265,7 +265,7 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 
 //reward target_round
 void mgp_bpvoting::_execute_rewards(election_round_t& round) {
-	if (round.elected_bps.size() == 0 || round.total_received_rewards.amount == 0) {
+	if (round.elected_bps.size() == 0 || round.total_votes_in_coinage.amount == 0) {
 		_gstate.last_execution_round = round.round_id;
 		return;
 	}
