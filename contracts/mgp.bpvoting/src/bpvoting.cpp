@@ -299,8 +299,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 			
 		auto age = round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
 		auto coinage = itr->quantity * age;
-		double ratio = (double) coinage.amount / round.total_votes_in_coinage.amount;
-		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * ratio;
+		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * coinage.amount / round.total_votes_in_coinage.amount;
 		voter.unclaimed_rewards += voter_rewards;
 
 		_dbc.set(voter);
