@@ -190,7 +190,7 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 	int step = 0;
 
 	bool completed = true;
-	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end();) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
@@ -217,8 +217,8 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		if (!new_voteage)
 			_dbc.del( voteage );
 
-		
-		votes.erase( *itr );
+		auto vitr = votes.find(itr->id);
+		votes.erase( vitr );
 	}
 
 	round.unvote_last_round_completed = completed;
