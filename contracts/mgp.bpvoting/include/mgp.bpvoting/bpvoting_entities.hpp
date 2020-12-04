@@ -105,7 +105,7 @@ struct CONTRACT_TBL election_round_t{
     bool    reward_allocation_completed = false;
 
     asset total_votes                   = asset(0, SYS_SYMBOL);
-    asset total_voteage        = asset(0, SYS_SYMBOL);
+    asset total_voteage                 = asset(0, SYS_SYMBOL);
     asset total_received_rewards        = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
     std::map<name, bp_info_t> elected_bps;      //max 21 bps

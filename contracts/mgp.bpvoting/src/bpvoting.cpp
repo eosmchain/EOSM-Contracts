@@ -160,7 +160,9 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		_dbc.set( candidate );
 
 		voteage_t voteage(itr->id);
-		_dbc.get(voteage);
+		if (!_dbc.get(voteage))
+			voteage.votes = asset(0, SYS_SYMBOL);
+
 		voteage.age = (voteage.age == 30) ? 1 : voteage.age + 1;
 		_dbc.set( voteage );
 
@@ -204,7 +206,8 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		check( _dbc.get(voter), "Err: voter not found" );
 
 		voteage_t voteage(itr->id);
-		_dbc.get(voteage);
+		if (!_dbc.get(voteage))
+			voteage.votes = asset(0, SYS_SYMBOL);
 
 		round.total_voteage -= voteage.value();
 		round.unvote_count++;
@@ -290,7 +293,9 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		check( _dbc.get(voter), "Err: voter not found" );
 
 		voteage_t voteage(itr->id);
-		_dbc.get(voteage);
+		if (!_dbc.get(voteage)) 
+			voteage.votes = asset(0, SYS_SYMBOL);
+
 		auto va = voteage.value();
 		if (va.amount == 0) continue;
 
