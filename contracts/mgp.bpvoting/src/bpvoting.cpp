@@ -205,14 +205,19 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
+		auto new_voteage = false;
 		voteage_t voteage(itr->id);
-		if (!_dbc.get(voteage))
+		if (!_dbc.get(voteage)) {
+			new_voteage = true;
 			voteage.votes = asset(0, SYS_SYMBOL);
-
+		}
 		round.total_voteage -= voteage.value();
 		round.unvote_count++;
 
-		_dbc.del( voteage );
+		if (!new_voteage)
+			_dbc.del( voteage );
+
+		
 		votes.erase( *itr );
 	}
 
