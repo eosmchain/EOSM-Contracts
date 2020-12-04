@@ -183,14 +183,15 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 }
 
 void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
-	vote_tbl votes(_self, _self.value);
-	auto idx = votes.get_index<"unvoteda"_n>();
-	auto lower_itr = idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
-	auto upper_itr = idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) );
 	int step = 0;
-
 	bool completed = true;
-	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+
+	vote_tbl votes(_self, _self.value);
+	auto vote_idx = votes.get_index<"unvoteda"_n>();
+	auto lower_itr = vote_idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
+	auto upper_itr = vote_idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) );
+	auto itr = lower_itr;
+	while (itr != upper_itr && itr != vote_idx.end()) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
@@ -217,8 +218,7 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		if (!new_voteage)
 			_dbc.del( voteage );
 
-		auto vitr = votes.find(itr->id);
-		votes.erase( vitr );
+		itr = vote_idx.erase( itr );
 	}
 
 	round.unvote_last_round_completed = completed;
