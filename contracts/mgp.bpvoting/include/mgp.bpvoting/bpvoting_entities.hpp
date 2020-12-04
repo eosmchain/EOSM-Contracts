@@ -105,7 +105,7 @@ struct CONTRACT_TBL election_round_t{
     bool    reward_allocation_completed = false;
 
     asset total_votes                   = asset(0, SYS_SYMBOL);
-    asset total_votes_in_coinage        = asset(0, SYS_SYMBOL);
+    asset total_voteage        = asset(0, SYS_SYMBOL);
     asset total_received_rewards        = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
     std::map<name, bp_info_t> elected_bps;      //max 21 bps
@@ -121,7 +121,7 @@ struct CONTRACT_TBL election_round_t{
     EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
                                         (vote_count)(unvote_count)
                                         (vote_tally_completed)(unvote_last_round_completed)(reward_allocation_completed)
-                                        (total_votes)(total_votes_in_coinage)(total_received_rewards)
+                                        (total_votes)(total_voteage)(total_received_rewards)
                                         (elected_bps) )
 };
 
@@ -218,6 +218,28 @@ typedef eosio::multi_index
     indexed_by<"rewardround"_n,  const_mem_fun<vote_t, uint64_t, &vote_t::by_reward_round>      >
 > vote_tbl;
 
+
+/**
+ *  vote table
+ */
+struct CONTRACT_TBL voteage_t {
+    uint64_t vote_id;        //PK
+    asset votes;
+    uint64_t age;           //days
+
+    voteage_t() {}
+    voteage_t(const uint64_t vid): vote_id(vid) {}
+    voteage_t(const uint64_t vid, const asset& v, const uint64_t a): vote_id(vid), votes(v), age(a) {}
+
+    asset value() { return votes * age; }
+
+    uint64_t primary_key() const { return vote_id; }
+    uint64_t scope() const { return 0; }
+
+    typedef eosio::multi_index<"voteages"_n, voteage_t> index_t;
+
+    EOSLIB_SERIALIZE( voteage_t,  (vote_id)(votes)(age) )
+};
 
 /**
  *  Incoming rewards for whole bpvoting cohort

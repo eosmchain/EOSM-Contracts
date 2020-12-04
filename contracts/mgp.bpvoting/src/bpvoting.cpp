@@ -84,8 +84,9 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	_dbc.set(candidate);
 
 	vote_tbl votes(_self, _self.value);
+	auto vote_id = votes.available_primary_key();
 	votes.emplace( _self, [&]( auto& row ) {
-		row.id = votes.available_primary_key();
+		row.id = vote_id;
 		row.owner = owner;
 		row.candidate = target;
 		row.quantity = quantity;
@@ -94,6 +95,9 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 		row.election_round = curr_round.round_id;
 		row.reward_round = curr_round.round_id;
 	});
+
+	voteage_t voteage(vote_id, quantity, 0);
+	_dbc.set( voteage );
 
 	voter_t voter(owner);
 	if (!_dbc.get( voter )) {
@@ -155,22 +159,12 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		
 		_dbc.set( candidate );
 
-		if (execution_round.started_at <= itr->restarted_at)
-			continue;
+		voteage_t voteage(itr->id);
+		_dbc.get(voteage);
+		voteage.age = (voteage.age == 30) ? 1 : voteage.age + 1;
+		_dbc.set( voteage );
 
-		auto elapsed = execution_round.started_at.sec_since_epoch() - itr->restarted_at.sec_since_epoch();
-		auto mons = elapsed / (30 * seconds_per_day);
-		if (mons > 0) {
-			votes.modify( *itr, _self, [&]( auto& row ) {
-				row.restarted_at += seconds(mons * 30 * seconds_per_day);
-				row.reward_round = execution_round.round_id;
-			});
-		}
-
-		if (itr->reward_round >= execution_round.round_id) continue;
-		auto age = execution_round.round_id - itr->reward_round;
-		auto coinage = itr->quantity * age;
-		execution_round.total_votes_in_coinage += coinage;
+		execution_round.total_voteage += voteage.value();
 		_dbc.set( execution_round );
 	}
 
@@ -209,12 +203,13 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		if (itr->reward_round >= round.round_id) continue;
-		auto age = round.round_id - itr->reward_round;
-		auto coinage = itr->quantity * age;
-		round.total_votes_in_coinage -= coinage;
+		voteage_t voteage(itr->id);
+		_dbc.get(voteage);
+
+		round.total_voteage -= voteage.value();
 		round.unvote_count++;
 
+		_dbc.del( voteage );
 		votes.erase( *itr );
 	}
 
@@ -265,7 +260,7 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 
 //reward target_round
 void mgp_bpvoting::_execute_rewards(election_round_t& round) {
-	if (round.elected_bps.size() == 0 || round.total_votes_in_coinage.amount == 0) {
+	if (round.elected_bps.size() == 0 || round.total_voteage.amount == 0) {
 		_gstate.last_execution_round = round.round_id;
 		return;
 	}
@@ -294,10 +289,12 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		if (itr->reward_round >= round.round_id) continue;
-		auto age = round.round_id - itr->reward_round;
-		auto coinage = itr->quantity * age;
-		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * coinage.amount / round.total_votes_in_coinage.amount;
+		voteage_t voteage(itr->id);
+		_dbc.get(voteage);
+		auto va = voteage.value();
+		if (va.amount == 0) continue;
+
+		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * va.amount / round.total_voteage.amount;
 		voter.unclaimed_rewards += voter_rewards;
 
 		_dbc.set(voter);
