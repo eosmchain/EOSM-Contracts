@@ -102,6 +102,7 @@ cmd=$1
 [ $cmd == "voters" ] && tbl voters $2
 [ $cmd == "rewards" ] && tbl rewards $2
 [ $cmd == "rws" ] && tbl rewards $2
+[ $cmd == "vas" ] && tbl voteages $2
 [ $cmd == "r0" ] && r0
 [ $cmd == "r1" ] && r1
 [ $cmd == "r2" ] && r2
