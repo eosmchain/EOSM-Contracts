@@ -73,18 +73,16 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 struct bp_info_t {
-    asset received_votes;
-    asset allocated_bp_rewards;
-    asset allocated_voter_rewards;
+    asset received_votes            = asset(0, SYS_SYMBOL);
+    asset allocated_bp_rewards      = asset(0, SYS_SYMBOL);
+    asset allocated_voter_rewards   = asset(0, SYS_SYMBOL);
 
-    bp_info_t() {
-        received_votes = asset(0, SYS_SYMBOL);
-        allocated_bp_rewards = asset(0, SYS_SYMBOL);
-        allocated_voter_rewards = asset(0, SYS_SYMBOL);
-    }
+    bp_info_t() {}
 
     EOSLIB_SERIALIZE(bp_info_t, (received_votes)(allocated_bp_rewards)(allocated_voter_rewards) )
 };
+
+typedef std::pair<name, bp_info_t> bp_entry_t;
 /**
  * election round table, one record per day
  *

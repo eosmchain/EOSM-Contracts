@@ -1,4 +1,8 @@
 host=m1
 # host=jw
-scp -r ./build/contracts ${host}:/opt/mgp/wallet
-scp ./unittest.sh ${host}:/opt/mgp/wallet/
+
+rsync -rav -e ssh --include='*.abi' --include='*.wasm' \
+    --exclude='unittest.sh' --exclude='**/CMakeFiles' \
+    ./build/contracts ${host}:/opt/mgp/wallet
+
+rsync -rav -e ssh ./unittest.sh ${host}:/opt/mgp/wallet/

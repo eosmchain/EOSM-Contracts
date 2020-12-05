@@ -113,17 +113,22 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 }
 
 void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate) {
-	round.elected_bps[ candidate.owner ].received_votes = candidate.tallied_votes;
+	
+	round.elected_bps[ candidate.owner ].received_votes = candidate.staked_votes + candidate.tallied_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_entry_t> bps;
+
+	string _bps = "";
 	for (auto& it : round.elected_bps) {
 		bps.push_back(it);
+		_bps += it.first.to_string() + ": " + it.second.received_votes.to_string() + "\n";
 	}
-
-	auto cmp = [](bp_entry_t a, bp_entry_t b) { return a.second.received_votes >= b.second.received_votes; };
+	
+	auto cmp = [](bp_entry_t a, bp_entry_t b) {return a.second.received_votes > b.second.received_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
+
 	round.elected_bps.clear();
 	auto size = (bps.size() == 22) ? 21 : bps.size();
 	for (int i = 0; i < size; i++) {
@@ -140,6 +145,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 	bool completed = true;
 	vector<uint64_t> vote_ids;
+
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
@@ -160,9 +166,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		_dbc.set( candidate );
 
 		voteage_t voteage(itr->id);
-		if (!_dbc.get(voteage))
-			voteage.votes = asset(0, SYS_SYMBOL);
-
+		if (!_dbc.get(voteage)) voteage.votes = asset(0, SYS_SYMBOL);
 		voteage.age = (voteage.age == 30) ? 1 : voteage.age + 1;
 		_dbc.set( voteage );
 
