@@ -70,23 +70,6 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_
 
 }
 
-void mgp_bpvoting::syncvoteages() {
-	voteage_t voteages;
-	auto tbl = _dbc.get_tbl(voteages);
-	for (auto itr = tbl.begin(); itr != tbl.end(); itr++) {
-		tbl.modify( *itr, _self, [&]( auto& row ) {
-			vote_t vote(itr->vote_id);
-			check(_dbc.get(vote), "Err, vote[" + to_string(itr->vote_id) + "] not exist");
-
-			row.votes = vote.quantity;
-			auto ct = current_time_point();
-			auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
-			auto days = elapsed / seconds_per_day;
-			row.age = days;
-		});
-	}
-}
-
 void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& quantity) {
 	time_point ct = current_time_point();
 	election_round_t curr_round;
@@ -473,6 +456,23 @@ void mgp_bpvoting::setelect(const uint64_t& election_round, const uint64_t& exec
 	_gstate.last_election_round = election_round;
 	_gstate.last_execution_round = execution_round;
 
+}
+
+void mgp_bpvoting::syncvoteages() {
+	voteage_t voteages;
+	auto tbl = _dbc.get_tbl(voteages);
+	for (auto itr = tbl.begin(); itr != tbl.end(); itr++) {
+		tbl.modify( *itr, _self, [&]( auto& row ) {
+			vote_t vote(itr->vote_id);
+			check(_dbc.get(vote), "Err, vote[" + to_string(itr->vote_id) + "] not exist");
+
+			row.votes = vote.quantity;
+			auto ct = current_time_point();
+			auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
+			auto days = elapsed / seconds_per_day;
+			row.age = days;
+		});
+	}
 }
 
 /**

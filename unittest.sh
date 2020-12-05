@@ -67,7 +67,7 @@ function r2 {
   echo "3) votes"
   $cl transfer masteraychen $con "100.0000 MGP" "vote:richard.chen"
   $cl transfer masteraychen $con "100.0000 MGP" "vote:raymond.chen"
-  $cl push action masteraychen $con unvote '["raymond.chen", 5]' -p @masteraychen
+  $cl push action $con unvote '["raymond.chen", 5]' -p @masteraychen
 }
 
 function exec {
