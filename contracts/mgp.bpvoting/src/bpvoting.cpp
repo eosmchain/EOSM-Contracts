@@ -79,6 +79,10 @@ void mgp_bpvoting::syncvoteages() {
 			check(_dbc.get(vote), "Err, vote[" + to_string(itr->vote_id) + "] not exist");
 
 			row.votes = vote.quantity;
+			auto ct = current_time_point();
+			auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
+			auto days = elapsed / seconds_per_day;
+			row.age = days;
 		});
 	}
 }
