@@ -1,7 +1,9 @@
 cl='bash /root/eosio-wallet/cleos.sh'
 
+cd /opt/src/MGP-Contracts 
+
 function setcode {
-    cd /opt/src/MGP-Contracts && cleos set contract $con ./build/contracts/mgp.bpvoting/
+    $cl set contract $con ./build/contracts/mgp.bpvoting/
     $cl set account permission $con active '{"threshold": 1,"keys": [{"key": "'$pubkey'","weight": 1}],"accounts": [{"permission":{"actor":"'$con'","permission":"eosio.code"},"weight":1}]}' owner -p $con
 }
 
