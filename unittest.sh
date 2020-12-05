@@ -8,7 +8,7 @@ function setcode {
 function init {
   echo "0. conf & init"
   echo ""
-  $cl push action $con config '[20,30,50,21,180,600,1,"100.0000 MGP","200.0000 MGP","10.0000 MGP"]' -p $con
+  $cl push action $con config '[20,30,50,21,60,600,1,"100.0000 MGP","200.0000 MGP","10.0000 MGP"]' -p $con
   $cl push action $con init '[]' -p $con
 }
 
