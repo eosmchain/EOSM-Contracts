@@ -78,6 +78,9 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void setelect(const uint64_t& election_round, const uint64_t& execution_round);
 
     [[eosio::action]]
+    void syncvoteages();
+
+    [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id);
 
     [[eosio::action]]
@@ -94,11 +97,15 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
     using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config   >;
-    using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
+    
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
     using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
+
+    using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
+    using syncvoteages_action = action_wrapper<name("syncvoteages"),  &mgp_bpvoting::syncvoteages >;
+    
 
   private:
     uint64_t get_round_id(const time_point& ct);

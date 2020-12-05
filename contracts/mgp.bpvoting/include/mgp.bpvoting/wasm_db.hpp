@@ -32,6 +32,15 @@ public:
         record = tbl.get(record.primary_key());
         return true;
     }
+  
+    template<typename RecordType>
+    auto get_tbl(RecordType& record) {
+        auto scope = record.scope();
+        if (scope == 0) scope = code.value;
+
+        typename RecordType::index_t tbl(code, scope);
+        return tbl;
+    }
 
     template<typename RecordType>
     return_t set(const RecordType& record) {

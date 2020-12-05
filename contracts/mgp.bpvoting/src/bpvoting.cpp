@@ -70,6 +70,19 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_
 
 }
 
+void mgp_bpvoting::syncvoteages() {
+	voteage_t voteages;
+	auto tbl = _dbc.get_tbl(voteages);
+	for (auto itr = tbl.begin(); itr != tbl.end(); itr++) {
+		tbl.modify( *itr, _self, [&]( auto& row ) {
+			vote_t vote(itr->vote_id);
+			check(_dbc.get(vote), "Err, vote[" + to_string(itr->vote_id) + "] not exist");
+
+			row.votes = vote.quantity;
+		});
+	}
+}
+
 void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& quantity) {
 	time_point ct = current_time_point();
 	election_round_t curr_round;

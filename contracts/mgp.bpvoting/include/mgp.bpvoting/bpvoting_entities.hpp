@@ -191,8 +191,9 @@ struct CONTRACT_TBL vote_t {
     uint64_t by_reward_round() const      { return reward_round;                             }
 
     uint64_t primary_key() const { return id; }
-    // uint64_t scope() const { return 0; }
-
+    uint64_t scope() const { return 0; }
+    typedef eosio::multi_index<"votes"_n, vote_t> index_t;
+    
     vote_t() {}
     // vote_t(const name& code) {
     //     index_t tbl(code, code.value); //scope: o
