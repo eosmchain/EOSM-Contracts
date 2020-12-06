@@ -24,10 +24,6 @@ using eosio::unsigned_int;
 using std::string;
 using namespace wasm::db;
 
-static constexpr eosio::name T_COUNTER{"transfer"_n};
-static constexpr eosio::name SYS_BANK{"eosio.token"_n};
-static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
-
 class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
   private:
     global_singleton    _global;
@@ -42,35 +38,29 @@ class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
         _gstate = _global.exists() ? _global.get() : global_tbl{};
     }
 
-    ~mgp_ecoshare() {
+    ~mgp_ecoshare() 
+    {
         _global.set( _gstate, get_self() );
     }
+
+    [[eosio::action]]
+    void init();  //only code maintainer can init
 
     [[eosio::action]]
     void config(const uint64_t bps_voting_share,
               const name& bps_voting_account,
               const name& stake_mining_account);
 
-    [[eosio::action]]
-    void withdraw(const asset& quant);
+    // [[eosio::action]]
+    // void withdraw(const asset& quant);
 
-    void transfer(name from, name to, asset quantity, string memo);
+    [[eosio::on_notify("eosio.token::transfer")]]
+    void deposit(name from, name to, asset quantity, string memo);
+
+    using init_action     = action_wrapper<name("init"),      &mgp_ecoshare::init     >;
+    using config_action   = action_wrapper<name("config"),    &mgp_ecoshare::config   >;
+    using transfer_action = action_wrapper<name("transfer"),  &mgp_ecoshare::deposit  >;
 
 };
-
-extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
-	if ( code == SYS_BANK.value && action == "transfer"_n.value) {
-		eosio::execute_action(  eosio::name(receiver), 
-                            eosio::name(code), 
-                            &mgp_ecoshare::transfer );
-
-	} else if (code == receiver) {
-    // check( false, "none action to invoke!" );
-
-		switch (action) {
-			EOSIO_DISPATCH_HELPER( mgp_ecoshare, (config)(withdraw))
-		}
-	}
-}
 
 }

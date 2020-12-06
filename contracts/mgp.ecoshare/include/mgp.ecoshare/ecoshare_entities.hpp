@@ -15,7 +15,9 @@ namespace mgp {
 
 using namespace eosio;
 
-static constexpr uint64_t ECOSHARE_SCOPE = 1000;
+static constexpr eosio::name T_COUNTER{"transfer"_n};
+static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.ecoshare")]]
 
@@ -36,8 +38,9 @@ struct CONTRACT_TBL transfer_t {
 
     name bps_voting_account;
     name stake_mining_account;
-    asset bps_voting_share;
-    asset stake_mining_share;
+    asset bps_voting_transferred    = asset(0, SYS_SYMBOL);
+    asset stake_mining_transferred  = asset(0, SYS_SYMBOL);
+    time_point transferred_at;
 
     transfer_t() {}
     transfer_t(name code, uint64_t scope) {
@@ -52,7 +55,8 @@ struct CONTRACT_TBL transfer_t {
     typedef eosio::multi_index<"transfers"_n, transfer_t> index_t;
 
     EOSLIB_SERIALIZE( transfer_t,   (id)(bps_voting_account)(stake_mining_account)
-                                    (bps_voting_share)(stake_mining_share) )
+                                    (bps_voting_transferred)(stake_mining_transferred)
+                                    (transferred_at) )
 };
 
 
