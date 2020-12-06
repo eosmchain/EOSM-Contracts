@@ -22,13 +22,14 @@ static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.ecoshare")]]
 
 struct [[eosio::table("global"), eosio::contract("mgp.ecoshare")]] global_tbl {
-    uint64_t bps_voting_share = 2000; //20% * 10000
-    name bps_voting_account = "mgp.bpsvoting"_n;
-    name stake_mining_account = "addressbookt"_n;
+    uint64_t bps_voting_share   = 2000; //20% * 10000
+    name bps_voting_account     = "mgp.bpsvoting"_n;
+    name stake_mining_account   = "addressbookt"_n;
+    uint64_t last_transfer_id   = 0;
 
     global_tbl(){}
 
-    EOSLIB_SERIALIZE( global_tbl, (bps_voting_share)(bps_voting_account)(stake_mining_account) )
+    EOSLIB_SERIALIZE( global_tbl, (bps_voting_share)(bps_voting_account)(stake_mining_account)(last_transfer_id) )
 };
 typedef eosio::singleton< "global"_n, global_tbl > global_singleton;
 

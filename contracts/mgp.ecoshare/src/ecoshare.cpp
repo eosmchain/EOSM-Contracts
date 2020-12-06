@@ -7,50 +7,54 @@ using std::string;
 //account: mgp.ecoshare
 namespace mgp {
 
-// void mgp_ecoshare::init() {
-// 	require_auth( _self );
+void mgp_ecoshare::init() {
+	require_auth( _self );
 
-// 	transfer_t transfer0(0);
-// 	check(_dbc.get(transfer0), "transfer 0 not exist");
-// 	_dbc.del(transfer0);
+	// _gstate = _global.exists() ? _global.get() : global_tbl{};
+	// _global.remove();
+	// _gstate.last_transfer_id = 3;
 
-// 	transfer_t t0( _self, _self.value ); 
-// 	t0.id								= 0;
-// 	t0.bps_voting_account 				= _gstate.bps_voting_account;
-// 	t0.stake_mining_account 			= _gstate.stake_mining_account;
-// 	t0.bps_voting_transferred.amount 	+= 665710080;
-// 	t0.stake_mining_transferred.amount 	+= 2662840320;
-// 	t0.transferred_at					= time_point_sec(1606784760);
-// 	_dbc.set(t0);
+	// transfer_t transfer0(0);
+	// check(_dbc.get(transfer0), "transfer 0 not exist");
+	// _dbc.del(transfer0);
 
-// 	transfer_t t1( _self, _self.value ); 
-// 	t1.id								= 1;
-// 	t1.bps_voting_account 				= _gstate.bps_voting_account;
-// 	t1.stake_mining_account 			= _gstate.stake_mining_account;
-// 	t1.bps_voting_transferred.amount 	+= 434651520;
-// 	t1.stake_mining_transferred.amount 	+= 1738606080;
-// 	t1.transferred_at					= time_point_sec(1606897980);
-// 	_dbc.set(t1);
+	// transfer_t t0( _self, _self.value ); 
+	// t0.id								= 0;
+	// t0.bps_voting_account 				= _gstate.bps_voting_account;
+	// t0.stake_mining_account 			= _gstate.stake_mining_account;
+	// t0.bps_voting_transferred.amount 	+= 665710080;
+	// t0.stake_mining_transferred.amount 	+= 2662840320;
+	// t0.transferred_at					= time_point_sec(1606784760);
+	// _dbc.set(t0);
 
-// 	transfer_t t2( _self, _self.value ); 
-// 	t2.id								= 2;
-// 	t2.bps_voting_account 				= _gstate.bps_voting_account;
-// 	t2.stake_mining_account 			= _gstate.stake_mining_account;
-// 	t2.bps_voting_transferred.amount 	+= 385683840;
-// 	t2.stake_mining_transferred.amount 	+= 1542735360;
-// 	t2.transferred_at					= time_point_sec(1606998420);
-// 	_dbc.set(t2);
+	// transfer_t t1( _self, _self.value ); 
+	// t1.id								= 1;
+	// t1.bps_voting_account 				= _gstate.bps_voting_account;
+	// t1.stake_mining_account 			= _gstate.stake_mining_account;
+	// t1.bps_voting_transferred.amount 	+= 434651520;
+	// t1.stake_mining_transferred.amount 	+= 1738606080;
+	// t1.transferred_at					= time_point_sec(1606897980);
+	// _dbc.set(t1);
 
-// 	transfer_t t3( _self, _self.value ); 
-// 	t3.id								= 3;
-// 	t3.bps_voting_account 				= _gstate.bps_voting_account;
-// 	t3.stake_mining_account 			= _gstate.stake_mining_account;
-// 	t3.bps_voting_transferred.amount 	+= 641715840;
-// 	t3.stake_mining_transferred.amount 	+= 2566863360;
-// 	t3.transferred_at					= time_point_sec(1607165520);
-// 	_dbc.set(t3);
+	// transfer_t t2( _self, _self.value ); 
+	// t2.id								= 2;
+	// t2.bps_voting_account 				= _gstate.bps_voting_account;
+	// t2.stake_mining_account 			= _gstate.stake_mining_account;
+	// t2.bps_voting_transferred.amount 	+= 385683840;
+	// t2.stake_mining_transferred.amount 	+= 1542735360;
+	// t2.transferred_at					= time_point_sec(1606998420);
+	// _dbc.set(t2);
 
-// }
+	// transfer_t t3( _self, _self.value ); 
+	// t3.id								= 3;
+	// t3.bps_voting_account 				= _gstate.bps_voting_account;
+	// t3.stake_mining_account 			= _gstate.stake_mining_account;
+	// t3.bps_voting_transferred.amount 	+= 641715840;
+	// t3.stake_mining_transferred.amount 	+= 2566863360;
+	// t3.transferred_at					= time_point_sec(1607165520);
+	// _dbc.set(t3);
+
+}
 
 void mgp_ecoshare::config(const uint64_t bps_voting_share,
               const name& bps_voting_account,
@@ -99,6 +103,8 @@ void mgp_ecoshare::deposit(name from, name to, asset quantity, string memo) {
 	transfer.stake_mining_transferred 	= to_stake_mining_quant;
 	transfer.transferred_at				= current_time_point();
 	_dbc.set(transfer);
+
+	_gstate.last_transfer_id			= transfer.id;
 	
 }
 

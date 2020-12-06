@@ -43,8 +43,8 @@ class [[eosio::contract("mgp.ecoshare")]] mgp_ecoshare: public eosio::contract {
         _global.set( _gstate, get_self() );
     }
 
-    // [[eosio::action]]
-    // void init();  //only code maintainer can init
+    [[eosio::action]]
+    void init();  //only code maintainer can init
 
     [[eosio::action]]
     void config(const uint64_t bps_voting_share,
