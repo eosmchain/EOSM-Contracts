@@ -24,7 +24,7 @@ static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);
 struct [[eosio::table("global"), eosio::contract("mgp.ecoshare")]] global_tbl {
     uint64_t bps_voting_share   = 2000; //20% * 10000
     name bps_voting_account     = "mgp.bpvoting"_n;
-    name stake_mining_account   = "addressbookt"_n;
+    name stake_mining_account   = "mgpchain2222"_n;
     uint64_t last_transfer_id   = 0;
 
     global_tbl(){}
