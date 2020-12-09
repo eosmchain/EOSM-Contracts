@@ -155,7 +155,9 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		vote_ids.push_back(itr->id);
 
 		candidate_t candidate(itr->candidate);
-		check( _dbc.get(candidate), "Err: candidate["+ candidate.owner.to_string() +"] not found" );
+		if ( !_dbc.get(candidate) )
+			continue;
+			
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter["+ voter.owner.to_string() +"] not found" );
 
@@ -202,7 +204,7 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		}
 
 		candidate_t candidate(itr->candidate);
-		check( _dbc.get(candidate), "Err: candidate[ " + candidate.owner.to_string() + "] not found" );
+		check( _dbc.get(candidate), "Err: candidate not found: " + candidate.owner.to_string() + " for unvote: " + to_string(itr->id) );
 		check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
 		candidate.tallied_votes -= itr->quantity;
 		_elect(round, candidate);
@@ -495,7 +497,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 
 	candidate_t candidate(v_itr->candidate);
 	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
-	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient: " + to_string(v_itr->quantity) );
+	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient: " + v_itr->quantity.to_string() );
 	candidate.received_votes -= v_itr->quantity;
 	_dbc.set(candidate);
 
@@ -524,8 +526,7 @@ void mgp_bpvoting::delist(const name& issuer) {
 	candidate_t candidate(issuer);
 	check( _dbc.get(candidate), issuer.to_string() + " is not a candidate" );
 	check( candidate.received_votes.amount == 0, "not fully unvoted" );
-	check( candidate.staked_votes.amount > 0, "Err: none staked" );
-	_dbc.del( candidate );
+	// check( candidate.staked_votes.amount > 0, "Err: none staked" );
 
 	_gstate.total_listed -= candidate.staked_votes;
 
@@ -534,6 +535,8 @@ void mgp_bpvoting::delist(const name& issuer) {
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
         transfer_act.send( _self, issuer, to_claim, "delist" );
     }
+
+	_dbc.del( candidate );
 
 }
 
