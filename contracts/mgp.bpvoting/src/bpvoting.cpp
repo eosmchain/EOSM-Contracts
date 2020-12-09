@@ -155,9 +155,9 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		vote_ids.push_back(itr->id);
 
 		candidate_t candidate(itr->candidate);
-		check( _dbc.get(candidate), "Err: candidate not found" );
+		check( _dbc.get(candidate), "Err: candidate["+ candidate.owner.to_string() +"] not found" );
 		voter_t voter(itr->owner);
-		check( _dbc.get(voter), "Err: voter not found" );
+		check( _dbc.get(voter), "Err: voter["+ voter.owner.to_string() +"] not found" );
 
 		candidate.tallied_votes += itr->quantity;
 		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
@@ -202,7 +202,7 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		}
 
 		candidate_t candidate(itr->candidate);
-		check( _dbc.get(candidate), "Err: candidate not found" );
+		check( _dbc.get(candidate), "Err: candidate[ " + candidate.owner.to_string() + "] not found" );
 		check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
 		candidate.tallied_votes -= itr->quantity;
 		_elect(round, candidate);
@@ -494,8 +494,8 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	});
 
 	candidate_t candidate(v_itr->candidate);
-	check( _dbc.get(candidate), "Err: vote's candidate not found" );
-	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient" );
+	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
+	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient: " + to_string(v_itr->quantity) );
 	candidate.received_votes -= v_itr->quantity;
 	_dbc.set(candidate);
 
