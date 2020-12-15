@@ -178,7 +178,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 	for (auto& vote_id : vote_ids) {
 		auto itr = votes.find(vote_id);
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
-		votes.modify( *itr, _self, [&]( auto& row ) {
+		votes.modify( itr, _self, [&]( auto& row ) {
 			row.election_round = last_round.next_round_id;
 		});
 	}
@@ -234,7 +234,7 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 }
 
 void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
-	if (round.total_received_rewards.amount == 0) {
+	if (round.total_rewarded.amount == 0) {
 		round.reward_allocation_completed = true;
 		_dbc.set( round );
 		return;
@@ -243,16 +243,16 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 	if (round.elected_bps.size() == 0) {
 		election_round_t next_round(round.next_round_id);
 		check(_dbc.get(next_round), "Err: next round[" + to_string(round.next_round_id) +"] not exist" );
-		next_round.total_received_rewards += round.total_received_rewards;
+		next_round.total_rewarded += round.total_rewarded;
 		_dbc.set(next_round);
 
-		round.total_received_rewards.amount = 0;
+		round.total_rewarded.amount = 0;
 		round.reward_allocation_completed = true;
 		_dbc.set( round );
 		return;
 	}
 
-	auto per_bp_rewards = (uint64_t) ((double) round.total_received_rewards.amount / round.elected_bps.size());
+	auto per_bp_rewards = (uint64_t) ((double) round.total_rewarded.amount / round.elected_bps.size());
 	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
 	for (auto& item : round.elected_bps) {
 		candidate_t bp(item.first);
@@ -390,10 +390,10 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 
 	election_round_t curr_round;
 	_current_election_round( ct, curr_round );
-	curr_round.total_received_rewards += quantity;
+	curr_round.total_rewarded += quantity;
 	_dbc.set( curr_round );
 
-	_gstate.total_received_rewards += quantity;
+	_gstate.total_rewarded += quantity;
 
 }
 
