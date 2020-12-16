@@ -321,15 +321,20 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		auto itr = votes.find(vote_id);
 		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
 
-		votes.modify( *itr, _self, [&]( auto& row ) {
+		votes.modify( itr, _self, [&]( auto& row ) {
       		row.reward_round = round.next_round_id;
    		});
 	}
 
 	if (completed) {
 		_gstate.last_execution_round = round.round_id;
-	}
 
+		for (auto& bp : round.elected_bps) {
+			candidate_t candidate(bp.first);
+			candidate.tallied_votes.amount = 0;
+			_dbc.set( candidate );
+		}
+	}
 
 	_dbc.set( round );
 
