@@ -90,6 +90,20 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void delist(const name& issuer); //candidate to delist self
 
     [[eosio::action]]
+    void resetvotes(const uint64_t round_id) {
+      require_auth( _self );
+      
+		  election_round_t round(round_id);
+      check( _dbc.get(round), "round not exist: " + to_string(round_id) );
+
+      for (auto& bp : round.elected_bps) {
+        candidate_t candidate(bp.first);
+        candidate.tallied_votes.amount = 0;
+        _dbc.set( candidate );
+      }
+    }
+    
+    [[eosio::action]]
     void claimrewards(const name& issuer, const bool is_voter); //voter/candidate to claim rewards
 
     [[eosio::on_notify("eosio.token::transfer")]]
@@ -106,6 +120,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
     using syncvoteages_action = action_wrapper<name("syncvoteages"),  &mgp_bpvoting::syncvoteages >;
     
+    using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;
 
   private:
     uint64_t get_round_id(const time_point& ct);
