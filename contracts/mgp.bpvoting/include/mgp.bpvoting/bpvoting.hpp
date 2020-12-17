@@ -120,6 +120,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
       candidate.self_reward_share     = share;
       candidate.staked_votes          = staked_votes;
+      candidate.received_votes        = received_votes;
       candidate.tallied_votes         = tallied_votes;
       candidate.last_claimed_rewards  = last_claimed_rewards;
       candidate.total_claimed_rewards = total_claimed_rewards;
