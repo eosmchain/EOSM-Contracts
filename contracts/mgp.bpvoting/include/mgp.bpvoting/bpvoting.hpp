@@ -92,17 +92,43 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void resetvotes(const uint64_t round_id) {
       require_auth( _self );
-      
+
 		  election_round_t round(round_id);
       check( _dbc.get(round), "round not exist: " + to_string(round_id) );
 
       for (auto& bp : round.elected_bps) {
         candidate_t candidate(bp.first);
+        check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
+
         candidate.tallied_votes.amount = 0;
         _dbc.set( candidate );
       }
     }
-    
+
+    [[eosio::action]]
+    void setcandidate(const name& owner, const uint64_t share,
+      const asset& staked_votes,
+      const asset& received_votes,
+      const asset& tallied_votes,
+      const asset& last_claimed_rewards,
+      const asset& total_claimed_rewards,
+      const asset& unclaimed_rewards) {
+
+      require_auth( _self );
+      candidate_t candidate(owner);
+      check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
+
+      candidate.self_reward_share     = share;
+      candidate.staked_votes          = staked_votes;
+      candidate.tallied_votes         = tallied_votes;
+      candidate.last_claimed_rewards  = last_claimed_rewards;
+      candidate.total_claimed_rewards = total_claimed_rewards;
+      candidate.unclaimed_rewards     = unclaimed_rewards;
+
+      _dbc.set( candidate );
+
+    }
+
     [[eosio::action]]
     void claimrewards(const name& issuer, const bool is_voter); //voter/candidate to claim rewards
 
@@ -111,7 +137,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
     using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config   >;
-    
+
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
     using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
@@ -119,8 +145,9 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
     using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
     using syncvoteages_action = action_wrapper<name("syncvoteages"),  &mgp_bpvoting::syncvoteages >;
-    
+
     using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;
+    using setcandidate_action = action_wrapper<name("setcandidate"), &mgp_bpvoting::setcandidate >;
 
   private:
     uint64_t get_round_id(const time_point& ct);
