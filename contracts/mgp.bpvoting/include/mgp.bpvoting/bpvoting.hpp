@@ -116,7 +116,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
 
       require_auth( _self );
       candidate_t candidate(owner);
-      check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
+      check( _dbc.get(candidate), "candidate not found: " + owner.to_string() );
 
       candidate.self_reward_share     = share;
       candidate.staked_votes          = staked_votes;
