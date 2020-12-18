@@ -331,6 +331,8 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		for (auto& bp : round.elected_bps) {
 			candidate_t candidate(bp.first);
+			check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
+			
 			candidate.tallied_votes.amount = 0;
 			_dbc.set( candidate );
 		}
