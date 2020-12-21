@@ -187,7 +187,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 }
 
-void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
+void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 	int step = 0;
 	bool completed = true;
 
@@ -212,17 +212,17 @@ void mgp_bpvoting::_tally_unvotes(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		auto new_voteage = false;
-		voteage_t voteage(itr->id);
-		if (!_dbc.get(voteage)) {
-			new_voteage = true;
-			voteage.votes = asset(0, SYS_SYMBOL);
-		}
-		round.total_voteage -= voteage.value();
+		// auto new_voteage = false;
+		// voteage_t voteage(itr->id);
+		// if (!_dbc.get(voteage)) {
+		// 	new_voteage = true;
+		// 	voteage.votes = asset(0, SYS_SYMBOL);
+		// }
+		// round.total_voteage -= voteage.value();
 		round.unvote_count++;
 
-		if (!new_voteage)
-			_dbc.del( voteage );
+		// if (!new_voteage)
+		// 	_dbc.del( voteage );
 
 		itr = vote_idx.erase( itr );
 	}
@@ -303,14 +303,14 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
-		voteage_t voteage(itr->id);
-		if (!_dbc.get(voteage)) 
-			voteage.votes = asset(0, SYS_SYMBOL);
+		// voteage_t voteage(itr->id);
+		// if (!_dbc.get(voteage)) 
+		// 	voteage.votes = asset(0, SYS_SYMBOL);
 
-		auto va = voteage.value();
-		if (va.amount == 0) continue;
+		// auto va = voteage.value();
+		// if (va.amount == 0) continue;
 
-		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * va.amount / round.total_voteage.amount;
+		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * itr->quantity.amount / round.total_votes.amount;
 		voter.unclaimed_rewards += voter_rewards;
 
 		_dbc.set(voter);
@@ -564,28 +564,29 @@ void mgp_bpvoting::execute() {
 	check( _dbc.get(execution_round), "Err: execution_round[" + to_string(execution_round.round_id) + "] not exist" );
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
-	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
-	{
-		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
-			execution_round.elected_bps = last_execution_round.elected_bps;
+	// if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
+	// {
+	// 	if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
+	// 		execution_round.elected_bps = last_execution_round.elected_bps;
 
-		_tally_votes( last_execution_round, execution_round );
+	// 	_tally_votes( last_execution_round, execution_round );
+	// }
+
+	// if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
+	if (!execution_round.unvote_last_round_completed) 
+	{
+		_apply_unvotes( execution_round );
 	}
 
-	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
-	{
-		_tally_unvotes( execution_round );
-	}
-
-	if (last_execution_round.vote_tally_completed && 
-		execution_round.unvote_last_round_completed && 
+	// if (last_execution_round.vote_tally_completed && 
+	if ( execution_round.unvote_last_round_completed && 
 		!execution_round.reward_allocation_completed ) 
 	{
 		_allocate_rewards( execution_round );
 	}
 
-	if (last_execution_round.vote_tally_completed && 
-		execution_round.reward_allocation_completed &&
+	// if (last_execution_round.vote_tally_completed && 
+	if ( execution_round.reward_allocation_completed &&
 		execution_round.unvote_last_round_completed) 
 	{
 		_execute_rewards( execution_round );
