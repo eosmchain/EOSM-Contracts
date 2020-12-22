@@ -75,7 +75,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
                 const asset& min_bp_vote_quantity);
 
     [[eosio::action]]
-    void setelect(const uint64_t& election_round, const uint64_t& execution_round);
+    void setexecround(const uint64_t& execution_round);
 
     [[eosio::action]]
     void syncvoteages();
@@ -144,7 +144,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
 
-    using setelect_action = action_wrapper<name("setelect"),  &mgp_bpvoting::setelect >;
+    using setexecround_action = action_wrapper<name("setexecround"),  &mgp_bpvoting::setexecround >;
     using syncvoteages_action = action_wrapper<name("syncvoteages"),  &mgp_bpvoting::syncvoteages >;
 
     using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;

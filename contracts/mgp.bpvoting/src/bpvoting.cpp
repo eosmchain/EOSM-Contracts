@@ -459,10 +459,9 @@ void mgp_bpvoting::config(
 
 }
 
-void mgp_bpvoting::setelect(const uint64_t& election_round, const uint64_t& execution_round) {
+void mgp_bpvoting::setexecround(const uint64_t& execution_round) {
 	require_auth( _self );
 
-	_gstate.last_election_round = election_round;
 	_gstate.last_execution_round = execution_round;
 
 }
