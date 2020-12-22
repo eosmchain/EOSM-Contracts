@@ -203,11 +203,11 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 		}
 
 		candidate_t candidate(itr->candidate);
-		if ( _dbc.get(candidate) ){
-			check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
-			candidate.tallied_votes -= itr->quantity;
-			_elect(round, candidate);
-		}
+		// if ( _dbc.get(candidate) ){
+		// 	check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
+		// 	candidate.tallied_votes -= itr->quantity;
+		// 	_elect(round, candidate);
+		// }
 
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
