@@ -166,12 +166,12 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 			_dbc.set( candidate );
 		}
 
-		voteage_t voteage(itr->id);
-		if (!_dbc.get(voteage)) voteage.votes = asset(0, SYS_SYMBOL);
-		voteage.age = (voteage.age == 30) ? 1 : voteage.age + 1;
-		_dbc.set( voteage );
+		// voteage_t voteage(itr->id);
+		// if (!_dbc.get(voteage)) voteage.votes = asset(0, SYS_SYMBOL);
+		// voteage.age = (voteage.age == 30) ? 1 : voteage.age + 1;
+		// _dbc.set( voteage );
 
-		execution_round.total_voteage += voteage.value();
+		// execution_round.total_voteage += voteage.value();
 		_dbc.set( execution_round );
 	}
 
@@ -564,29 +564,28 @@ void mgp_bpvoting::execute() {
 	check( _dbc.get(execution_round), "Err: execution_round[" + to_string(execution_round.round_id) + "] not exist" );
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
-	// if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
-	// {
-	// 	if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
-	// 		execution_round.elected_bps = last_execution_round.elected_bps;
+	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
+	{
+		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
+			execution_round.elected_bps = last_execution_round.elected_bps;
 
-	// 	_tally_votes( last_execution_round, execution_round );
-	// }
+		_tally_votes( last_execution_round, execution_round );
+	}
 
-	// if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
-	if (!execution_round.unvote_last_round_completed) 
+	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed) 
 	{
 		_apply_unvotes( execution_round );
 	}
 
-	// if (last_execution_round.vote_tally_completed && 
-	if ( execution_round.unvote_last_round_completed && 
+	if (last_execution_round.vote_tally_completed && 
+	    execution_round.unvote_last_round_completed && 
 		!execution_round.reward_allocation_completed ) 
 	{
 		_allocate_rewards( execution_round );
 	}
 
-	// if (last_execution_round.vote_tally_completed && 
-	if ( execution_round.reward_allocation_completed &&
+	if (last_execution_round.vote_tally_completed && 
+	    execution_round.reward_allocation_completed &&
 		execution_round.unvote_last_round_completed) 
 	{
 		_execute_rewards( execution_round );
