@@ -203,11 +203,11 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 		}
 
 		candidate_t candidate(itr->candidate);
-		// if ( _dbc.get(candidate) ){
-		// 	check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
-		// 	candidate.tallied_votes -= itr->quantity;
-		// 	_elect(round, candidate);
-		// }
+		if ( _dbc.get(candidate) ){
+			check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
+			candidate.tallied_votes -= itr->quantity;
+			_elect(round, candidate);
+		}
 
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
@@ -298,8 +298,8 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		vote_ids.push_back(itr->id);
 
-		candidate_t bp(itr->candidate);
-		check( _dbc.get(bp), "Err: bp not found" );
+		// candidate_t bp(itr->candidate);
+		// check( _dbc.get(bp), "Err: bp not found" );
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 
@@ -329,13 +329,14 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	if (completed) {
 		_gstate.last_execution_round = round.round_id;
 
-		for (auto& bp : round.elected_bps) {
-			candidate_t candidate(bp.first);
-			check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
+		// candidate_t
+		// for (auto& bp : round.elected_bps) {
+		// 	candidate_t candidate(bp.first);
+		// 	check( _dbc.get(candidate), "candidate not found: " + bp.first.to_string() );
 			
-			candidate.tallied_votes.amount = 0;
-			_dbc.set( candidate );
-		}
+		// 	candidate.tallied_votes.amount = 0;
+		// 	_dbc.set( candidate );
+		// }
 	}
 
 	_dbc.set( round );
@@ -412,6 +413,27 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
+	// vote_tbl votes(_self, _self.value);
+	// auto idx = votes.get_index<"electround"_n>();
+	// auto lower_itr = idx.lower_bound( 20 );
+	// auto upper_itr = idx.upper_bound( 20 );
+
+	// vector<uint64_t> vote_ids;
+	// for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+	// 	vote_ids.push_back(itr->id);
+	// }
+
+	// for (auto& vote_id : vote_ids) {
+	// 	auto itr = votes.find(vote_id);
+	// 	check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
+
+	// 	votes.modify( itr, _self, [&]( auto& row ) {
+    //   		row.election_round = 24;
+   	// 	});
+	// }
+
+	//////////////////
+
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
 	auto ct = current_time_point();
@@ -464,23 +486,6 @@ void mgp_bpvoting::setexecround(const uint64_t& execution_round) {
 
 	_gstate.last_execution_round = execution_round;
 
-}
-
-void mgp_bpvoting::syncvoteages() {
-	voteage_t voteages;
-	auto tbl = _dbc.get_tbl(voteages);
-	for (auto itr = tbl.begin(); itr != tbl.end(); itr++) {
-		tbl.modify( *itr, _self, [&]( auto& row ) {
-			vote_t vote(itr->vote_id);
-			check(_dbc.get(vote), "Err, vote[" + to_string(itr->vote_id) + "] not exist");
-
-			row.votes = vote.quantity;
-			auto ct = current_time_point();
-			auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
-			auto days = elapsed / seconds_per_day;
-			row.age = days;
-		});
-	}
 }
 
 /**

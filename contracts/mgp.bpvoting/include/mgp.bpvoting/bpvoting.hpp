@@ -78,9 +78,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void setexecround(const uint64_t& execution_round);
 
     [[eosio::action]]
-    void syncvoteages();
-
-    [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id);
 
     [[eosio::action]]
@@ -145,8 +142,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
 
     using setexecround_action = action_wrapper<name("setexecround"),  &mgp_bpvoting::setexecround >;
-    using syncvoteages_action = action_wrapper<name("syncvoteages"),  &mgp_bpvoting::syncvoteages >;
-
     using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;
     using setcandidate_action = action_wrapper<name("setcandidate"), &mgp_bpvoting::setcandidate >;
 
