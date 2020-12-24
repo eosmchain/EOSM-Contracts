@@ -298,19 +298,16 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		vote_ids.push_back(itr->id);
 
-		// candidate_t bp(itr->candidate);
-		// check( _dbc.get(bp), "Err: bp not found" );
+		candidate_t bp(itr->candidate);
+		check( _dbc.get(bp), "Err: bp not found" );
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
-
-		// voteage_t voteage(itr->id);
-		// if (!_dbc.get(voteage)) 
-		// 	voteage.votes = asset(0, SYS_SYMBOL);
-
-		// auto va = voteage.value();
-		// if (va.amount == 0) continue;
+	
 		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
-		auto voter_rewards = total_voter_rewards * itr->quantity.amount / round.total_votes.amount;
+		/**
+		 * must use bp received votes in stead of round.total_received_votes!!!
+		 */
+		auto voter_rewards = total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
 		voter.unclaimed_rewards += voter_rewards;
 
 		_dbc.set(voter);
