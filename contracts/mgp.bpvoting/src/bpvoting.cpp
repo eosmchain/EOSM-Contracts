@@ -274,7 +274,7 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 
 //reward target_round
 void mgp_bpvoting::_execute_rewards(election_round_t& round) {
-	if (round.elected_bps.size() == 0 || round.total_voteage.amount == 0) {
+	if (round.elected_bps.size() == 0) {
 		_gstate.last_execution_round = round.round_id;
 		return;
 	}
@@ -309,21 +309,28 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		// auto va = voteage.value();
 		// if (va.amount == 0) continue;
-
-		auto voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards * itr->quantity.amount / round.total_votes.amount;
+		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
+		auto voter_rewards = total_voter_rewards * itr->quantity.amount / round.total_votes.amount;
 		voter.unclaimed_rewards += voter_rewards;
 
 		_dbc.set(voter);
 
    	}
 
-	for (auto& vote_id : vote_ids) {
-		auto itr = votes.find(vote_id);
-		check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
+	// for (auto& vote_id : vote_ids) {
+	// 	auto itr = votes.find(vote_id);
+	// 	check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
 
-		votes.modify( itr, _self, [&]( auto& row ) {
-      		row.reward_round = round.next_round_id;
-   		});
+	// 	votes.modify( itr, _self, [&]( auto& row ) {
+    //   		row.reward_round = round.next_round_id;
+   	// 	});
+	// }
+
+	for (auto& vote_id : vote_ids) {
+		vote_t vote(vote_id);
+		check( _dbc.get(vote), "vote not found" );
+		vote.reward_round = round.next_round_id;
+		_dbc.set(vote);
 	}
 
 	if (completed) {
@@ -413,44 +420,110 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	// vote_tbl votes(_self, _self.value);
-	// auto idx = votes.get_index<"electround"_n>();
-	// auto lower_itr = idx.lower_bound( 20 );
-	// auto upper_itr = idx.upper_bound( 20 );
+	election_round_t round(25);
+	check( _dbc.get(round), "ER 24 not found" );
+	check( round.total_votes.amount > 0, "round total votes 0" );
 
-	// vector<uint64_t> vote_ids;
-	// for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
-	// 	vote_ids.push_back(itr->id);
-	// }
+	vote_tbl votes(_self, _self.value);
+	auto idx = votes.get_index<"rewardround"_n>();
+	auto upper_itr = idx.upper_bound( 24 );
+	vector<uint64_t> vote_ids;
 
-	// for (auto& vote_id : vote_ids) {
-	// 	auto itr = votes.find(vote_id);
-	// 	check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
+	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
+		if (!round.elected_bps.count(itr->candidate))
+			continue;	//skip vote with its candidate unelected
 
-	// 	votes.modify( itr, _self, [&]( auto& row ) {
-    //   		row.election_round = 24;
-   	// 	});
-	// }
+		vote_ids.push_back(itr->id);
 
-	//////////////////
+		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
+		auto voter_rewards = total_voter_rewards * itr->quantity.amount / round.total_votes.amount;
 
-	check (_gstate.started_at == time_point(), "already kickstarted" );
+		candidate_t bp(itr->candidate);
+		check( _dbc.get(bp), "Err: bp not found" );
 
-	auto ct = current_time_point();
-	_gstate.started_at 						= ct;
-	_gstate.last_election_round 			= 1;
-	_gstate.last_execution_round 			= 0;
+		voter_t voter(itr->owner);
+		check( _dbc.get(voter), "Err: voter not found" );
+		voter.unclaimed_rewards += voter_rewards;
+		_dbc.set(voter);
 
-	auto days 								= ct.sec_since_epoch() / seconds_per_day;
-	auto start_secs 						= _gstate.election_round_start_hour * 3600;
+   	}
 
-	election_round_t election_round(1);
-	election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-	election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-	election_round.created_at 				= ct;
-	election_round.vote_tally_completed 	= false;
-	election_round.unvote_last_round_completed 	= true;
-	_dbc.set( election_round );
+	for (auto& vote_id : vote_ids) {
+		vote_t vote(vote_id);
+		check( _dbc.get(vote), "vote not found" );
+		vote.reward_round = 25;
+		_dbc.set(vote);
+	}
+
+/** fix election_round number
+	{
+		vote_tbl votes(_self, _self.value);
+		auto idx = votes.get_index<"electround"_n>();
+		auto lower_itr = idx.lower_bound( 20 );
+		auto upper_itr = idx.upper_bound( 20 );
+
+		vector<uint64_t> vote_ids;
+		for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+			vote_ids.push_back(itr->id);
+		}
+
+		for (auto& vote_id : vote_ids) {
+			auto itr = votes.find(vote_id);
+			check( itr != votes.end(), "Err: vote_id not found: " + to_string(vote_id) );
+
+			votes.modify( itr, _self, [&]( auto& row ) {
+				row.election_round = 24;
+			});
+		}
+	}
+*/
+
+/** fix candiate tallied votes
+	{
+		uint64_t END_TIME = 1608512400; // 12/21/2020 @ 1:00am (UTC)
+		map<name, asset> candidate_tallied_votes;
+		
+		vote_tbl votes(_self, _self.value);
+		auto idx = votes.get_index<"voteda"_n>();
+		for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+			if (itr->voted_at.sec_since_epoch() > END_TIME) break;
+
+			if (candidate_tallied_votes.count(itr->candidate) == 0)
+				candidate_tallied_votes[itr->candidate] = itr->quantity;
+			else 
+				candidate_tallied_votes[itr->candidate] += itr->quantity;
+		}
+
+		for (auto& item: candidate_tallied_votes) {
+			candidate_t can(item.first);
+			check(_dbc.get(can), "not found: " + item.first.to_string());
+			can.tallied_votes = item.second;
+			_dbc.set(can);
+		}
+	} 
+*/
+
+/** init function
+	{
+		check (_gstate.started_at == time_point(), "already kickstarted" );
+
+		auto ct = current_time_point();
+		_gstate.started_at 						= ct;
+		_gstate.last_election_round 			= 1;
+		_gstate.last_execution_round 			= 0;
+
+		auto days 								= ct.sec_since_epoch() / seconds_per_day;
+		auto start_secs 						= _gstate.election_round_start_hour * 3600;
+
+		election_round_t election_round(1);
+		election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+		election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+		election_round.created_at 				= ct;
+		election_round.vote_tally_completed 	= false;
+		election_round.unvote_last_round_completed 	= true;
+		_dbc.set( election_round );
+	}
+*/
 
 }
 
