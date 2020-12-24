@@ -432,16 +432,19 @@ void mgp_bpvoting::init() {
 			continue;	//skip vote with its candidate unelected
 
 		vote_ids.push_back(itr->id);
-
-		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
-		auto voter_rewards = total_voter_rewards * itr->quantity.amount / round.total_votes.amount;
-
+		
 		candidate_t bp(itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
 
+		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
+		auto wrong_voter_rewards = total_voter_rewards * itr->quantity.amount / round.total_votes.amount;
+		auto actual_voter_rewards = total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
+		check( actual_voter_rewards >= wrong_voter_rewards, "Err: insufficent actual" );
+		auto due_rewards = actual_voter_rewards - wrong_voter_rewards;
+
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
-		voter.unclaimed_rewards += voter_rewards;
+		voter.unclaimed_rewards += due_rewards;
 		_dbc.set(voter);
 
    	}
