@@ -417,6 +417,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
+/** fix round 25
 	election_round_t round(25);
 	check( _dbc.get(round), "ER 24 not found" );
 	check( round.total_votes.amount > 0, "round total votes 0" );
@@ -451,6 +452,7 @@ void mgp_bpvoting::init() {
 		vote.reward_round = 25;
 		_dbc.set(vote);
 	}
+*/
 
 /** fix election_round number
 	{
