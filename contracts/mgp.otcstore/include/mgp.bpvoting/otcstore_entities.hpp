@@ -20,6 +20,8 @@ static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
 
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
+static constexpr symbol   CNY_SYMBOL            = symbol(symbol_code("CNY"), 2);
+static constexpr symbol   USD_SYMBOL            = symbol(symbol_code("USD"), 2);
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
@@ -27,96 +29,57 @@ static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
 static constexpr uint32_t share_boost           = 10000;
 
-#define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.bpvoting")]]
+#define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.otcstore")]]
 
-struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
-    uint64_t max_tally_vote_iterate_steps;
-    uint64_t max_tally_unvote_iterate_steps;
-    uint64_t max_reward_iterate_steps;
-    uint64_t max_bp_size;
-    uint64_t election_round_sec;                 
-    uint64_t refund_delay_sec;
-    uint64_t election_round_start_hour;     //GMT+0 Time
-    asset min_bp_list_quantity;
-    asset min_bp_accept_quantity;
-    asset min_bp_vote_quantity;
-    asset total_listed;
-    asset total_voted;
-    asset total_rewarded;
-    time_point started_at;
-    uint64_t last_election_round;   // most recently added
-    uint64_t last_execution_round;  // most recently finished
+struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
+    asset min_buy_order_quantity;
+    asset min_sell_order_quantity;
+    asset min_pos_stake_quantity;
+    uint64_t withhold_expire_sec;   // upon taking order, the amount hold will be frozen until completion or cancellation
+    name transaction_fee_receiver;  // receiver account to transaction fees
+    uint64_t transaction_fee_ratio; // fee ratio boosted by 10000
 
     global_t() {
-        max_tally_vote_iterate_steps    = 30;
-        max_tally_unvote_iterate_steps  = 20;
-        max_reward_iterate_steps        = 50;
-        max_bp_size                     = 21;
-        election_round_sec              = seconds_per_day;
-        refund_delay_sec                = 3 * seconds_per_day;
-        election_round_start_hour       = 1; //i.e. 9 AM for GMT+8 Shanghai Time, 24hrs per round
-        min_bp_list_quantity            = asset(100'000'0000ll, SYS_SYMBOL);
-        min_bp_accept_quantity          = asset(200'000'0000ll, SYS_SYMBOL);
-        min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
-        total_listed                    = asset(0, SYS_SYMBOL);
-        total_voted                     = asset(0, SYS_SYMBOL);
-        total_rewarded          = asset(0, SYS_SYMBOL);
+        min_buy_order_quantity      = asset(10, SYS_SYMBOL);
+        min_sell_order_quantity     = asset(10, SYS_SYMBOL);
+        min_pos_stake_quantity      = asset(0, SYS_SYMBOL);
+        withhold_expire_sec         = 600; //10 mins
+        transaction_fee_ratio       = 0;
     }
 
-    EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)
-                                (max_reward_iterate_steps)(max_bp_size)
-                                (election_round_sec)(refund_delay_sec)(election_round_start_hour)
-                                (min_bp_list_quantity)(min_bp_accept_quantity)(min_bp_vote_quantity)
-                                (total_listed)(total_voted)(total_rewarded)
-                                (started_at)(last_election_round)(last_execution_round) )
+    EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
+                                (min_pos_stake_quantity)(withhold_expire_sec) 
+                                (transaction_fee_receiver)(transaction_fee_ratio) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
-struct bp_info_t {
-    asset received_votes            = asset(0, SYS_SYMBOL);
-    asset allocated_bp_rewards      = asset(0, SYS_SYMBOL);
-    asset allocated_voter_rewards   = asset(0, SYS_SYMBOL);
-
-    bp_info_t() {}
-
-    EOSLIB_SERIALIZE(bp_info_t, (received_votes)(allocated_bp_rewards)(allocated_voter_rewards) )
-};
-
-typedef std::pair<name, bp_info_t> bp_entry_t;
 /**
  * election round table, one record per day
  *
  * for current onging round,
  */
-struct CONTRACT_TBL election_round_t{
-    uint64_t round_id = 0;          //usually one day one round
-    uint64_t next_round_id = 0;     //upon arrival of new round, record it here
-    time_point started_at;
-    time_point ended_at;
+struct CONTRACT_TBL buy_order_t {
+    uint64_t id;                //PK: available_primary_key
+    
+    name owner;                 //buyer's account
+    string nickname;            //buyer's online nick
+    string memo;                //buyer's memo to sellers
+
+    asset quantity;
+    asset min_accept_quantity;
+    asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
+    uint8_t payment_type;       // 0: bank_transfer; 1: alipay; 2: wechat pay; 3: paypal; 4: master/visa
     time_point created_at;
 
-    uint64_t vote_count                 = 0;
-    uint64_t unvote_count               = 0;
+    buy_order_t() {}
+    buy_order_t(uint64_t i): id(i) {}
 
-    bool  vote_tally_completed          = false;
-    bool  unvote_last_round_completed   = false;
-    bool  reward_allocation_completed   = false;
-
-    asset total_votes                   = asset(0, SYS_SYMBOL);
-    asset total_voteage                 = asset(0, SYS_SYMBOL);
-    asset total_rewarded                = asset(0, SYS_SYMBOL); //total received accumualted rewards
-
-    std::map<name, bp_info_t> elected_bps;      //max 21 bps
-
-    election_round_t() {}
-    election_round_t(uint64_t rid): round_id(rid) {}
-
-    uint64_t primary_key()const { return round_id; }
+    uint64_t primary_key()const { return id; }
     uint64_t scope() const { return 0; }
 
-    typedef eosio::multi_index<"electrounds"_n, election_round_t> index_t;
+    typedef eosio::multi_index<"buyorders"_n, buy_order_t> index_t;
 
-    EOSLIB_SERIALIZE(election_round_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
+    EOSLIB_SERIALIZE(buy_order_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
                                         (vote_count)(unvote_count)
                                         (vote_tally_completed)(unvote_last_round_completed)(reward_allocation_completed)
                                         (total_votes)(total_voteage)(total_rewarded)
@@ -147,24 +110,6 @@ struct CONTRACT_TBL candidate_t {
                                     (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
 };
 
-struct CONTRACT_TBL voter_t {
-    name                owner;                  //the voter
-    asset               total_staked;           //sum of all votes
-    asset               last_claimed_rewards;   //unclaimed total rewards
-    asset               total_claimed_rewards;  //unclaimed total rewards
-    asset               unclaimed_rewards;      //unclaimed total rewards
-
-    voter_t() {}
-    voter_t(const name& o): owner(o) {}
-
-    uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return 0; }
-
-    typedef eosio::multi_index<"voters"_n, voter_t> index_t;
-
-    EOSLIB_SERIALIZE( voter_t,  (owner)(total_staked)
-                                (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
-};
 
 /**
  *  vote table
@@ -241,7 +186,7 @@ struct CONTRACT_TBL voteage_t {
 };
 
 /**
- *  Incoming rewards for whole bpvoting cohort
+ *  Incoming rewards for whole otcstore cohort
  *
  */
 struct CONTRACT_TBL reward_t {
