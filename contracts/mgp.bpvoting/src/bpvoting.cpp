@@ -326,11 +326,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	for (auto& vote_id : vote_ids) {
 		vote_t vote(vote_id);
 		check( _dbc.get(vote), "vote not found" );
-		vote.reward_round = round.round_id;
-
-		// check(false, "vote: " + to_string(vote_id) + ", round_id = " +
-		// 	to_string(round.round_id) + ", next_round_id = " +
-		// 	to_string(vote.reward_round) );
+		vote.reward_round = round.next_round_id;
 		_dbc.set(vote);
 	}
 
