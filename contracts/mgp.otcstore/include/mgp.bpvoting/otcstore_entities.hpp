@@ -28,6 +28,8 @@ static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
 static constexpr uint32_t share_boost           = 10000;
+static constexpr uint32_t max_nick_size         = 256;
+static constexpr uint32_t max_memo_size         = 1024;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.otcstore")]]
 
@@ -54,16 +56,15 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 /**
- * election round table, one record per day
+ * Buy order with CNY price
  *
- * for current onging round,
  */
-struct CONTRACT_TBL buy_order_t {
+struct CONTRACT_TBL cny_buyorder_t {
     uint64_t id;                //PK: available_primary_key
     
-    name owner;                 //buyer's account
-    string nickname;            //buyer's online nick
-    string memo;                //buyer's memo to sellers
+    name owner;                 //account
+    string nickname;            //online nick
+    string memo;                //memo to buyer/sellers
 
     asset quantity;
     asset min_accept_quantity;
@@ -71,143 +72,73 @@ struct CONTRACT_TBL buy_order_t {
     uint8_t payment_type;       // 0: bank_transfer; 1: alipay; 2: wechat pay; 3: paypal; 4: master/visa
     time_point created_at;
 
-    buy_order_t() {}
-    buy_order_t(uint64_t i): id(i) {}
+    cny_buyorder_t() {}
+    cny_buyorder_t(uint64_t i): id(i) {}
 
     uint64_t primary_key()const { return id; }
     uint64_t scope() const { return 0; }
 
-    typedef eosio::multi_index<"buyorders"_n, buy_order_t> index_t;
+    uint64_t by_price() const { return price.amount; }
+     
+    typedef eosio::multi_index< "cnybuyorders"_n, cny_buyorder_t> pk_tbl_t;
+    typedef eosio::multi_index< "cnyprices"_n, cny_buyorder_t,
+        indexed_by<"price"_n, const_mem_fun<cny_buyorder_t, uint64_t, &cny_buyorder_t::by_price> >,
+    > sk_tbl_t;
 
-    EOSLIB_SERIALIZE(buy_order_t,  (round_id)(next_round_id)(started_at)(ended_at)(created_at)
-                                        (vote_count)(unvote_count)
-                                        (vote_tally_completed)(unvote_last_round_completed)(reward_allocation_completed)
-                                        (total_votes)(total_voteage)(total_rewarded)
-                                        (elected_bps) )
-};
 
-// added by BP candidate
-struct CONTRACT_TBL candidate_t {
-    name owner;
-    uint32_t self_reward_share;     //boost by 10000
-    asset staked_votes;             //self staked
-    asset received_votes;           //other voted
-    asset tallied_votes;            //received only, updated upon vote/unvote tally
-    asset last_claimed_rewards;     //unclaimed total rewards
-    asset total_claimed_rewards;    //unclaimed total rewards
-    asset unclaimed_rewards;        //unclaimed total rewards
-
-    candidate_t() {}
-    candidate_t(const name& o): owner(o) {}
-
-    uint64_t primary_key() const { return owner.value; }
-    uint64_t scope() const { return 0; }
-
-    typedef eosio::multi_index<"candidates"_n, candidate_t> index_t;
-
-    EOSLIB_SERIALIZE(candidate_t,   (owner)(self_reward_share)
-                                    (staked_votes)(received_votes)(tallied_votes)
-                                    (last_claimed_rewards)(total_claimed_rewards)(unclaimed_rewards) )
+    EOSLIB_SERIALIZE(cny_buyorder_t,    (id)(owner)(started_at)(nickname)(memo)
+                                        (quantity)(min_accept_quantity)(price)
+                                        (payment_type)(created_at) )
 };
 
 
 /**
- *  vote table
- */
-struct CONTRACT_TBL vote_t {
-    uint64_t id;        //PK: available_primary_key
-
-    name owner;         //voter
-    name candidate;     //target candidiate to vote for
-    asset quantity;
-
-    time_point voted_at;
-    time_point unvoted_at;
-    time_point restarted_at;   //restart age counting every 30-days
-    uint64_t election_round;
-    uint64_t reward_round;
-
-    uint64_t by_voter() const             { return owner.value;                              }
-    uint64_t by_candidate() const         { return candidate.value;                          }
-    uint64_t by_voted_at() const          { return uint64_t(voted_at.sec_since_epoch());     }
-    uint64_t by_unvoted_at() const        { return uint64_t(unvoted_at.sec_since_epoch());   }
-    uint64_t by_restarted_at() const      { return uint64_t(restarted_at.sec_since_epoch()); }
-    uint64_t by_election_round() const    { return election_round;                           }
-    uint64_t by_reward_round() const      { return reward_round;                             }
-
-    uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return 0; }
-    typedef eosio::multi_index<"votes"_n, vote_t> index_t;
-    
-    vote_t() {}
-    // vote_t(const name& code) {
-    //     index_t tbl(code, code.value); //scope: o
-    //     id = tbl.available_primary_key();
-    // }
-    vote_t(const uint64_t& pk): id(pk) {}
-
-    EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
-                                (voted_at)(unvoted_at)(restarted_at)
-                                (election_round)(reward_round) )
-};
-
-typedef eosio::multi_index
-< "votes"_n, vote_t,
-    indexed_by<"voter"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>             >,
-    indexed_by<"candidate"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_candidate>         >,
-    indexed_by<"voteda"_n,       const_mem_fun<vote_t, uint64_t, &vote_t::by_voted_at>          >,
-    indexed_by<"unvoteda"_n,     const_mem_fun<vote_t, uint64_t, &vote_t::by_unvoted_at>        >,
-    indexed_by<"restarted"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>      >,
-    indexed_by<"electround"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_election_round>    >,
-    indexed_by<"rewardround"_n,  const_mem_fun<vote_t, uint64_t, &vote_t::by_reward_round>      >
-> vote_tbl;
-
-
-/**
- *  vote table
- */
-struct CONTRACT_TBL voteage_t {
-    uint64_t vote_id;        //PK
-    asset votes;
-    uint64_t age;           //days
-
-    voteage_t() {}
-    voteage_t(const uint64_t vid): vote_id(vid) {}
-    voteage_t(const uint64_t vid, const asset& v, const uint64_t a): vote_id(vid), votes(v), age(a) {}
-
-    asset value() { return votes * age; }
-
-    uint64_t primary_key() const { return vote_id; }
-    uint64_t scope() const { return 0; }
-
-    typedef eosio::multi_index<"voteages"_n, voteage_t> index_t;
-
-    EOSLIB_SERIALIZE( voteage_t,  (vote_id)(votes)(age) )
-};
-
-/**
- *  Incoming rewards for whole otcstore cohort
+ * Sell order with CNY price
  *
  */
-struct CONTRACT_TBL reward_t {
-    uint64_t id;
+struct CONTRACT_TBL cny_sellorder_t {
+    uint64_t id;                //PK: available_primary_key
+    
+    name owner;                 //account
+    string nickname;            //online nick
+    string memo;                //memo to buyer/sellers
+
     asset quantity;
+    asset min_accept_quantity;
+    asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
+    uint8_t payment_type;       // 0: bank_transfer; 1: alipay; 2: wechat pay; 3: paypal; 4: master/visa
     time_point created_at;
 
-    reward_t() {}
-    reward_t(name code, uint64_t scope) {
-        index_t tbl(code, scope);
-        id = tbl.available_primary_key();
-    }
+    cny_sellorder_t() {}
+    cny_sellorder_t(uint64_t i): id(i) {}
 
-    reward_t(const uint64_t& i): id(i) {}
-
-    uint64_t primary_key() const { return id; }
+    uint64_t primary_key()const { return id; }
     uint64_t scope() const { return 0; }
 
-    typedef eosio::multi_index<"rewards"_n, reward_t> index_t;
+    uint64_t by_price() const { return price.amount; }
+     
+    typedef eosio::multi_index< "cnyselorders"_n, cny_sellorder_t> pk_tbl_t;
+    typedef eosio::multi_index< "cnyprices"_n, cny_sellorder_t,
+        indexed_by<"price"_n, const_mem_fun<cny_sellorder_t, uint64_t, &cny_sellorder_t::by_price>             >,
+    > sk_tbl_t;
 
-    EOSLIB_SERIALIZE( reward_t,  (id)(quantity)(created_at) )
+    EOSLIB_SERIALIZE(cny_sellorder_t,   (id)(owner)(started_at)(nickname)(memo)
+                                        (quantity)(min_accept_quantity)(price)
+                                        (payment_type)(created_at) )
+};
+
+/**
+ * Sell order with CNY price
+ *
+ */
+struct CONTRACT_TBL cny_settle_t {
+    uint64_t id;                //PK: available_primary_key
+    bool buyer_order;           // seller_order when false
+    asset buyer;
+    asset seller;
+    asset quantity;
+    asset price;
+    
 };
 
 }
