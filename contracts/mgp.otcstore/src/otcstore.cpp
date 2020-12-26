@@ -1,14 +1,14 @@
 #include <eosio.token/eosio.token.hpp>
-#include <mgp.bpvoting/bpvoting.hpp>
-#include <mgp.bpvoting/mgp_math.hpp>
-#include <mgp.bpvoting/utils.h>
+#include <mgp.otcstore/otcstore.hpp>
+#include <mgp.otcstore/mgp_math.hpp>
+#include <mgp.otcstore/utils.h>
 
 
 using namespace eosio;
 using namespace std;
 using std::string;
 
-//account: mgp.bpvoting
+//account: mgp.otcstore
 namespace mgp {
 
 using namespace std;
@@ -17,7 +17,7 @@ using namespace wasm::safemath;
 
 /*************** Begin of Helper functions ***************************************/
 
-uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
+uint64_t mgp_otcstore::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
 	auto rounds = elapsed / _gstate.election_round_sec + 1;
@@ -25,7 +25,7 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	return rounds; //usually in days
 }
 
-void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& curr_round) {
+void mgp_otcstore::_current_election_round(const time_point& ct, election_round_t& curr_round) {
 	auto round_id = get_round_id(ct);
 	curr_round.round_id = round_id;
 
@@ -49,7 +49,7 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 	}
 }
 
-void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_t& self_reward_share) {
+void mgp_otcstore::_list(const name& owner, const asset& quantity, const uint32_t& self_reward_share) {
 	check( is_account(owner), owner.to_string() + " not a valid account" );
 
 	candidate_t candidate(owner);
@@ -70,7 +70,7 @@ void mgp_bpvoting::_list(const name& owner, const asset& quantity, const uint32_
 
 }
 
-void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& quantity) {
+void mgp_otcstore::_vote(const name& owner, const name& target, const asset& quantity) {
 	time_point ct = current_time_point();
 	election_round_t curr_round;
 	_current_election_round(ct, curr_round);
@@ -112,7 +112,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 }
 
-void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate) {
+void mgp_otcstore::_elect(election_round_t& round, const candidate_t& candidate) {
 	
 	round.elected_bps[ candidate.owner ].received_votes = candidate.staked_votes + candidate.tallied_votes;
 
@@ -136,7 +136,7 @@ void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate)
 	}
 }
 
-void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& execution_round) {
+void mgp_otcstore::_tally_votes(election_round_t& last_round, election_round_t& execution_round) {
 	vote_tbl votes(_self, _self.value);
 	auto idx = votes.get_index<"electround"_n>();
 	auto lower_itr = idx.lower_bound( last_round.round_id );
@@ -187,7 +187,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 }
 
-void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
+void mgp_otcstore::_apply_unvotes(election_round_t& round) {
 	int step = 0;
 	bool completed = true;
 
@@ -233,7 +233,7 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 
 }
 
-void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
+void mgp_otcstore::_allocate_rewards(election_round_t& round) {
 	if (round.total_rewarded.amount == 0) {
 		round.reward_allocation_completed = true;
 		_dbc.set( round );
@@ -273,7 +273,7 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 }
 
 //reward target_round
-void mgp_bpvoting::_execute_rewards(election_round_t& round) {
+void mgp_otcstore::_execute_rewards(election_round_t& round) {
 	if (round.elected_bps.size() == 0 || round.total_voteage.amount == 0) {
 		_gstate.last_execution_round = round.round_id;
 		return;
@@ -352,7 +352,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
  *      ""					: all other cases will be treated as rewards deposit
  *
  */
-void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
+void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
@@ -410,7 +410,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 /**
  *	ACTION: kick start the election
  */
-void mgp_bpvoting::init() {
+void mgp_otcstore::init() {
 	require_auth( _self );
 
 	vote_tbl votes(_self, _self.value);
@@ -446,7 +446,7 @@ void mgp_bpvoting::init() {
 
 }
 
-void mgp_bpvoting::config(
+void mgp_otcstore::config(
 		const uint64_t& max_tally_vote_iterate_steps,
 		const uint64_t& max_tally_unvote_iterate_steps,
 		const uint64_t& max_reward_iterate_steps,
@@ -473,7 +473,7 @@ void mgp_bpvoting::config(
 
 }
 
-void mgp_bpvoting::setexecround(const uint64_t& execution_round) {
+void mgp_otcstore::setexecround(const uint64_t& execution_round) {
 	require_auth( _self );
 
 	_gstate.last_execution_round = execution_round;
@@ -483,7 +483,7 @@ void mgp_bpvoting::setexecround(const uint64_t& execution_round) {
 /**
  *	ACTION: unvote fully or partially
  */
-void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
+void mgp_otcstore::unvote(const name& owner, const uint64_t vote_id) {
 	require_auth( owner );
 
 	auto ct = current_time_point();
@@ -523,7 +523,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 /**
  * ACTION:	candidate to delist self
  */
-void mgp_bpvoting::delist(const name& issuer) {
+void mgp_otcstore::delist(const name& issuer) {
 	require_auth( issuer );
 
 	candidate_t candidate(issuer);
@@ -546,7 +546,7 @@ void mgp_bpvoting::delist(const name& issuer) {
 /**
  *	ACTION: continuously invoked to execute election until target round is completed
  */
-void mgp_bpvoting::execute() {
+void mgp_otcstore::execute() {
 
 	election_round_t last_execution_round(_gstate.last_execution_round);
 	if (last_execution_round.round_id == 0) { //virtual round (non-existent)
@@ -591,7 +591,7 @@ void mgp_bpvoting::execute() {
 /**
  * ACTION:	voter to claim rewards
  */
-void mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
+void mgp_otcstore::claimrewards(const name& issuer, const bool is_voter) {
 	require_auth( issuer );
 
 	if (is_voter) { //voter

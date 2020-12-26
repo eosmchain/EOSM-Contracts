@@ -193,8 +193,6 @@ struct CONTRACT_TBL vote_t {
     uint64_t primary_key() const { return id; }
     uint64_t scope() const { return 0; }
     
-    typedef eosio::multi_index<"votes"_n, vote_t> pk_tbl_t;
-
     typedef eosio::multi_index
     < "votes"_n, vote_t,
         indexed_by<"voter"_n,        const_mem_fun<vote_t, uint64_t, &vote_t::by_voter>             >,
@@ -205,7 +203,7 @@ struct CONTRACT_TBL vote_t {
         indexed_by<"electround"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_election_round>    >,
         indexed_by<"rewardround"_n,  const_mem_fun<vote_t, uint64_t, &vote_t::by_reward_round>      >
     > sk_tbl_t;
-
+    
     vote_t() {}
     // vote_t(const name& code) {
     //     index_t tbl(code, code.value); //scope: o

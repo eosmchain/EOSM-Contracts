@@ -10,6 +10,7 @@ rsync -rav -e ssh \
     --exclude='Makefile' \
     --exclude='*.md' \
     --exclude='CMakeCache.txt' \
+    --exclude='CMakeLists.txt' \
     ./build/contracts/ ${host}:/opt/mgp/wallet/contracts
 
 rsync -rav -e ssh \

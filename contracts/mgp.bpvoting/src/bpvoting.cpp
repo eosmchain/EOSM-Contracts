@@ -96,8 +96,8 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 		row.reward_round = curr_round.round_id;
 	});
 
-	voteage_t voteage(vote_id, quantity, 0);
-	_dbc.set( voteage );
+	// voteage_t voteage(vote_id, quantity, 0);
+	// _dbc.set( voteage );
 
 	voter_t voter(owner);
 	if (!_dbc.get( voter )) {
@@ -282,21 +282,30 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	vote_t::sk_tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.upper_bound( round.round_id );
-
 	bool completed = true;
 	int step = 0;
 	vector<uint64_t> vote_ids;
 
+	string str = "round: "+ to_string(round.round_id) + ", next=" + to_string(round.next_round_id) + "\n";
 	for (auto itr = idx.begin(); itr != upper_itr && itr != idx.end(); itr++) {
-		if (step++ == _gstate.max_reward_iterate_steps) {
-			completed = false;
-			break;
-		}
+		// if (step++ == _gstate.max_reward_iterate_steps) {
+		// 	completed = false;
+		// 	break;
+		// }
+
+		/**
+		 *  FIXME - This mutli-index seems not as expected and we have to filter as follows
+		 * 	Need to find out why it behaviors such a way
+		 */
+		// if (itr->reward_round > round.round_id)
+		// 	continue;
 
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
 		vote_ids.push_back(itr->id);
+		str += ",(" + to_string(itr->id) + ": "+to_string(itr->reward_round) + ")";
+		str += to_string(step) + ":" + to_string(itr->reward_round) + " ";
 
 		candidate_t bp(itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
@@ -313,6 +322,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		_dbc.set(voter);
 
    	}
+	check(false, str);
 
 	// for (auto& vote_id : vote_ids) {
 	// 	auto itr = votes.find(vote_id);
@@ -323,11 +333,14 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
    	// 	});
 	// }
 
+	auto next_round = round.next_round_id;
 	for (auto& vote_id : vote_ids) {
-		vote_t vote(vote_id);
-		check( _dbc.get(vote), "vote not found" );
-		vote.reward_round = round.next_round_id;
-		_dbc.set(vote);
+		vote_t::sk_tbl_t votes(_self, _self.value);
+		auto itr = votes.find(vote_id);
+		check( itr != votes.end(), "Err: vote not found: " + to_string(vote_id) );
+		votes.modify( itr, _self, [&]( auto& vote ) {
+			vote.reward_round = next_round;
+		});
 	}
 
 	if (completed) {
