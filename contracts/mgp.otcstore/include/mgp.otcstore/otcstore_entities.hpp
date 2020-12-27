@@ -21,14 +21,12 @@ static constexpr eosio::name token_account{"eosio.token"_n};
 
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
 static constexpr symbol   CNY_SYMBOL            = symbol(symbol_code("CNY"), 2);
-static constexpr symbol   USD_SYMBOL            = symbol(symbol_code("USD"), 2);
+// static constexpr symbol   USD_SYMBOL            = symbol(symbol_code("USD"), 2);
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
 static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
-static constexpr uint32_t share_boost           = 10000;
-static constexpr uint32_t max_nick_size         = 256;
 static constexpr uint32_t max_memo_size         = 1024;
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.otcstore")]]
@@ -37,10 +35,10 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     asset min_buy_order_quantity;
     asset min_sell_order_quantity;
     asset min_pos_stake_quantity;
-    uint64_t withhold_expire_sec;   // upon taking order, the amount hold will be frozen until completion or cancellation
+    uint64_t withhold_expire_sec;   // the amount hold will be unfrozen upon expiry
     name transaction_fee_receiver;  // receiver account to transaction fees
     uint64_t transaction_fee_ratio; // fee ratio boosted by 10000
-    vector<name> otcadmins;
+    set<name> otc_arbiters;
 
     global_t() {
         min_buy_order_quantity      = asset(10, SYS_SYMBOL);
@@ -53,101 +51,141 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
                                 (min_pos_stake_quantity)(withhold_expire_sec) 
                                 (transaction_fee_receiver)(transaction_fee_ratio)
-                                (otcadmins) )
+                                (otc_arbiters) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
+enum PaymentType: uint8_t {
+    BANK        = 0,
+    ALIPAY      = 1,
+    WECAHAT     = 2,
+    MASTER      = 3,
+    VISA        = 4,
+    PAYPAL      = 5,
+
+    PAYMAX      = 6,
+};
+
+enum UserType: uint8_t {
+    MAKER       = 0,    //seller
+    TAKER       = 1,    //buyer
+    ARBITER     = 2
+};
+
 /**
- * Buy order with CNY price
- *
+ * Generic order struct for buyers/sellers
+ * when the owner decides to close it before complete fulfillment, it just get erased
+ * if it is truly fufilled, it also get deleted.
  */
-struct CONTRACT_TBL buyorder_t {
+struct CONTRACT_TBL order_t {
     uint64_t id;                //PK: available_primary_key
     
-    name currency;              //"CNY"_n | "USD"_n
-    name owner;                 //account
-    string nickname;            //online nick
-    string memo;                //memo to buyer/sellers
-
+    name owner;                 //order maker's account
+    asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
     asset quantity;
     asset min_accept_quantity;
-    asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
-    uint8_t payment_type;       // 0: bank_transfer; 1: alipay; 2: wechat pay; 3: paypal; 4: master/visa
-    time_point created_at;
+    asset frozen_quantity;
+    asset fufilled_quantity;    //support partial fulfillment
+    bool closed;
+    time_point_sec created_at;
+    time_point_sec closed_at;
 
-    bool seller_passed;
-    time_point seller_passed_at;
+    order_t() {}
+    order_t(const uint64_t& i): id(i) {}
 
-    bool otc_passed;
-    time_point otc_passed_at;
+    uint64_t primary_key() const { return id; }
+    uint64_t scope() const { return price.symbol.code().raw(); }
 
-    buyorder_t() {}
-    buyorder_t(uint64_t i): id(i) {}
+    uint64_t by_price() const { return closed ? -1 : price.amount; } //for seller: smaller & higher
+    uint64_t by_invprice() const { return closed ? 0 : -price.amount; }  //for buyer: bigger & higher
+    uint64_t by_maker() const { return owner.value; } 
 
-    uint64_t primary_key()const { return id; }
-    uint64_t scope() const { return currency.value; }
-
-    uint64_t by_price() const { return price.amount; }
-     
-    typedef eosio::multi_index< "buyorders"_n, buyorder_t> pk_tbl_t;
-    typedef eosio::multi_index< "prices"_n, buyorder_t,
-        indexed_by<"price"_n, const_mem_fun<buyorder_t, uint64_t, &buyorder_t::by_price> >,
-    > sk_tbl_t;
-
-    EOSLIB_SERIALIZE(buyorder_t,    (id)(currency)(owner)(started_at)(nickname)(memo)
-                                    (quantity)(min_accept_quantity)(price)
-                                    (payment_type)(created_at) )
+    EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)
+                                (quantity)(min_accept_quantity)(frozen_quantity)(fufilled_quantity)
+                                (closed)(created_at)(closed_at) )
 };
 
+// typedef eosio::multi_index
+//     < "buyorders"_n,  order_t,
+//         indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_invprice> >,
+//         indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
+//     > sk_buyorder_t;
+
+typedef eosio::multi_index
+    < "selorders"_n, order_t,
+        indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_price> >,
+        indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
+    > sk_sellorder_t;
 
 /**
- * Sell order with CNY price
+ * buy&sell deal
  *
  */
-struct CONTRACT_TBL sellorder_t {
+struct CONTRACT_TBL deal_t {
     uint64_t id;                //PK: available_primary_key
-    
-    name currency;              //"CNY"_n | "USD"_n
-    name owner;                 //account
-    string nickname;            //online nick
-    string memo;                //memo to buyer/sellers
 
-    asset quantity;
-    asset min_accept_quantity;
-    asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
-    uint8_t payment_type;       // 0: bank_transfer; 1: alipay; 2: wechat pay; 3: paypal; 4: master/visa
-    time_point created_at;
+    uint64_t order_id;
+    asset order_price;
+    asset deal_quantity;
 
-    sellorder_t() {}
-    sellorder_t(uint64_t i): id(i) {}
+    name order_maker;
+    bool maker_passed;
+    time_point_sec maker_passed_at;
 
-    uint64_t primary_key()const { return id; }
-    uint64_t scope() const { return currency.value; }
+    name order_taker;
+    bool taker_passed;
+    time_point_sec taker_passed_at;
 
-    uint64_t by_price() const { return price.amount; }
-     
-    typedef eosio::multi_index< "sellorders"_n, sellorder_t> pk_tbl_t;
-    typedef eosio::multi_index< "prices"_n, sellorder_t,
-        indexed_by<"price"_n, const_mem_fun<sellorder_t, uint64_t, &sellorder_t::by_price>             >,
-    > sk_tbl_t;
+    name arbiter;
+    bool arbiter_passed;
+    time_point_sec arbiter_passed_at;
 
-    EOSLIB_SERIALIZE(sellorder_t,   (id)(currency)(owner)(started_at)(nickname)(memo)
-                                    (quantity)(min_accept_quantity)(price)
-                                    (payment_type)(created_at) )
+    bool closed;
+    time_point_sec created_at;
+    time_point_sec closed_at;
+
+    deal_t() {}
+    deal_t(uint64_t i): id(i) {}
+
+    uint64_t primary_key() const { return id; }
+    uint64_t scope() const { return 0; }
+    // uint64_t scope() const { return order_price.symbol.code().raw(); }
+
+    uint64_t by_order()     const { return order_id; }
+    uint64_t by_maker()     const { return order_maker.value; }
+    uint64_t by_taker()     const { return order_taker.value; }
+    uint64_t by_arbiter()   const { return arbiter.value; }
+
+    EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(deal_quantity)
+                                (order_maker)(maker_passed)(maker_passed_at)
+                                (order_taker)(taker_passed)(taker_passed_at)
+                                (arbiter)(arbiter_passed)(arbiter_passed_at)
+                                (closed)(created_at)(closed_at) )
 };
 
-/**
- * Sell order with CNY price
- *
- */
-struct CONTRACT_TBL cny_settle_t {
-    uint64_t id;                //PK: available_primary_key
-    bool buyer_order;           // seller_order when false
-    asset buyer;
-    asset seller;
-    asset quantity;
-    asset price;
-    
+typedef eosio::multi_index
+    <"deals"_n, deal_t, 
+        indexed_by<"order"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_order> >,
+        indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
+        indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
+        indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >
+    > sk_deal_t;
+
+struct CONTRACT_TBL seller_t {
+    name owner;
+    asset available_quantity = asset(0, SYS_SYMBOL);
+    set<PaymentType> accepted_payments; //accepted payments
+    string memo;
+
+    seller_t() {}
+    seller_t(const name& o): owner(o) {}
+
+    uint64_t primary_key()const { return owner.value; }
+    uint64_t scope()const { return 0; }
+
+    typedef eosio::multi_index<"sellers"_n, seller_t> pk_tbl_t;
+
+    EOSLIB_SERIALIZE(seller_t, (owner)(available_quantity)(accepted_payments)(memo) )
 };
 
-}
+} // MGP

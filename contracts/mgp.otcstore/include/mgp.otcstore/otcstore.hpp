@@ -59,62 +59,50 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
         _global.set( _gstate, get_self() );
     }
 
-    [[eosio::action]]
-    void init();  //only code maintainer can init
+    [[eosio::action]] //only code maintainer can init
+    void init();
 
     [[eosio::action]]
-    void config(const uint64_t& max_tally_vote_iterate_steps,
-                const uint64_t& max_tally_unvote_iterate_steps,
-                const uint64_t& max_reward_iterate_steps,
-                const uint64_t& max_bp_size,
-                const uint64_t& election_round_sec,
-                const uint64_t& refund_delay_sec,
-                const uint64_t& election_round_start_hour,
-                const asset& min_bp_list_quantity,
-                const asset& min_bp_accept_quantity,
-                const asset& min_bp_vote_quantity);
+    void setseller(const name& owner, const set<PaymentType>pay_methods, const string& memo_to_buyer);
+    
+    /**
+     * seller to open sell order
+     */
+    [[eosio::action]]
+    void openorder(const name& owner, const asset& quantity, const asset& price, const asset& min_accept_quantity);
 
     [[eosio::action]]
-    void buyerorder(const uint64_t& execution_round);
+    void closeorder(const name& owner, const uint64_t& order_id);
 
     [[eosio::action]]
-    void sellerorder(const name& owner, const uint64_t vote_id);
+    void opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity);
 
     [[eosio::action]]
-    void buyerpass(const name& buyer, const uint64_t& order_id, const boolean& pass);
-
+    void closedeal(const name& taker, const uint64_t& deal_id);
+    
+    /**
+     *  @param: user_type -> 0: buyer, 1: seller, 2: otc-arbiter
+     *  @param: pass: 0: NO pass, 1: pass; two agreed passes means a decision! 
+     */
     [[eosio::action]]
-    void sellerpass(const name& seller, const uint64_t& order_id, const boolean& pass);
-
-    [[eosio::action]]
-    void otcpass(const name& otcadmin, const uint64_t& order_id, const boolean& pass);
+    void passdeal(const name& owner, const UserType& user_type, const uint64_t& deal_id, const bool& pass);
 
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
-    using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
-    using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config   >;
+    using init_action     = action_wrapper<name("init"),          &mgp_otcstore::init     >;
 
-    using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
-    using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
-    using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
-    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
+    using orderorder_action = action_wrapper<name("openorder"),   &mgp_otcstore::openorder  >;
+    using closeorder_action = action_wrapper<name("closeorder"),  &mgp_otcstore::closeorder >;
+    
+    using orderdeal_action = action_wrapper<name("opendeal"),     &mgp_otcstore::opendeal  >;
+    using closedeal_action = action_wrapper<name("closedeal"),    &mgp_otcstore::closedeal >;
+    using passdeal_action  = action_wrapper<name("passdeal"),     &mgp_otcstore::passdeal  >;
 
-    using setexecround_action = action_wrapper<name("setexecround"),  &mgp_bpvoting::setexecround >;
-    using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;
-    using setcandidate_action = action_wrapper<name("setcandidate"), &mgp_bpvoting::setcandidate >;
+    using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit  >;
 
   private:
-    uint64_t get_round_id(const time_point& ct);
 
-    void _list(const name& owner, const asset& quantity, const uint32_t& voter_reward_share_percent);
-    void _vote(const name& owner, const name& target, const asset& quantity);
-    void _elect(election_round_t& round, const candidate_t& candidate);
-    void _current_election_round(const time_point& ct, election_round_t& election_round);
-    void _tally_votes(election_round_t& last_round, election_round_t& execution_round);
-    void _apply_unvotes(election_round_t& round);
-    void _allocate_rewards(election_round_t& round);
-    void _execute_rewards(election_round_t& round);
 
 };
 
