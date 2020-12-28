@@ -60,7 +60,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
         min_bp_vote_quantity            = asset(10'0000ll, SYS_SYMBOL); //10 MGP at least!
         total_listed                    = asset(0, SYS_SYMBOL);
         total_voted                     = asset(0, SYS_SYMBOL);
-        total_rewarded          = asset(0, SYS_SYMBOL);
+        total_rewarded                  = asset(0, SYS_SYMBOL);
     }
 
     EOSLIB_SERIALIZE( global_t, (max_tally_vote_iterate_steps)(max_tally_unvote_iterate_steps)

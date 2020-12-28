@@ -146,7 +146,7 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 	bool completed = true;
 	vector<uint64_t> vote_ids;
 
-	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end();) {
 		// if (step++ == _gstate.max_tally_vote_iterate_steps) {
 		// 	completed = false;
 		// 	break;
@@ -166,9 +166,14 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 			_dbc.set( candidate );
 		}
 
+		auto itr2 = itr;
+		itr2++;
+
 		votes.modify( *itr, _self, [&]( auto& row ) {
 			row.election_round = last_round.next_round_id;
 		});
+
+		itr = itr2;
 		
 		_dbc.set( execution_round );
 	}
@@ -398,6 +403,20 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
+	vote_t::sk_tbl_t votes(_self, _self.value);
+
+	string str = "";
+
+	auto idx = votes.get_index<"electround"_n>();
+	auto lower_itr = idx.lower_bound( 0 );
+
+	for (auto itr = lower_itr ; itr != idx.end(); itr++) {
+		str += to_string(itr->election_round) + " ";
+	}
+
+	check(false, str);
+
+
 	// vote_t::sk_tbl_t votes(_self, _self.value);
 	// auto idx = votes.get_index<"rewardround"_n>();
 	// auto last_round = _gstate.last_execution_round;
@@ -525,25 +544,25 @@ void mgp_bpvoting::init() {
 */
 
 /** init function */
-	{
-		check (_gstate.started_at == time_point(), "already kickstarted" );
+	// {
+	// 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
-		auto ct = current_time_point();
-		_gstate.started_at 						= ct;
-		_gstate.last_election_round 			= 1;
-		_gstate.last_execution_round 			= 0;
+	// 	auto ct = current_time_point();
+	// 	_gstate.started_at 						= ct;
+	// 	_gstate.last_election_round 			= 1;
+	// 	_gstate.last_execution_round 			= 0;
 
-		auto days 								= ct.sec_since_epoch() / seconds_per_day;
-		auto start_secs 						= _gstate.election_round_start_hour * 3600;
+	// 	auto days 								= ct.sec_since_epoch() / seconds_per_day;
+	// 	auto start_secs 						= _gstate.election_round_start_hour * 3600;
 
-		election_round_t election_round(1);
-		election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
-		election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
-		election_round.created_at 				= ct;
-		election_round.vote_tally_completed 	= false;
-		election_round.unvote_last_round_completed 	= true;
-		_dbc.set( election_round );
-	}
+	// 	election_round_t election_round(1);
+	// 	election_round.started_at 				= time_point() + eosio::seconds(days * seconds_per_day + start_secs);
+	// 	election_round.ended_at 				= election_round.started_at + eosio::seconds(_gstate.election_round_sec);
+	// 	election_round.created_at 				= ct;
+	// 	election_round.vote_tally_completed 	= false;
+	// 	election_round.unvote_last_round_completed 	= true;
+	// 	_dbc.set( election_round );
+	// }
 
 }
 
