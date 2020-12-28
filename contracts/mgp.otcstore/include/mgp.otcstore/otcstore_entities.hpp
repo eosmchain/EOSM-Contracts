@@ -100,8 +100,8 @@ struct CONTRACT_TBL order_t {
     uint64_t by_invprice() const { return closed ? 0 : -price.amount; }  //for buyer: bigger & higher
     uint64_t by_maker() const { return owner.value; } 
 
-    EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)
-                                (quantity)(min_accept_quantity)(frozen_quantity)(fufilled_quantity)
+    EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
+                                (frozen_quantity)(fufilled_quantity)
                                 (closed)(created_at)(closed_at) )
 };
 

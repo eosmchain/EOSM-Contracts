@@ -90,19 +90,16 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
-    using init_action     = action_wrapper<name("init"),          &mgp_otcstore::init     >;
-
+    using init_action       = action_wrapper<name("init"),        &mgp_otcstore::init       >;
+    using setseller_action  = action_wrapper<name("setseller"),   &mgp_otcstore::setseller  >;
     using orderorder_action = action_wrapper<name("openorder"),   &mgp_otcstore::openorder  >;
     using closeorder_action = action_wrapper<name("closeorder"),  &mgp_otcstore::closeorder >;
     
-    using orderdeal_action = action_wrapper<name("opendeal"),     &mgp_otcstore::opendeal  >;
-    using closedeal_action = action_wrapper<name("closedeal"),    &mgp_otcstore::closedeal >;
-    using passdeal_action  = action_wrapper<name("passdeal"),     &mgp_otcstore::passdeal  >;
+    using orderdeal_action = action_wrapper<name("opendeal"),     &mgp_otcstore::opendeal   >;
+    using closedeal_action = action_wrapper<name("closedeal"),    &mgp_otcstore::closedeal  >;
+    using passdeal_action  = action_wrapper<name("passdeal"),     &mgp_otcstore::passdeal   >;
 
-    using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit  >;
-
-  private:
-
+    using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit    >;
 
 };
 

@@ -176,6 +176,10 @@ void mgp_otcstore::passdeal(const name& owner, const UserType& user_type, const 
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
 
+	sk_sellorder_t orders(_self, _self.value);
+	auto order_itr = orders.find(deal_itr->order_id);
+	check( order_itr != orders.end(), "order not found: " + to_string(deal_itr->order_id) );
+
 	auto now = time_point_sec(current_time_point());
 
 	switch (user_type) {
@@ -219,27 +223,49 @@ void mgp_otcstore::passdeal(const name& owner, const UserType& user_type, const 
 	if (deal_itr->arbiter_passed_at != time_point_sec())
 		count++;
 	
-	if (count < 2) return;
+	if (count < 2) return;	//at least 2 persons must have responded
 
-	int maker = deal_itr->maker_passed ? 1 : 0;
-	int taker = deal_itr->taker_passed ? 1 : 0;
+	int maker 	= deal_itr->maker_passed ? 1 : 0;
+	int taker 	= deal_itr->taker_passed ? 1 : 0;
 	int arbiter = deal_itr->arbiter_passed ? 1 : 0;
-	int sum = maker + taker + arbiter;
+	int sum 	= maker + taker + arbiter;
 
-	if (count == 2) {
-		if (sum == 2) {
-			//TODO: settle now
-		} else
-			return;	
+	if (count == 2 && sum == 1) return;	//need arbiter
 
-	} else if (count == 3) { //arbitraged
-		if (sum >= 2) {
-			//TODO: settle now
-		} else {
-			//TODO: to cancel the deal
-		}
-	} 
+	if (sum < 2) {	//at least two parties disagreed, deal must be canceled/closed!
+		deals.modify( *deal_itr, _self, [&]( auto& row ) {
+			row.closed = true;
+			row.closed_at = now;
+		});	
+		
+		check( order_itr->frozen_quantity >= deal_itr->deal_quantity, "oversize deal quantity vs fronzen one" );
+		orders.modify( *order_itr, _self, [&]( auto& row ) {
+			row.frozen_quantity 	-= deal_itr->deal_quantity;
+		});
 
+	} else { //at least two parties agreed, hence we can settle now!
+		action(
+			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
+			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity, 
+						std::string("") )
+		).send();
+
+		deals.modify( *deal_itr, _self, [&]( auto& row ) {
+			row.closed = true;
+			row.closed_at = now;
+		});	
+
+		check( order_itr->frozen_quantity >= deal_itr->deal_quantity, "oversize deal quantity vs fronzen one" );
+		orders.modify( *order_itr, _self, [&]( auto& row ) {
+			row.frozen_quantity 	-= deal_itr->deal_quantity;
+			row.fufilled_quantity 	+= deal_itr->deal_quantity;
+
+			if (row.fufilled_quantity == row.quantity) {
+				row.closed = true;
+				row.closed_at = now;
+			}
+		});	
+	}
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
