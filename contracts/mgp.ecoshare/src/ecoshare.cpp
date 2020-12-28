@@ -10,6 +10,8 @@ namespace mgp {
 void mgp_ecoshare::init() {
 	require_auth( _self );
 
+    _gstate.stake_mining_account   = "masteraychen"_n;
+
 	// _gstate = _global.exists() ? _global.get() : global_tbl{};
 	// _global.remove();
 	// _gstate.last_transfer_id = 3;

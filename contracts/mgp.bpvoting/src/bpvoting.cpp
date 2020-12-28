@@ -398,23 +398,23 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
-	auto idx = votes.get_index<"rewardround"_n>();
-	auto last_round = _gstate.last_execution_round;
-	auto upper_itr = idx.upper_bound(last_round);
-	vector<uint64_t> vote_ids;
+	// vote_t::sk_tbl_t votes(_self, _self.value);
+	// auto idx = votes.get_index<"rewardround"_n>();
+	// auto last_round = _gstate.last_execution_round;
+	// auto upper_itr = idx.upper_bound(last_round);
+	// vector<uint64_t> vote_ids;
 
-	string str = "";
-	for (auto itr = upper_itr; itr != idx.begin(); --itr) {
-		if (itr->reward_round > last_round) continue;
+	// string str = "";
+	// for (auto itr = upper_itr; itr != idx.begin(); --itr) {
+	// 	if (itr->reward_round > last_round) continue;
 
-		// vote_ids.push_back(itr->id);
-		// votes.modify( *itr, _self, [&]( auto& vote ) {
-		// 	vote.reward_round = 27;
-		// });
+	// 	// vote_ids.push_back(itr->id);
+	// 	// votes.modify( *itr, _self, [&]( auto& vote ) {
+	// 	// 	vote.reward_round = 27;
+	// 	// });
 
-		str += " " + to_string(itr->reward_round);
-	}
+	// 	str += " " + to_string(itr->reward_round);
+	// }
 
 	// for (auto& vote_id : vote_ids) {
 	// 	vote_t::sk_tbl_t votes(_self, _self.value);
@@ -425,7 +425,7 @@ void mgp_bpvoting::init() {
 	// 		vote.reward_round = 27;
 	// 	});
 	// }
-	check(false, str);
+	// check(false, str);
 
 	// voter_t::pk_tbl_t voters(_self, _self.value);
 	// for (auto itr = voters.begin(); itr != voters.end(); itr++) {
@@ -524,7 +524,7 @@ void mgp_bpvoting::init() {
 	} 
 */
 
-/** init function
+/** init function */
 	{
 		check (_gstate.started_at == time_point(), "already kickstarted" );
 
@@ -544,7 +544,6 @@ void mgp_bpvoting::init() {
 		election_round.unvote_last_round_completed 	= true;
 		_dbc.set( election_round );
 	}
-*/
 
 }
 
