@@ -297,11 +297,6 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
-	// check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
-	// check( quantity.is_valid(), "Invalid quantity");
-	// check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	// check( quantity.amount > 0, "deposit quanity must be positive" );
-
 	seller_t seller(from);
 	_dbc.get( seller );
 	seller.available_quantity += quantity;
