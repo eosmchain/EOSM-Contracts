@@ -1,6 +1,5 @@
-#host=m1
-# host=jw
-host=sh-test
+host=jw
+# host=sh-test
 
 rsync -rav -e ssh \
     --include='*.abi' \

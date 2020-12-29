@@ -143,16 +143,17 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 	auto upper_itr = idx.upper_bound( last_round.round_id );
 	int step = 0;
 
+	// check(false, "last_round=" + to_string(last_round.round_id) );
 	bool completed = true;
 	vector<uint64_t> vote_ids;
 
 	for (auto itr = lower_itr; itr != upper_itr && itr != idx.end();) {
-		// if (step++ == _gstate.max_tally_vote_iterate_steps) {
-		// 	completed = false;
-		// 	break;
-		// }
+		if (step++ == _gstate.max_tally_vote_iterate_steps) {
+			completed = false;
+			break;
+		}
 	
-		vote_ids.push_back(itr->id);
+		// vote_ids.push_back(itr->id);
 
 		candidate_t candidate(itr->candidate);
 		if ( _dbc.get(candidate) ) {
@@ -700,7 +701,7 @@ void mgp_bpvoting::execute() {
 		_allocate_rewards( execution_round );
 	}
 
-check(last_execution_round.vote_tally_completed, "vote tally not completed :<");
+// check(last_execution_round.vote_tally_completed, "vote tally not completed :<");
 
 	if (last_execution_round.vote_tally_completed && 
 	    execution_round.reward_allocation_completed &&
