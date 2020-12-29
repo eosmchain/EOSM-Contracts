@@ -1,4 +1,5 @@
 #include <eosio.token/eosio.token.hpp>
+#include <mgp.vstaking/staking_entities.hpp>
 #include <mgp.otcstore/otcstore.hpp>
 #include <mgp.otcstore/mgp_math.hpp>
 #include <mgp.otcstore/utils.h>
@@ -16,15 +17,16 @@ using namespace wasm::safemath;
 
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
-
+	
 	_gstate.transaction_fee_receiver = wallet_admin;
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
 	_gstate.min_pos_stake_quantity.amount = 0;
+	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
 }
 
-void mgp_otcstore::setseller(const name& owner, const set<PaymentType>pay_methods, const string& memo_to_buyer) {
+void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& memo_to_buyer) {
 	require_auth( owner );
 
 	check(memo_to_buyer.size() < max_memo_size, "memo size too large: " + to_string(memo_to_buyer.size()) );
@@ -34,7 +36,7 @@ void mgp_otcstore::setseller(const name& owner, const set<PaymentType>pay_method
 
 	seller.accepted_payments.clear();
 	for (auto& method : pay_methods) {
-		check( method < PaymentType::PAYMAX, "pay method illegal: " + to_string(method) );
+		check( (PaymentType) method < PaymentType::PAYMAX, "pay method illegal: " + to_string(method) );
 
 		seller.accepted_payments.insert( method );
 	}
@@ -66,8 +68,18 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 	seller_t seller(owner);
 	check( _dbc.get(seller), "seller not found: " + owner.to_string() ); 
 	check( seller.available_quantity >= quantity, "seller insufficient quantitiy to sell" );
+	seller.available_quantity -= quantity;
+	_dbc.set( seller );
 
-	sk_sellorder_t order(_self, _self.value);
+	if (_gstate.min_pos_stake_quantity.amount > 0) {
+		auto staking_con = _gstate.pos_staking_contract;
+		balances bal(staking_con, staking_con.value);
+		auto itr = bal.find(owner.value);
+		check( itr != bal.end(), "POS staking not found for: " + owner.to_string() );
+		check( itr->remaining >= _gstate.min_pos_stake_quantity, "POS Staking requirement not met" );
+	}
+
+	sell_order_t order(_self, _self.value);
 	auto order_id = order.available_primary_key();
 	order.emplace( _self, [&]( auto& row ) {
 		row.id 					= order_id;
@@ -78,10 +90,6 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		row.closed				= false;
 		row.created_at			= time_point_sec(current_time_point());
 	});
-
-	seller.available_quantity -= quantity;
-	_dbc.set( seller );
-
 }
 
 void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
@@ -90,7 +98,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	seller_t seller(owner);
 	check( _dbc.get(seller), "seller not found: " + owner.to_string() ); 
 
-	sk_sellorder_t orders(_self, _self.value);
+	sell_order_t orders(_self, _self.value);
 	auto itr = orders.find(order_id);
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
@@ -108,7 +116,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 
 	check( deal_quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 
-	sk_sellorder_t orders(_self, _self.value);
+	sell_order_t orders(_self, _self.value);
 	auto itr = orders.find(order_id);
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
@@ -149,7 +157,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
 
 	auto order_id = deal_itr->order_id;
-	sk_sellorder_t orders(_self, _self.value);
+	sell_order_t orders(_self, _self.value);
 	auto order_itr = orders.find(order_id);
 	check( order_itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !order_itr->closed, "order already closed" );
@@ -168,7 +176,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 
 }
 
-void mgp_otcstore::passdeal(const name& owner, const UserType& user_type, const uint64_t& deal_id, const bool& pass) {
+void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass) {
 	require_auth( owner );
 
 	sk_deal_t deals(_self, _self.value);
@@ -176,13 +184,13 @@ void mgp_otcstore::passdeal(const name& owner, const UserType& user_type, const 
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
 
-	sk_sellorder_t orders(_self, _self.value);
+	sell_order_t orders(_self, _self.value);
 	auto order_itr = orders.find(deal_itr->order_id);
 	check( order_itr != orders.end(), "order not found: " + to_string(deal_itr->order_id) );
 
 	auto now = time_point_sec(current_time_point());
 
-	switch (user_type) {
+	switch ((UserType) user_type) {
 		MAKER: 
 		{
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
@@ -275,10 +283,10 @@ void mgp_otcstore::passdeal(const name& owner, const UserType& user_type, const 
 void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
-	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
-	check( quantity.is_valid(), "Invalid quantity");
-	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity.amount > 0, "deposit quanity must be positive" );
+	// check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
+	// check( quantity.is_valid(), "Invalid quantity");
+	// check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+	// check( quantity.amount > 0, "deposit quanity must be positive" );
 
 	seller_t seller(from);
 	_dbc.get( seller );

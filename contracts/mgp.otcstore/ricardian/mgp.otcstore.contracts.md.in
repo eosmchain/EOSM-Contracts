@@ -2,79 +2,85 @@
 
 ---
 spec_version: "0.1.0"
-title: init to start election
-summary: 'Init Election'
+title: initialize mgp.otcstore
+summary: 'Init MGP OTCStore'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
+Initialize mgp.otcstore
 
-Kick start the election by invoking init action
-
-<h1 class="contract">config</h1>
+<h1 class="contract">setseller</h1>
 
 ---
 spec_version: "0.1.0"
-title: config global params
-summary: 'Configure Global Params'
+title: Set seller info
+summary: 'Set seller's info'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Making updates to global params
+Seller to set one's info including selling conditions/memo
 
-<h1 class="contract">chvote</h1>
+<h1 class="contract">openorder</h1>
 
 ---
 spec_version: "0.1.0"
-title: change vote
-summary: 'Change one's vote'
+title: open an order
+summary: 'Open an OTC order'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Change one's vote
+Open an OTC order. Currently only seller orders are allowed to open.
 
-<h1 class="contract">unvote</h1>
+<h1 class="contract">closeorder</h1>
 
 ---
 spec_version: "0.1.0"
-title: Unvote
-summary: 'Withdraw tokens to unvote'
+title: close order
+summary: 'Close one's order'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Withdraw one's tokens to unvote but have to wait for min. 3 days before unvote.
+Close one's order to stop from others to deal with it.
+Once the order has been fully fulfilled, it can be also triggered to be closed.
+When the order is in a closed status, it can no longer be entered by any counterparty.
 
-<h1 class="contract">execute</h1>
+<h1 class="contract">opendeal</h1>
 
 ---
 spec_version: "0.1.0"
-title: Execute
-summary: 'Execute election'
+title: open deal
+summary: 'Open a deal to an order'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Execute election repeatedly until completion. Each step invovles 3 sub-processes:
-1) scan for votes in the one before last eletion round;
-2) scan for unvotes in the last election round;
-3) distribute rewards accordingly (by recording instead of transferring)
+A counterparty can actively seek through a list of open orders and pick one
+to deal with. Once a deal is openned, a certain amount of funds will be thus frozen
+or locked in the order from others to spend it until either the fund is unfrozne or settled.
 
 
-<h1 class="contract">delist</h1>
+<h1 class="contract">closedeal</h1>
 
 ---
 spec_version: "0.1.0"
-title: Delist
-summary: 'Delist a candidate'
+title: close a deal
+summary: 'Close a deal to an order'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-A candidate tries to delist itself from the candidates list
+A deal creator can actively close a deal such that either the correspondig order locked funds
+has been either settled or unfrozen.
 
-<h1 class="contract">claimrewards</h1>
+<h1 class="contract">passdeal</h1>
 
 ---
 spec_version: "0.1.0"
-title: claim rewards
-summary: 'Claim one's rewards due'
+title: pass a deal
+summary: 'Pass a deal to an order'
 icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
 ---
 
-Either a candidate or a voter tries to claim rewards due in the contract
+A deal that is passed by a maker/taker or an arbiter of the order of interest.
+As long as two of them pass with the same result (true or false) it means a common agreement.
+If two of them accept the deal, it will be immediately settled. 
+If two of them deny the deal, it will be thus canceled and funds get unfrozen.
+If only one passes the deal, it will be pending until the other ones come to pass.
+If one accept and the other denies, an arbiter will be invovled to tackle the stalemate.

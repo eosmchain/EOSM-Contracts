@@ -35,6 +35,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     asset min_buy_order_quantity;
     asset min_sell_order_quantity;
     asset min_pos_stake_quantity;
+    name pos_staking_contract;
     uint64_t withhold_expire_sec;   // the amount hold will be unfrozen upon expiry
     name transaction_fee_receiver;  // receiver account to transaction fees
     uint64_t transaction_fee_ratio; // fee ratio boosted by 10000
@@ -115,7 +116,7 @@ typedef eosio::multi_index
     < "selorders"_n, order_t,
         indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_price> >,
         indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
-    > sk_sellorder_t;
+    > sell_order_t;
 
 /**
  * buy&sell deal
@@ -174,7 +175,8 @@ typedef eosio::multi_index
 struct CONTRACT_TBL seller_t {
     name owner;
     asset available_quantity = asset(0, SYS_SYMBOL);
-    set<PaymentType> accepted_payments; //accepted payments
+    set<uint8_t> accepted_payments; //accepted payments
+    uint32_t processed_deals = 0;
     string memo;
 
     seller_t() {}
@@ -185,7 +187,8 @@ struct CONTRACT_TBL seller_t {
 
     typedef eosio::multi_index<"sellers"_n, seller_t> pk_tbl_t;
 
-    EOSLIB_SERIALIZE(seller_t, (owner)(available_quantity)(accepted_payments)(memo) )
+    EOSLIB_SERIALIZE(seller_t,  (owner)(available_quantity)(accepted_payments)
+                                (processed_deals)(memo) )
 };
 
 } // MGP

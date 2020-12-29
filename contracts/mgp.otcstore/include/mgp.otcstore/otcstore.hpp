@@ -63,7 +63,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     void init();
 
     [[eosio::action]]
-    void setseller(const name& owner, const set<PaymentType>pay_methods, const string& memo_to_buyer);
+    void setseller(const name& owner, const set<uint8_t>pay_methods, const string& memo_to_buyer);
     
     /**
      * seller to open sell order
@@ -85,7 +85,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
      *  @param: pass: 0: NO pass, 1: pass; two agreed passes means a decision! 
      */
     [[eosio::action]]
-    void passdeal(const name& owner, const UserType& user_type, const uint64_t& deal_id, const bool& pass);
+    void passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass);
 
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
