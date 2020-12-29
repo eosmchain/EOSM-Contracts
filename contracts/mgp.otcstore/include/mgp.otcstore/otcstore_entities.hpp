@@ -177,6 +177,7 @@ struct CONTRACT_TBL seller_t {
     asset available_quantity = asset(0, SYS_SYMBOL);
     set<uint8_t> accepted_payments; //accepted payments
     uint32_t processed_deals = 0;
+    string email;
     string memo;
 
     seller_t() {}
@@ -185,10 +186,10 @@ struct CONTRACT_TBL seller_t {
     uint64_t primary_key()const { return owner.value; }
     uint64_t scope()const { return 0; }
 
-    typedef eosio::multi_index<"sellers"_n, seller_t> pk_tbl_t;
+    typedef eosio::multi_index<"sellers"_n, seller_t> tbl_t;
 
     EOSLIB_SERIALIZE(seller_t,  (owner)(available_quantity)(accepted_payments)
-                                (processed_deals)(memo) )
+                                (processed_deals)(email)(memo) )
 };
 
 } // MGP

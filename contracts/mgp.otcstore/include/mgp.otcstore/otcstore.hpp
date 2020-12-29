@@ -63,7 +63,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     void init();
 
     [[eosio::action]]
-    void setseller(const name& owner, const set<uint8_t>pay_methods, const string& memo_to_buyer);
+    void setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer);
     
     /**
      * seller to open sell order

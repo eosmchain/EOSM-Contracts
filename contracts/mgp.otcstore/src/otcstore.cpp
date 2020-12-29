@@ -17,18 +17,25 @@ using namespace wasm::safemath;
 
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
-	
+
+	// seller_t seller("masteraychen"_n);
+	// check( _dbc.get(seller), "masteraychen not found in sellers" );
+	// _dbc.del(seller);
+
+	/*
 	_gstate.transaction_fee_receiver = wallet_admin;
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
 	_gstate.min_pos_stake_quantity.amount = 0;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
+	*/
 }
 
-void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& memo_to_buyer) {
+void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer) {
 	require_auth( owner );
 
+	check(email.size() < 64, "email size too large: " + to_string(email.size()) );
 	check(memo_to_buyer.size() < max_memo_size, "memo size too large: " + to_string(memo_to_buyer.size()) );
 
 	seller_t seller(owner);
@@ -40,7 +47,8 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 
 		seller.accepted_payments.insert( method );
 	}
-	
+
+	seller.email = email;
 	seller.memo = memo_to_buyer;
 
 	_dbc.set( seller );
@@ -273,6 +281,12 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 				row.closed_at = now;
 			}
 		});	
+
+		seller_t seller(deal_itr->order_maker);
+		check( _dbc.get(seller), "Err: seller not found: " + deal_itr->order_maker.to_string() );
+
+		seller.processed_deals++;
+		_dbc.set( seller );
 	}
 }
 
