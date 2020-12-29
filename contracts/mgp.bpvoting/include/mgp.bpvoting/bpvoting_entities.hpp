@@ -202,7 +202,7 @@ struct CONTRACT_TBL vote_t {
         indexed_by<"restarted"_n,    const_mem_fun<vote_t, uint64_t, &vote_t::by_restarted_at>      >,
         indexed_by<"electround"_n,   const_mem_fun<vote_t, uint64_t, &vote_t::by_election_round>    >,
         indexed_by<"rewardround"_n,  const_mem_fun<vote_t, uint64_t, &vote_t::by_reward_round>      >
-    > sk_tbl_t;
+    > tbl_t;
     
     vote_t() {}
     // vote_t(const name& code) {

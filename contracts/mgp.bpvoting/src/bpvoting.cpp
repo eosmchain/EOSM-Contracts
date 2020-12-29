@@ -83,7 +83,7 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 	candidate.received_votes += quantity;
 	_dbc.set(candidate);
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto vote_id = votes.available_primary_key();
 	votes.emplace( _self, [&]( auto& row ) {
 		row.id = vote_id;
@@ -137,7 +137,7 @@ void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate)
 }
 
 void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& execution_round) {
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"electround"_n>();
 	auto lower_itr = idx.lower_bound( last_round.round_id );
 	auto upper_itr = idx.upper_bound( last_round.round_id );
@@ -188,7 +188,7 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 	int step = 0;
 	bool completed = true;
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto vote_idx = votes.get_index<"unvoteda"_n>();
 	auto lower_itr = vote_idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
 	auto upper_itr = vote_idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) );
@@ -217,9 +217,6 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 		// }
 		// round.total_voteage -= voteage.value();
 		round.unvote_count++;
-
-		// if (!new_voteage)
-		// 	_dbc.del( voteage );
 
 		itr = vote_idx.erase( itr );
 	}
@@ -279,7 +276,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	auto reward_round = round.round_id;
 	auto next_reward_round = round.next_round_id;
 	
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.lower_bound( reward_round );
 	bool completed = true;
@@ -287,7 +284,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	// vector<uint64_t> vote_ids;
 
 	// string str = "round: "+ to_string(reward_round) + ", next=" + to_string(next_reward_round) + "\n";
-	for (auto itr = upper_itr; itr != idx.begin(); --itr) {
+	for (auto itr = upper_itr; itr != idx.begin()) {
 		// if (step++ == _gstate.max_reward_iterate_steps) {
 		// 	completed = false;
 		// 	break;
@@ -313,14 +310,19 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		_dbc.set(voter);
 
+		auto itr2 = itr;
+		itr2--;
+
 		votes.modify( *itr, _self, [&]( auto& vote ) {
 			vote.reward_round = next_reward_round;
 		});
+
+		itr = itr2;
    	}
 	// check(false, str);
 	
 	// for (auto& vote_id : vote_ids) {
-	// 	vote_t::sk_tbl_t votes(_self, _self.value);
+	// 	vote_t::tbl_t votes(_self, _self.value);
 	// 	auto itr = votes.find(vote_id);
 	// 	check( itr != votes.end(), "Err: vote not found: " + to_string(vote_id) );
 		
@@ -404,7 +406,7 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 
 	string str = "";
 
@@ -418,7 +420,7 @@ void mgp_bpvoting::init() {
 	check(false, str);
 
 
-	// vote_t::sk_tbl_t votes(_self, _self.value);
+	// vote_t::tbl_t votes(_self, _self.value);
 	// auto idx = votes.get_index<"rewardround"_n>();
 	// auto last_round = _gstate.last_execution_round;
 	// auto upper_itr = idx.upper_bound(last_round);
@@ -437,7 +439,7 @@ void mgp_bpvoting::init() {
 	// }
 
 	// for (auto& vote_id : vote_ids) {
-	// 	vote_t::sk_tbl_t votes(_self, _self.value);
+	// 	vote_t::tbl_t votes(_self, _self.value);
 	// 	auto itr = votes.find(vote_id);
 	// 	check( itr != votes.end(), "Err: vote not found: " + to_string(vote_id) );
 
@@ -461,7 +463,7 @@ void mgp_bpvoting::init() {
 	check( _dbc.get(round), "ER 24 not found" );
 	check( round.total_votes.amount > 0, "round total votes 0" );
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"rewardround"_n>();
 	auto upper_itr = idx.upper_bound( 24 );
 	vector<uint64_t> vote_ids;
@@ -498,7 +500,7 @@ void mgp_bpvoting::init() {
 
 /** fix election_round number
 	{
-		vote_t::sk_tbl_t votes(_self, _self.value);
+		vote_t::tbl_t votes(_self, _self.value);
 		auto idx = votes.get_index<"electround"_n>();
 		auto lower_itr = idx.lower_bound( 20 );
 		auto upper_itr = idx.upper_bound( 20 );
@@ -524,7 +526,7 @@ void mgp_bpvoting::init() {
 		uint64_t END_TIME = 1608512400; // 12/21/2020 @ 1:00am (UTC)
 		map<name, asset> candidate_tallied_votes;
 		
-		vote_t::sk_tbl_t votes(_self, _self.value);
+		vote_t::tbl_t votes(_self, _self.value);
 		auto idx = votes.get_index<"voteda"_n>();
 		for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 			if (itr->voted_at.sec_since_epoch() > END_TIME) break;
@@ -610,7 +612,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	auto ct = current_time_point();
 	check( get_round_id(ct) > 0, "unvote not allowed in round-0" );
 
-	vote_t::sk_tbl_t votes(_self, _self.value);
+	vote_t::tbl_t votes(_self, _self.value);
 	auto v_itr = votes.find(vote_id);
 	check( v_itr != votes.end(), "vote not found" );
 	auto elapsed = ct.sec_since_epoch() - v_itr->voted_at.sec_since_epoch();
