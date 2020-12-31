@@ -537,7 +537,7 @@ void mgp_bpvoting::init() {
 }
 
 /**
- *	ACTION: unvote fully or partially
+ *	ACTION: unvote a particular vote
  */
 void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	require_auth( owner );
@@ -545,14 +545,13 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	auto ct = current_time_point();
 	check( get_round_id(ct) > 0, "unvote not allowed in round-0" );
 
-	vote_t::tbl_t votes(_self, _self.value);
-	auto v_itr = votes.find(vote_id);
-	check( v_itr != votes.end(), "vote not found" );
-	auto elapsed = ct.sec_since_epoch() - v_itr->voted_at.sec_since_epoch();
+	vote_t vote(vote_id);
+	check( _dbc.get(vote), "vote not found: " + to_string(vote_id) );
+	check( vote.owner == owner, "vote owner (" + vote.owner.to_string() + ") while unvote from: " + owner.to_string() );
+	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
-	votes.modify( *v_itr, _self, [&]( auto& row ) {
-		row.unvoted_at = ct;
-	});
+	vote.unvoted_at = ct;
+	_dbc.set( vote );
 
 	candidate_t candidate(v_itr->candidate);
 	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
