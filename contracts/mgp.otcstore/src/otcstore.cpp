@@ -217,7 +217,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		}
 		ARBITER: 
 		{
-			//verify if truly ariter
+			//verify if truly an arbiter
 			check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.arbiter_passed = true;
@@ -287,6 +287,9 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 		seller.processed_deals++;
 		_dbc.set( seller );
+
+		require_recipient(deal_itr->order_maker);
+		require_recipient(deal_itr->order_taker);
 	}
 }
 

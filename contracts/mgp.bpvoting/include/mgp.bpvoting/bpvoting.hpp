@@ -68,9 +68,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void init();  //only code maintainer can init
 
     [[eosio::action]]
-    void setexecround(const uint64_t& execution_round);
-
-    [[eosio::action]]
     void unvote(const name& owner, const uint64_t vote_id);
 
     [[eosio::action]]
@@ -133,13 +130,12 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
     using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
 
-    using setexecround_action = action_wrapper<name("setexecround"),  &mgp_bpvoting::setexecround >;
     using resetvotes_action = action_wrapper<name("resetvotes"), &mgp_bpvoting::resetvotes >;
     using setcandidate_action = action_wrapper<name("setcandidate"), &mgp_bpvoting::setcandidate >;
 
   private:
     uint64_t get_round_id(const time_point& ct);
-
+    
     void _list(const name& owner, const asset& quantity, const uint32_t& voter_reward_share_percent);
     void _vote(const name& owner, const name& target, const asset& quantity);
     void _elect(election_round_t& round, const candidate_t& candidate);
@@ -150,6 +146,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void _execute_rewards(election_round_t& round);
 
     /** Init functions **/
+    void _init();
     void _referesh_recvd_votes();
     void _referesh_tallied_votes();
     void _referesh_ers(uint64_t round);
