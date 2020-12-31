@@ -45,34 +45,27 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
   private:
     global_singleton    _global;
     global_t            _gstate;
+    global2_singleton   _global2;
+    global2_t           _gstate2;
     dbc                 _dbc;
 
   public:
     using contract::contract;
     mgp_bpvoting(eosio::name receiver, eosio::name code, datastream<const char*> ds):
-        contract(receiver, code, ds), _global(get_self(), get_self().value), _dbc(get_self())
+        contract(receiver, code, ds), _global(get_self(), get_self().value), 
+        _global2(get_self(), get_self().value), _dbc(get_self())
     {
-        _gstate = _global.exists() ? _global.get() : global_t{};
+      _gstate = _global.exists() ? _global.get() : global_t{};
+      _gstate2 = _global2.exists() ? _global2.get() : global2_t{};
     }
 
     ~mgp_bpvoting() {
-        _global.set( _gstate, get_self() );
+      _global.set( _gstate, get_self() );
+      _global2.set( _gstate2, get_self() );
     }
 
     [[eosio::action]]
     void init();  //only code maintainer can init
-
-    [[eosio::action]]
-    void config(const uint64_t& max_tally_vote_iterate_steps,
-                const uint64_t& max_tally_unvote_iterate_steps,
-                const uint64_t& max_reward_iterate_steps,
-                const uint64_t& max_bp_size,
-                const uint64_t& election_round_sec,
-                const uint64_t& refund_delay_sec,
-                const uint64_t& election_round_start_hour,
-                const asset& min_bp_list_quantity,
-                const asset& min_bp_accept_quantity,
-                const asset& min_bp_vote_quantity);
 
     [[eosio::action]]
     void setexecround(const uint64_t& execution_round);
@@ -134,7 +127,6 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void deposit(name from, name to, asset quantity, string memo);
 
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
-    using config_action   = action_wrapper<name("config"),    &mgp_bpvoting::config   >;
 
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
@@ -156,6 +148,11 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void _apply_unvotes(election_round_t& round);
     void _allocate_rewards(election_round_t& round);
     void _execute_rewards(election_round_t& round);
+
+    /** Init functions **/
+    void _referesh_recvd_votes();
+    void _referesh_tallied_votes();
+    void _referesh_ers(uint64_t round);
 
 };
 
