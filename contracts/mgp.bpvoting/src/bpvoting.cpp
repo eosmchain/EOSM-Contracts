@@ -553,24 +553,24 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
-	candidate_t candidate(v_itr->candidate);
+	candidate_t candidate(vote.candidate);
 	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
-	check( candidate.received_votes >= v_itr->quantity, "Err: candidate received_votes insufficient: " + v_itr->quantity.to_string() );
-	candidate.received_votes -= v_itr->quantity;
+	check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
+	candidate.received_votes -= vote.quantity;
 	_dbc.set(candidate);
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
-	check( voter.total_staked >= v_itr->quantity, "Err: unvote exceeds total staked" );
-	voter.total_staked -= v_itr->quantity;
+	check( voter.total_staked >= vote.quantity, "Err: unvote exceeds total staked" );
+	voter.total_staked -= vote.quantity;
 	_dbc.set(voter);
 
-	check( _gstate.total_voted >= v_itr->quantity, "Err: unvote exceeds global total staked" );
-	_gstate.total_voted -= v_itr->quantity;
+	check( _gstate.total_voted >= vote.quantity, "Err: unvote exceeds global total staked" );
+	_gstate.total_voted -= vote.quantity;
 
  	{
         token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
-        transfer_act.send( _self, owner, v_itr->quantity, "unvote" );
+        transfer_act.send( _self, owner, vote.quantity, "unvote" );
     }
 
 }
