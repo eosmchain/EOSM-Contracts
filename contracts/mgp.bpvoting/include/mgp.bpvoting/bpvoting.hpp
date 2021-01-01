@@ -9,7 +9,7 @@
 #include <string>
 
 #include "wasm_db.hpp"
-#include "bpvoting_entities.hpp"
+#include "entities.hpp"
 
 using namespace wasm::db;
 

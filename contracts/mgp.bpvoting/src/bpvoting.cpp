@@ -1,6 +1,6 @@
 #include <eosio.token/eosio.token.hpp>
 #include <mgp.bpvoting/bpvoting.hpp>
-#include <mgp.bpvoting/mgp_math.hpp>
+#include <mgp.bpvoting/math.hpp>
 #include <mgp.bpvoting/utils.h>
 
 
