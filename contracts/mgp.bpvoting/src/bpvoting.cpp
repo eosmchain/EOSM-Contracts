@@ -253,58 +253,46 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		return;
 	}
 
-	auto reward_round = round.round_id;
-	auto next_reward_round = round.next_round_id;
-	
 	vote_t::tbl_t votes(_self, _self.value);
-	auto idx = votes.get_index<"rewardround"_n>();
-	auto upper_itr = idx.upper_bound( reward_round );
+	auto lower_itr = votes.lower_bound( _gstate2.vote_reward_index );
 	bool completed = true;
 	int step = 0;
-	vector<uint64_t> vote_ids;
-	
-	string str = "round: "+ to_string(reward_round) + ", next=" + to_string(next_reward_round) 
-		+ ", bps size=" + to_string(round.elected_bps.size()) + "\n";
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+
+	for (auto itr = lower_itr; itr != votes.end() && itr->voted_at <= round.started_at; itr++) {
 		if (step++ == _gstate.max_reward_iterate_steps) {
 			completed = false;
 			break;
 		}
 
-		if (itr->reward_round > reward_round)
-			continue;
+		_gstate2.vote_reward_index++;
 
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
-		vote_ids.push_back(itr->id);
+		// vote_ids.push_back(itr->id);
 
-		str += to_string(step) + ": (" + to_string(itr->id) 
-			+ ", " + to_string(itr->reward_round) + ") ";
+		// str += to_string(step) + ": (" + to_string(itr->id) 
+		// 	+ ", " + to_string(itr->reward_round) + ") ";
+
+		// check(false, str);
 
 		candidate_t bp(itr->candidate);
 		check( _dbc.get(bp), "Err: bp not found" );
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 	
-		auto total_voter_rewards = round.elected_bps[itr->candidate].allocated_voter_rewards;
-		auto voter_rewards = total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
-		voter.unclaimed_rewards += voter_rewards;
+		auto total_voter_rewards 		= round.elected_bps[itr->candidate].allocated_voter_rewards;
+		auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
+		voter.unclaimed_rewards 		+= voter_rewards;
 
 		_dbc.set(voter);
    	}
 
-	check( completed, "not completed: " + to_string(step) );
-
-	for (auto& vote_id : vote_ids) {
-		vote_t vote(vote_id);
-		check( _dbc.get(vote), "Err: vote not found: " + to_string(vote_id) );
-		vote.reward_round = next_reward_round;
-		_dbc.set( vote );
-	}
+	// check( completed, "not completed: " + to_string(step) + "\n" + str);
 
 	if (completed) {
-		_gstate.last_execution_round = round.round_id;
+		_gstate.last_execution_round 	= round.round_id;
+		_gstate2.vote_reward_index 		= 0;
 	}
 
 	_dbc.set( round );
@@ -520,7 +508,10 @@ void mgp_bpvoting::_referesh_recvd_votes() {
 void mgp_bpvoting::init() {
 	require_auth( _self );
 
-	// _gstate2.vote_tally_index = 348;
+	_gstate2.vote_reward_index = 0;
+	_gstate2.vote_tally_index = 378;
+
+	// _global2.remove();
 	// _gstate.last_execution_round = 32;
 
 	// _init();
@@ -629,7 +620,7 @@ void mgp_bpvoting::execute() {
 		_allocate_rewards( execution_round );
 	}
 
-// check(last_execution_round.vote_tally_completed, "vote tally not completed :<");
+	// check(last_execution_round.vote_tally_completed, "vote tally not completed :<");
 
 	if (last_execution_round.vote_tally_completed && 
 	    execution_round.reward_allocation_completed &&

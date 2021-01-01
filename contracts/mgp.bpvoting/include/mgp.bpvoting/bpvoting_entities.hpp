@@ -73,7 +73,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 struct [[eosio::table("global2"), eosio::contract("mgp.bpvoting")]] global2_t {
-    uint64_t vote_tally_index = 0;
+    uint64_t vote_tally_index = 0;  //always grow, round by round
+    uint64_t vote_reward_index = 0; //always reset to 0 after finishing at each reward round
 };
 typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
 
