@@ -505,7 +505,7 @@ void mgp_bpvoting::_referesh_recvd_votes() {
 /**
  *	ACTION: kick start the election
  */
-void mgp_bpvoting::init() {
+ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
 	_gstate2.vote_reward_index = 0;
@@ -523,7 +523,7 @@ void mgp_bpvoting::init() {
 /**
  *	ACTION: unvote a particular vote
  */
-void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
+ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	require_auth( owner );
 
 	auto ct = current_time_point();
@@ -562,7 +562,7 @@ void mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 /**
  * ACTION:	candidate to delist self
  */
-void mgp_bpvoting::delist(const name& issuer) {
+ACTION mgp_bpvoting::delist(const name& issuer) {
 	require_auth( issuer );
 
 	candidate_t candidate(issuer);
@@ -585,7 +585,7 @@ void mgp_bpvoting::delist(const name& issuer) {
 /**
  *	ACTION: continuously invoked to execute election until target round is completed
  */
-void mgp_bpvoting::execute() {
+ACTION mgp_bpvoting::execute() {
 
 	election_round_t last_execution_round(_gstate.last_execution_round);
 	if (last_execution_round.round_id == 0) { //virtual round (non-existent)
@@ -634,7 +634,7 @@ void mgp_bpvoting::execute() {
 /**
  * ACTION:	voter to claim rewards
  */
-void mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
+ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 	require_auth( issuer );
 
 	if (is_voter) { //voter
