@@ -314,7 +314,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 						std::string("withdrawal") )
 		).send();
 
-	seller.available_quantity.amount -= seller.available_quantity - quantity.amount;
+	seller.available_quantity.amount -= seller.available_quantity.amount - quantity.amount;
 	_dbc.set(seller);
 }
 
