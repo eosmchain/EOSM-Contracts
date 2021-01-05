@@ -113,6 +113,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->frozen_quantity.amount == 0, "order being processed" );
+	check( itr->quantity >= itr->fulfilled_quantity, "Err: insufficient quanitty" );
 
 	// 撤单后币未交易完成的币退回
 	seller.available_quantity += itr -> quantity - itr -> fufilled_quantity;
@@ -300,11 +301,12 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
  *  提取
  * 
  */
-void mgp_otcstore::withdrawal(const name& owner){
+void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
+
 	seller_t seller(owner);
 	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
-	check(seller.available_quantity.amount > 0,"no balance to withdraw:" + owner.to_string());
+	check(seller.available_quantity.amount >= quantity.amount,"no balance to withdraw:" + owner.to_string());
 	
 	action(
 			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
