@@ -310,7 +310,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	
 	action(
 			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
-			std::make_tuple( _self, owner, seller.available_quantity, 
+			std::make_tuple( _self, owner, quantity, 
 						std::string("withdrawal") )
 		).send();
 
