@@ -103,7 +103,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
 
     using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit    >;
 
-    using withdrawal_action = action_wrapper<name("withdrawal"),      &mgp_otcstore::withdrawal    >;
+    using withdraw_action = action_wrapper<name("withdraw"),      &mgp_otcstore::withdraw    >;
 };
 
 inline vector <string> string_split(string str, char delimiter) {
