@@ -8,7 +8,7 @@ using namespace eosio;
 using namespace std;
 using std::string;
 
-//account: mgp.bpvoting
+
 namespace mgp {
 
 using namespace std;
