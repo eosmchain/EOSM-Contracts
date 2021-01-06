@@ -97,6 +97,8 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		row.min_accept_quantity = min_accept_quantity;
 		row.closed				= false;
 		row.created_at			= time_point_sec(current_time_point());
+		row.frozen_quantity.symbol = SYS_SYMBOL;
+		row.fufilled_quantity.symbol = SYS_SYMBOL;
 	});
 }
 
@@ -111,6 +113,11 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->frozen_quantity.amount == 0, "order being processed" );
+	check( itr->quantity >= itr-> fufilled_quantity, "Err: insufficient quanitty" );
+
+	// 撤单后币未交易完成的币退回
+	seller.available_quantity += itr -> quantity - itr -> fufilled_quantity;
+	_dbc.set( seller );
 
 	orders.modify( *itr, _self, [&]( auto& row ) {
 		row.closed = true;
@@ -199,7 +206,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 	auto now = time_point_sec(current_time_point());
 
 	switch ((UserType) user_type) {
-		MAKER: 
+		case MAKER: 
 		{
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.maker_passed = true;
@@ -207,7 +214,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			});	
 			break;
 		}
-		TAKER: 
+		case TAKER: 
 		{
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.taker_passed = true;
@@ -215,9 +222,9 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			});	
 			break;
 		}
-		ARBITER: 
+		case ARBITER: 
 		{
-			//verify if truly an arbiter
+			//verify if truly ariter
 			check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.arbiter_passed = true;
@@ -287,10 +294,28 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 		seller.processed_deals++;
 		_dbc.set( seller );
-
-		require_recipient(deal_itr->order_maker);
-		require_recipient(deal_itr->order_taker);
 	}
+}
+
+/**
+ *  提取
+ * 
+ */
+void mgp_otcstore::withdraw(const name& owner, asset quantity){
+	require_auth( owner );
+
+	seller_t seller(owner);
+	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
+	check(seller.available_quantity.amount >= quantity.amount,"no balance to withdraw:" + owner.to_string());
+	
+	action(
+			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
+			std::make_tuple( _self, owner, quantity, 
+						std::string("withdrawal") )
+		).send();
+
+	seller.available_quantity.amount -= quantity.amount;
+	_dbc.set(seller);
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
@@ -305,6 +330,9 @@ void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	seller.available_quantity += quantity;
 	_dbc.set( seller );
 	
+	
 }
+
+
 
 }  //end of namespace:: mgpbpvoting
