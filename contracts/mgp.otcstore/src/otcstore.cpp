@@ -306,7 +306,9 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 
 	seller_t seller(owner);
 	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
-	check(seller.available_quantity.amount >= quantity.amount,"no balance to withdraw:" + owner.to_string());
+	check(quantity.amount > 0, "quanity must be positive" );
+	check(seller.available_quantity.amount > 0 ,"no balance to withdraw:" + owner.to_string());
+	check(seller.available_quantity.amount >= quantity.amount,"The redemption amount must be less than the balance");
 	
 	action(
 			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
