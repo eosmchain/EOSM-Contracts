@@ -84,3 +84,14 @@ If two of them accept the deal, it will be immediately settled.
 If two of them deny the deal, it will be thus canceled and funds get unfrozen.
 If only one passes the deal, it will be pending until the other ones come to pass.
 If one accept and the other denies, an arbiter will be invovled to tackle the stalemate.
+
+<h1 class="contract">withdraw</h1>
+
+---
+spec_version: "0.1.0"
+title: withdraw balance amount
+summary: 'Seller to withdraw balance amount from the otcstore contract'
+icon: @ICON_BASE_URL@/@TOKEN_ICON_URI@
+---
+Afer a seller wants to stop making orders, remaining amount must be withdrawn in order to reach
+seller's personnal account

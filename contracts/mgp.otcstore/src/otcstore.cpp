@@ -304,20 +304,19 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
 
+	check( quantity.amount > 0, "quanity must be positive" );
+	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
+	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+
 	seller_t seller(owner);
 	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
-	check(quantity.amount > 0, "quanity must be positive" );
 	check(seller.available_quantity.amount > 0 ,"no balance to withdraw:" + owner.to_string());
-	check(seller.available_quantity.amount >= quantity.amount,"The redemption amount must be less than the balance");
-	
-	action(
-			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
-			std::make_tuple( _self, owner, quantity, 
-						std::string("withdrawal") )
-		).send();
-
-	seller.available_quantity.amount -= quantity.amount;
+	check(seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance");
+	seller.available_quantity -= quantity;
 	_dbc.set(seller);
+	
+	TRANSFER( token_account, owner, quantity, "withdraw" )
+
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
