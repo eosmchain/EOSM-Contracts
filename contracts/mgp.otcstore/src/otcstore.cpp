@@ -309,9 +309,8 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 
 	seller_t seller(owner);
-	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
-	check(seller.available_quantity.amount > 0 ,"no balance to withdraw:" + owner.to_string());
-	check(seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance");
+	check( _dbc.get(seller), "seller not found: " + owner.to_string() );
+	check( seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance" );
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
 	
