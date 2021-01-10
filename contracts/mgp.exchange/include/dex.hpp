@@ -8,18 +8,18 @@
 using namespace std;
 using namespace eosio;
 
-class DEX_CONTRACT dex_contract : public contract {
+class DEX_CONTRACT mgp_dex : public contract {
 public:
     using contract::contract;
 
 public:
-    dex_contract(name receiver, name code, datastream<const char *> ds)
+    mgp_dex(name receiver, name code, datastream<const char *> ds)
         : contract(receiver, code, ds), _conf_tbl(get_self(), get_self().value),
           _global(dex::global_state::make_global(get_self())) {
         _config = _conf_tbl.exists() ? _conf_tbl.get() : get_default_config();
     }
 
-    ~dex_contract() {
+    ~mgp_dex() {
         _global->save(get_self());
     }
 
@@ -43,11 +43,11 @@ public:
 
     [[eosio::action]] void cancel(const uint64_t &order_id);
 
-    using setconfig_action  = action_wrapper<"setconfig"_n,     &dex_contract::setconfig>;
-    using setsympair_action = action_wrapper<"setsympair"_n,    &dex_contract::setsympair>;
-    using ontransfer_action = action_wrapper<"ontransfer"_n,    &dex_contract::ontransfer>;
-    using match_action      = action_wrapper<"match"_n,         &dex_contract::match>;
-    using cancel_action     = action_wrapper<"cancel"_n,        &dex_contract::cancel>;
+    using setconfig_action  = action_wrapper<"setconfig"_n,     &mgp_dex::setconfig>;
+    using setsympair_action = action_wrapper<"setsympair"_n,    &mgp_dex::setsympair>;
+    using ontransfer_action = action_wrapper<"ontransfer"_n,    &mgp_dex::ontransfer>;
+    using match_action      = action_wrapper<"match"_n,         &mgp_dex::match>;
+    using cancel_action     = action_wrapper<"cancel"_n,        &mgp_dex::cancel>;
 
 private:
     dex::config get_default_config();

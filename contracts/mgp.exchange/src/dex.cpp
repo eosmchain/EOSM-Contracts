@@ -50,7 +50,7 @@ inline string symbol_pair_to_string(const symbol &asset_symbol, const symbol &co
     return symbol_to_string(asset_symbol) + "/" + symbol_to_string(coin_symbol);
 }
 
-void dex_contract::setconfig(const dex::config &conf) {
+void mgp_dex::setconfig(const dex::config &conf) {
     require_auth( get_self() );
     CHECK(is_account(conf.admin), "The admin account does not exist");
     CHECK(is_account(conf.settler), "The settler account does not exist");
@@ -62,7 +62,7 @@ void dex_contract::setconfig(const dex::config &conf) {
     _conf_tbl.set(conf, get_self());
 }
 
-void dex_contract::setsympair(const symbol &asset_symbol, const symbol &coin_symbol,
+void mgp_dex::setsympair(const symbol &asset_symbol, const symbol &coin_symbol,
                      const asset &min_asset_quant, const asset &min_coin_quant, bool enabled) {
     require_auth( _config.admin );
     auto sym_pair_tbl = make_symbol_pair_table(get_self());
@@ -100,7 +100,7 @@ void dex_contract::setsympair(const symbol &asset_symbol, const symbol &coin_sym
     }
 }
 
-void dex_contract::ontransfer(name from, name to, asset quantity, string memo) {
+void mgp_dex::ontransfer(name from, name to, asset quantity, string memo) {
     if (from == get_self()) {
         return; // transfer out from this contract
     }
@@ -233,7 +233,7 @@ void transfer_out(const name &contract, const name &bank, const name &to, const 
         .send();
 }
 
-void dex_contract::cancel(const uint64_t &order_id) {
+void mgp_dex::cancel(const uint64_t &order_id) {
     auto order_tbl = make_order_table(get_self());
     auto it = order_tbl.find(order_id);
     CHECK(it != order_tbl.end(), "The order does not exist or has been matched");
@@ -256,7 +256,7 @@ void dex_contract::cancel(const uint64_t &order_id) {
     });
 }
 
-dex::config dex_contract::get_default_config() {
+dex::config mgp_dex::get_default_config() {
     CHECK(is_account(BANK), "The default bank account does not exist");
     return {
         get_self(),             // name admin;
@@ -270,7 +270,7 @@ dex::config dex_contract::get_default_config() {
     };
 }
 
-void dex_contract::process_refund(dex::order_t &buy_order) {
+void mgp_dex::process_refund(dex::order_t &buy_order) {
     ASSERT(buy_order.order_side == order_side::BUY);
     if (buy_order.order_type == order_type::LIMIT) {
         CHECK(buy_order.matched_coins <= buy_order.coin_quant.amount,
@@ -284,7 +284,7 @@ void dex_contract::process_refund(dex::order_t &buy_order) {
     }
 }
 
-void dex_contract::match(uint32_t max_count, const vector<uint64_t> &sym_pairs) {
+void mgp_dex::match(uint32_t max_count, const vector<uint64_t> &sym_pairs) {
     require_auth( _config.settler );
     // TODO: validate sym_pairs??
     // get sym_pair_list
@@ -316,7 +316,7 @@ void dex_contract::match(uint32_t max_count, const vector<uint64_t> &sym_pairs) 
     CHECK(matched_count > 0, "The matched count == 0");
 }
 
-void dex_contract::match_sym_pair(const dex::symbol_pair_t &sym_pair, uint32_t max_count, uint32_t &matched_count) {
+void mgp_dex::match_sym_pair(const dex::symbol_pair_t &sym_pair, uint32_t max_count, uint32_t &matched_count) {
 
     auto cur_block_time = current_block_time();
     auto order_tbl = make_order_table(get_self());
