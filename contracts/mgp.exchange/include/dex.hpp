@@ -23,14 +23,17 @@ public:
         _global->save(get_self());
     }
 
-    [[eosio::action]] void setconfig(const dex::config &conf);
+    [[eosio::action]] 
+    void setconfig(const dex::config &conf);
 
-    [[eosio::action]] void setsympair(const symbol &asset_symbol, const symbol &coin_symbol,
-                                      const asset &min_asset_quant, const asset &min_coin_quant,
-                                      bool enabled);
+    [[eosio::action]] 
+    void setsympair(const symbol &asset_symbol, const symbol &coin_symbol,
+                    const asset &min_asset_quant, const asset &min_coin_quant, bool enabled);
 
-    [[eosio::on_notify("*::transfer")]] void ontransfer(name from, name to, asset quantity,
-                                                        string memo);
+    //make orders
+    [[eosio::on_notify("*::transfer")]] 
+    void ontransfer(name from, name to, asset quantity, string memo);
+
     // TODO: const list<uint64_t> &sym_pairs
     /**
      *  @param max_count the max count of match item
