@@ -186,6 +186,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+    check( deal_itr -> order_taker == taker, "no permission");
 
 	auto order_id = deal_itr->order_id;
 	sell_order_t orders(_self, _self.value);
