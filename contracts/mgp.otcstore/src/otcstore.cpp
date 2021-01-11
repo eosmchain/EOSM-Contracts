@@ -403,7 +403,11 @@ void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 
 	seller_t seller(from);
 	_dbc.get( seller );
-	seller.available_quantity += quantity;
+
+	if (quantity.symbol == SYS_SYMBOL){
+		seller.available_quantity += quantity;
+	}
+	
 	_dbc.set( seller );
 	
 	
