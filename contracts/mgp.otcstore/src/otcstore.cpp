@@ -28,6 +28,7 @@ void mgp_otcstore::init() {
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
 	_gstate.min_pos_stake_quantity.amount = 0;
+	_gstate.withhold_expire_sec = 30;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
 }
