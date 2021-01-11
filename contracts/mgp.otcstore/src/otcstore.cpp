@@ -18,18 +18,18 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
 
+ 	// _global.remove();
+
 	// seller_t seller("masteraychen"_n);
 	// check( _dbc.get(seller), "masteraychen not found in sellers" );
 	// _dbc.del(seller);
 
-	/*
 	_gstate.transaction_fee_receiver = wallet_admin;
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
 	_gstate.min_pos_stake_quantity.amount = 0;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
-	*/
 }
 
 void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer) {
@@ -98,7 +98,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		row.closed				= false;
 		row.created_at			= time_point_sec(current_time_point());
 		row.frozen_quantity.symbol = SYS_SYMBOL;
-		row.fufilled_quantity.symbol = SYS_SYMBOL;
+		row.fulfilled_quantity.symbol = SYS_SYMBOL;
 	});
 }
 
@@ -113,10 +113,10 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->frozen_quantity.amount == 0, "order being processed" );
-	check( itr->quantity >= itr-> fufilled_quantity, "Err: insufficient quanitty" );
+	check( itr->quantity >= itr-> fulfilled_quantity, "Err: insufficient quanitty" );
 
 	// 撤单后币未交易完成的币退回
-	seller.available_quantity += itr -> quantity - itr -> fufilled_quantity;
+	seller.available_quantity += itr -> quantity - itr -> fulfilled_quantity;
 	_dbc.set( seller );
 
 	orders.modify( *itr, _self, [&]( auto& row ) {
@@ -281,9 +281,9 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		check( order_itr->frozen_quantity >= deal_itr->deal_quantity, "oversize deal quantity vs fronzen one" );
 		orders.modify( *order_itr, _self, [&]( auto& row ) {
 			row.frozen_quantity 	-= deal_itr->deal_quantity;
-			row.fufilled_quantity 	+= deal_itr->deal_quantity;
+			row.fulfilled_quantity 	+= deal_itr->deal_quantity;
 
-			if (row.fufilled_quantity == row.quantity) {
+			if (row.fulfilled_quantity == row.quantity) {
 				row.closed = true;
 				row.closed_at = now;
 			}
@@ -304,20 +304,18 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
 
-	seller_t seller(owner);
-	check(_dbc.get(seller),"seller not found: " + owner.to_string() );
-	check(quantity.amount > 0, "quanity must be positive" );
-	check(seller.available_quantity.amount > 0 ,"no balance to withdraw:" + owner.to_string());
-	check(seller.available_quantity.amount >= quantity.amount,"The redemption amount must be less than the balance");
-	
-	action(
-			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
-			std::make_tuple( _self, owner, quantity, 
-						std::string("withdrawal") )
-		).send();
+	check( quantity.amount > 0, "quanity must be positive" );
+	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
+	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 
-	seller.available_quantity.amount -= quantity.amount;
+	seller_t seller(owner);
+	check( _dbc.get(seller), "seller not found: " + owner.to_string() );
+	check( seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance" );
+	seller.available_quantity -= quantity;
 	_dbc.set(seller);
+	
+	TRANSFER( token_account, owner, quantity, "withdraw" )
+
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/

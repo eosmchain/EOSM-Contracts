@@ -50,9 +50,9 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     }
 
     EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
-                                (min_pos_stake_quantity)(withhold_expire_sec) 
-                                (transaction_fee_receiver)(transaction_fee_ratio)
-                                (otc_arbiters) )
+                                (min_pos_stake_quantity)(pos_staking_contract)
+                                (withhold_expire_sec)(transaction_fee_receiver)
+                                (transaction_fee_ratio)(otc_arbiters) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
@@ -86,7 +86,7 @@ struct CONTRACT_TBL order_t {
     asset quantity;
     asset min_accept_quantity;
     asset frozen_quantity;
-    asset fufilled_quantity;    //support partial fulfillment
+    asset fulfilled_quantity;    //support partial fulfillment
     bool closed;
     time_point_sec created_at;
     time_point_sec closed_at;
@@ -102,7 +102,7 @@ struct CONTRACT_TBL order_t {
     uint64_t by_maker() const { return owner.value; } 
 
     EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
-                                (frozen_quantity)(fufilled_quantity)
+                                (frozen_quantity)(fulfilled_quantity)
                                 (closed)(created_at)(closed_at) )
 };
 
