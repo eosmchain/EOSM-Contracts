@@ -57,14 +57,15 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 enum PaymentType: uint8_t {
-    BANK        = 0,
-    ALIPAY      = 1,
+    PAYMAX      = 0,
+    BANK        = 1,
     WECAHAT     = 2,
-    MASTER      = 3,
-    VISA        = 4,
-    PAYPAL      = 5,
+    ALIPAY      = 3,
+    MASTER      = 4,
+    VISA        = 5,
+    PAYPAL      = 6,
 
-    PAYMAX      = 6,
+
 };
 
 enum UserType: uint8_t {
@@ -145,6 +146,10 @@ struct CONTRACT_TBL deal_t {
     time_point_sec created_at;
     time_point_sec closed_at;
 
+    uint64_t order_sn; // 订单号（前端生成）
+
+    uint8_t pay_type; // 选择的支付类型
+
     deal_t() {}
     deal_t(uint64_t i): id(i) {}
 
@@ -156,12 +161,13 @@ struct CONTRACT_TBL deal_t {
     uint64_t by_maker()     const { return order_maker.value; }
     uint64_t by_taker()     const { return order_taker.value; }
     uint64_t by_arbiter()   const { return arbiter.value; }
+    uint64_t by_ordersn()   const { return order_sn;}
 
     EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(deal_quantity)
                                 (order_maker)(maker_passed)(maker_passed_at)
                                 (order_taker)(taker_passed)(taker_passed_at)
                                 (arbiter)(arbiter_passed)(arbiter_passed_at)
-                                (closed)(created_at)(closed_at) )
+                                (closed)(created_at)(closed_at)(order_sn)(pay_type) )
 };
 
 typedef eosio::multi_index
@@ -169,7 +175,8 @@ typedef eosio::multi_index
         indexed_by<"order"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_order> >,
         indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
         indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
-        indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >
+        indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
+        indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >
     > sk_deal_t;
 
 struct CONTRACT_TBL seller_t {
@@ -191,5 +198,28 @@ struct CONTRACT_TBL seller_t {
     EOSLIB_SERIALIZE(seller_t,  (owner)(available_quantity)(accepted_payments)
                                 (processed_deals)(email)(memo) )
 };
+
+/**
+ * 交易订单过期时间
+ *
+ */
+struct CONTRACT_TBL expiration_t{
+    uint64_t deal_id;
+    time_point_sec expiration_at;
+
+    expiration_t() {}
+    expiration_t(uint64_t i): deal_id(i) {}
+
+    uint64_t primary_key()const { return deal_id; }
+    uint64_t scope()const { return 0; }
+
+    uint64_t by_expiration_at() const    { return uint64_t(expiration_at.sec_since_epoch()); }
+
+    EOSLIB_SERIALIZE(expiration_t,  (deal_id)(expiration_at) )
+};
+typedef eosio::multi_index
+    <"expirations"_n, expiration_t ,
+        indexed_by<"expirationed"_n,    const_mem_fun<expiration_t, uint64_t, &expiration_t::by_expiration_at>   >
+    > exp_tal_t;
 
 } // MGP
