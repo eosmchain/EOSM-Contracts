@@ -148,7 +148,7 @@ namespace dex {
         asset min_coin_quant;
         bool enabled;
 
-        uint128_t primary_key() const { return sym_pair_id; }
+        uint64_t primary_key() const { return sym_pair_id; }
         uint128_t get_symbols_idx() const { return make_symbols_idx(asset_symbol, coin_symbol); }
     };
 
@@ -175,8 +175,9 @@ namespace dex {
     }
 
     struct DEX_TABLE order_t {
-        uint64_t sym_pair_id; // id of symbol_pair_table
         uint64_t order_id; // auto-increment
+
+        uint64_t sym_pair_id; // id of symbol_pair_table
         name owner;
         order_type_t order_type;
         order_side_t order_side;
