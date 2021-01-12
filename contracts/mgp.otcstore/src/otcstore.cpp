@@ -362,7 +362,7 @@ void mgp_otcstore::timeout() {
 	auto lower_itr = exp_time.lower_bound(now.sec_since_epoch());
 	// auto itr = exp_time.begin();
 
-	for(itr = lower_itr.begin(); itr != exp_time.begin(); --itr){
+	for(auto itr = lower_itr.begin(); itr != exp_index.begin(); --itr){
 
 		if ( itr -> expiration_at <= now ){
 
