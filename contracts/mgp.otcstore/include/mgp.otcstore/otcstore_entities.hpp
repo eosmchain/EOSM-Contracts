@@ -179,7 +179,7 @@ typedef eosio::multi_index
         indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
         indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
         indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >,
-        indexed_by<"expirationed"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expiration_at> >,
+        indexed_by<"expirationed"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expiration_at> >
     > sk_deal_t;
 
 struct CONTRACT_TBL seller_t {
