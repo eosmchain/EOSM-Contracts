@@ -147,9 +147,10 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
     auto ordersn_index = deals.get_index<"ordersn"_n>();
     auto lower_itr = ordersn_index.lower_bound(order_sn);
     auto upper_itr = ordersn_index.upper_bound(order_sn);
-    for_each(lower_itr,upper_itr,[&](auto& row){
-        check( false,"order_sn not the only one");
-    });
+    // for_each(lower_itr,upper_itr,[&](auto& row){
+    //     check( false,"order_sn not the only one");
+    // });
+	check(ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one");
 
     auto created_at = time_point_sec(current_time_point());
     auto deal_id = deals.available_primary_key();
@@ -163,9 +164,10 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
         row.closed			= false;
         row.created_at		= created_at;
         row.order_sn = order_sn;
+		row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
     });
 
-    // 添加交易到期表数据
+    添加交易到期表数据
     exp_tal_t exp_time(_self,_self.value);
     exp_time.emplace( _self, [&]( auto& row ){
         row.deal_id = deal_id;
@@ -242,6 +244,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			// 有数据可能是没有及时删除，进行时间检测
 			check( exp_itr -> expiration_at > now,"the order has timed out");
 			check( deal_itr->order_taker == owner, "no permission");
+			check( deal_itr->expiration_at > now,"the order has timed out");
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.taker_passed = pass;
 				row.taker_passed_at = now;
@@ -353,20 +356,20 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
  */
 void mgp_otcstore::timeout() {
 
-	exp_tal_t exp_time(_self,_self.value);
+	sk_deal_t exp_time(_self,_self.value);
 	auto now = time_point_sec(current_time_point());
-	// auto exp_index = exp_time.get_index<"expirationed"_n>();
-	// auto lower_itr = exp_time.lower_bound(now.sec_since_epoch());
-	auto itr = exp_time.begin();
+	auto exp_index = exp_time.get_index<"expirationed"_n>();
+	auto lower_itr = exp_time.lower_bound(now.sec_since_epoch());
+	// auto itr = exp_time.begin();
 
-	while(itr != exp_time.end()){
+	for(itr = lower_itr.begin(); itr != exp_time.begin(); --itr){
 
 		if ( itr -> expiration_at <= now ){
 
 			sk_deal_t deals(_self, _self.value);
 			auto deal_itr = deals.find(itr -> deal_id);
 
-			// 订单处于买家未操作状态进行关闭
+ 			// 订单处于买家未操作状态进行关闭
 			if ( deal_itr != deals.end() && !deal_itr->closed &&  !deal_itr -> taker_passed  ){
 
 				auto order_id = deal_itr->order_id;
@@ -387,11 +390,12 @@ void mgp_otcstore::timeout() {
 					row.closed_at = time_point_sec(current_time_point());
 				});
 			}
-			// 只要是超时都进行删除
-			itr = exp_time.erase(itr);
 
-		}
+			exp_time.erase(itr);
+
+	 	}	
 	}
+
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/

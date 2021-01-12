@@ -147,8 +147,8 @@ struct CONTRACT_TBL deal_t {
     time_point_sec closed_at;
 
     uint64_t order_sn; // 订单号（前端生成）
-
     uint8_t pay_type; // 选择的支付类型
+    time_point_sec expiration_at; // 订单到期时间
 
     deal_t() {}
     deal_t(uint64_t i): id(i) {}
@@ -162,12 +162,14 @@ struct CONTRACT_TBL deal_t {
     uint64_t by_taker()     const { return order_taker.value; }
     uint64_t by_arbiter()   const { return arbiter.value; }
     uint64_t by_ordersn()   const { return order_sn;}
+    uint64_t by_expiration_at() const    { return uint64_t(expiration_at.sec_since_epoch()); }
 
     EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(deal_quantity)
                                 (order_maker)(maker_passed)(maker_passed_at)
                                 (order_taker)(taker_passed)(taker_passed_at)
                                 (arbiter)(arbiter_passed)(arbiter_passed_at)
-                                (closed)(created_at)(closed_at)(order_sn)(pay_type) )
+                                (closed)(created_at)(closed_at)(order_sn)(pay_type) 
+                                (expiration_at))
 };
 
 typedef eosio::multi_index
@@ -176,7 +178,8 @@ typedef eosio::multi_index
         indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
         indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
         indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
-        indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >
+        indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >,
+        indexed_by<"expirationed"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expiration_at> >,
     > sk_deal_t;
 
 struct CONTRACT_TBL seller_t {
