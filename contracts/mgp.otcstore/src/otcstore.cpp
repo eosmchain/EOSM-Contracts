@@ -167,7 +167,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 		row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
     });
 
-    添加交易到期表数据
+    // 添加交易到期表数据
     exp_tal_t exp_time(_self,_self.value);
     exp_time.emplace( _self, [&]( auto& row ){
         row.deal_id = deal_id;
