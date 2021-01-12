@@ -237,12 +237,12 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		}
 		case TAKER:
 		{
-			exp_tal_t exp_time(_self,_self.value);
-			auto exp_itr = exp_time.find(deal_id);
-			// 超时表中没有数据表示已经超时
-			check( exp_itr != exp_time.end() ,"the order has timed out");
-			// 有数据可能是没有及时删除，进行时间检测
-			check( exp_itr -> expiration_at > now,"the order has timed out");
+			// exp_tal_t exp_time(_self,_self.value);
+			// auto exp_itr = exp_time.find(deal_id);
+			// // 超时表中没有数据表示已经超时
+			// check( exp_itr != exp_time.end() ,"the order has timed out");
+			// // 有数据可能是没有及时删除，进行时间检测
+			// check( exp_itr -> expiration_at > now,"the order has timed out");
 			check( deal_itr->order_taker == owner, "no permission");
 			check( deal_itr->expiration_at > now,"the order has timed out");
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
@@ -331,7 +331,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 /**
  *  提取
- * 
+ *
  */
 void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
@@ -345,7 +345,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	check( seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance" );
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
-	
+
 	TRANSFER( token_account, owner, quantity, "withdraw" )
 
 }
@@ -356,13 +356,14 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
  */
 void mgp_otcstore::timeout() {
 
-	sk_deal_t exp_time(_self,_self.value);
 	auto now = time_point_sec(current_time_point());
-	auto exp_index = exp_time.get_index<"expirationed"_n>();
-	auto lower_itr = exp_time.find(now.sec_since_epoch());
-	// auto itr = exp_time.begin();
 
-	for(auto itr = lower_itr; itr != exp_index.begin(); --itr){
+	exp_tal_t exp_time(_self,_self.value);
+	auto exp_index = exp_time.get_index<"expirationed"_n>();
+	auto lower_itr = exp_index.find(now.sec_since_epoch());
+	// auto itr = exp_time.begin()
+
+	for(auto itr = exp_index.begin(); itr != lower_itr ; ){
 
 		if ( itr -> expiration_at <= now ){
 
@@ -391,9 +392,10 @@ void mgp_otcstore::timeout() {
 				});
 			}
 
-			exp_time.erase(itr);
-
-	 	}	
+			itr = exp_index.erase(itr);
+		} else {
+			itr ++;
+		}
 	}
 
 }
