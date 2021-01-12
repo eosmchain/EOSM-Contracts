@@ -359,10 +359,10 @@ void mgp_otcstore::timeout() {
 	sk_deal_t exp_time(_self,_self.value);
 	auto now = time_point_sec(current_time_point());
 	auto exp_index = exp_time.get_index<"expirationed"_n>();
-	auto lower_itr = exp_time.lower_bound(now.sec_since_epoch());
+	auto lower_itr = exp_time.find(now.sec_since_epoch());
 	// auto itr = exp_time.begin();
 
-	for(auto itr = lower_itr.begin(); itr != exp_index.begin(); --itr){
+	for(auto itr = lower_itr; itr != exp_index.begin(); --itr){
 
 		if ( itr -> expiration_at <= now ){
 
