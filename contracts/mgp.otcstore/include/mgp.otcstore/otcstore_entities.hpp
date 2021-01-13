@@ -149,8 +149,13 @@ struct CONTRACT_TBL deal_t {
     uint64_t order_sn; // 订单号（前端生成）
     uint8_t pay_type; // 选择的支付类型
     time_point_sec expiration_at; // 订单到期时间
-
+    
+    time_point_sec maker_expiration_at; // 卖家操作到期时间
+    uint8_t restart_taker_num; // 重启买家超时次数
+    uint8_t restart_maker_num; // 重启卖家超时次数
+    
     deal_t() {}
+
     deal_t(uint64_t i): id(i) {}
 
     uint64_t primary_key() const { return id; }
@@ -163,13 +168,15 @@ struct CONTRACT_TBL deal_t {
     uint64_t by_arbiter()   const { return arbiter.value; }
     uint64_t by_ordersn()   const { return order_sn;}
     uint64_t by_expiration_at() const    { return uint64_t(expiration_at.sec_since_epoch()); }
+    uint64_t by_maker_expiration_at() const    { return uint64_t(maker_expiration_at.sec_since_epoch()); }
 
     EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(deal_quantity)
                                 (order_maker)(maker_passed)(maker_passed_at)
                                 (order_taker)(taker_passed)(taker_passed_at)
                                 (arbiter)(arbiter_passed)(arbiter_passed_at)
                                 (closed)(created_at)(closed_at)(order_sn)(pay_type) 
-                                (expiration_at))
+                                (expiration_at)(maker_expiration_at)
+                                (restart_taker_num)(restart_maker_num))
 };
 
 typedef eosio::multi_index
@@ -220,6 +227,7 @@ struct CONTRACT_TBL expiration_t{
 
     EOSLIB_SERIALIZE(expiration_t,  (deal_id)(expiration_at) )
 };
+
 typedef eosio::multi_index
     <"expirations"_n, expiration_t ,
         indexed_by<"expirationed"_n,    const_mem_fun<expiration_t, uint64_t, &expiration_t::by_expiration_at>   >

@@ -89,12 +89,18 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
 
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
+
     [[eosio::action]]
     void withdraw(const name& owner, asset quantity);
+
     [[eosio::action]]
     void timeout();
+
     [[eosio::action]]
     void deltable();
+
+     [[eosio::action]]
+    void restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type);
 
     using init_action       = action_wrapper<name("init"),        &mgp_otcstore::init       >;
     using setseller_action  = action_wrapper<name("setseller"),   &mgp_otcstore::setseller  >;

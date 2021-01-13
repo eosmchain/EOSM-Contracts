@@ -28,7 +28,7 @@ void mgp_otcstore::init() {
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
 	_gstate.min_pos_stake_quantity.amount = 10;
-	_gstate.withhold_expire_sec = 30;
+	_gstate.withhold_expire_sec = 900;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
 }
@@ -165,6 +165,8 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
         row.created_at		= created_at;
         row.order_sn = order_sn;
 		row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+		row.restart_taker_num = 0;
+		row.restart_maker_num = 0;
     });
 
     // 添加交易到期表数据
@@ -229,6 +231,8 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		case MAKER: 
 		{
 			check( deal_itr->order_maker == owner, "no permission");
+			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.maker_passed = pass;
 				row.maker_passed_at = now;
@@ -245,17 +249,22 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			// check( exp_itr -> expiration_at > now,"the order has timed out");
 			check( deal_itr->order_taker == owner, "no permission");
 			check( deal_itr->expiration_at > now,"the order has timed out");
+			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.taker_passed = pass;
 				row.taker_passed_at = now;
 				row.pay_type = pay_type;
+				row.maker_expiration_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
 			});
 			break;
 		}
 		case ARBITER:
 		{
 			//verify if truly ariter
+			check( deal_itr -> arbiter_passed_at == time_point_sec() , "No operation required" );
 			check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.arbiter = owner;
 				row.arbiter_passed = pass;
@@ -331,7 +340,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 /**
  *  提取
- *
+ * 
  */
 void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
@@ -345,7 +354,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	check( seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance" );
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
-
+	
 	TRANSFER( token_account, owner, quantity, "withdraw" )
 
 }
@@ -356,16 +365,16 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
  */
 void mgp_otcstore::timeout() {
 
-	auto now = time_point_sec(current_time_point());
+	auto check_time = current_time_point().sec_since_epoch() - seconds_per_day;
 
 	exp_tal_t exp_time(_self,_self.value);
 	auto exp_index = exp_time.get_index<"expirationed"_n>();
-	auto lower_itr = exp_index.find(now.sec_since_epoch());
+	auto lower_itr = exp_index.find(check_time);
 	// auto itr = exp_time.begin()
 
 	for(auto itr = exp_index.begin(); itr != lower_itr ; ){
 
-		if ( itr -> expiration_at <= now ){
+		if ( itr -> expiration_at <= time_point_sec(check_time) ){
 
 			sk_deal_t deals(_self, _self.value);
 			auto deal_itr = deals.find(itr -> deal_id);
@@ -398,6 +407,72 @@ void mgp_otcstore::timeout() {
 		}
 	}
 
+}
+
+/**
+ * 
+ * 超时重启
+ */
+void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type){
+	require_auth( owner );
+
+	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
+	sk_deal_t deals(_self, _self.value);
+	auto deal_itr = deals.find(deal_id);
+	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
+	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+
+	sell_order_t orders(_self, _self.value);
+	auto order_itr = orders.find(deal_itr->order_id);
+	check( order_itr != orders.end(), "order not found: " + to_string(deal_itr->order_id) );
+
+	auto restart_time = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+	auto check_time = time_point_sec(current_time_point().sec_since_epoch() - seconds_per_day);
+	auto now = time_point_sec(current_time_point());
+
+	switch ((UserType) user_type) {
+		case MAKER: 
+		{
+			check( deal_itr -> restart_maker_num == 0 , "It has been rebooted more than 1 time.");
+			check( deal_itr -> maker_expiration_at <= now ,"Did not time out.");
+			check( deal_itr -> maker_expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
+
+			deals.modify( *deal_itr, _self, [&]( auto& row ) {
+				row.restart_maker_num ++;
+				row.maker_expiration_at = restart_time;
+			});
+
+			break;
+		}
+		case TAKER:
+		{
+
+			check( deal_itr -> restart_taker_num == 0 , "It has been rebooted more than 1 time.");
+			check( deal_itr -> expiration_at <= now ,"Did not time out.");
+			check( deal_itr -> expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
+
+			deals.modify( *deal_itr, _self, [&]( auto& row ) {
+				row.restart_taker_num ++;
+				row.expiration_at = restart_time;
+			});
+
+			exp_tal_t exp_time(_self,_self.value);
+			auto exp_itr = exp_time.find(deal_id);
+			check( exp_itr != exp_time.end() ,"the order has timed out");
+			check( exp_itr -> expiration_at > check_time,"The order has timed out by 24 hours.");
+
+			exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
+				row.expiration_at = restart_time;
+			});
+
+			break;
+		}
+		default:
+			break;
+	}
 }
 
 /*************** Begin of eosio.token transfer trigger function ******************/
@@ -441,6 +516,12 @@ void mgp_otcstore::deltable(){
 	auto itr2 = sellers.begin();
 	while(itr2 != sellers.end()){
 		itr2 = sellers.erase(itr2);
+	}
+
+	exp_tal_t exp(_self,_self.value);
+	auto itr3 = exp.begin();
+	while(itr3 != exp.end()){
+		itr3 = exp.erase(itr3);
 	}
 
 
