@@ -75,7 +75,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     void closeorder(const name& owner, const uint64_t& order_id);
 
     [[eosio::action]]
-    void opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity);
+    void opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity,const uint64_t& order_sn);
 
     [[eosio::action]]
     void closedeal(const name& taker, const uint64_t& deal_id);
@@ -85,12 +85,25 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
      *  @param: pass: 0: NO pass, 1: pass; two agreed passes means a decision! 
      */
     [[eosio::action]]
-    void passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass);
+    void passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass,const uint8_t& pay_type);
 
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
+
     [[eosio::action]]
     void withdraw(const name& owner, asset quantity);
+
+    [[eosio::action]]
+    void timeout();
+
+    [[eosio::action]]
+    void deltable();
+
+    [[eosio::action]]
+    void backdeal(const name& owner,const uint64_t& deal_id);
+
+     [[eosio::action]]
+    void restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type);
 
     using init_action       = action_wrapper<name("init"),        &mgp_otcstore::init       >;
     using setseller_action  = action_wrapper<name("setseller"),   &mgp_otcstore::setseller  >;
@@ -104,6 +117,7 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit    >;
 
     using withdraw_action = action_wrapper<name("withdraw"),      &mgp_otcstore::withdraw    >;
+    using timeout_action = action_wrapper<name("timeout"),      &mgp_otcstore::timeout    >;
 };
 
 inline vector <string> string_split(string str, char delimiter) {

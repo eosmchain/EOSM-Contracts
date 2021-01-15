@@ -18,8 +18,7 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
 
- 	// _global.remove();
-
+	
 	// seller_t seller("masteraychen"_n);
 	// check( _dbc.get(seller), "masteraychen not found in sellers" );
 	// _dbc.del(seller);
@@ -27,9 +26,15 @@ void mgp_otcstore::init() {
 	_gstate.transaction_fee_receiver = wallet_admin;
 	_gstate.min_buy_order_quantity.amount = 10;
 	_gstate.min_sell_order_quantity.amount = 10;
-	_gstate.min_pos_stake_quantity.amount = 0;
+	_gstate.min_pos_stake_quantity.amount = 10;
+	_gstate.withhold_expire_sec = 900;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
+	_gstate.cs_contact_title="Custom Service Contact";
+	_gstate.cs_contact="cs_contact_mango";
+
+
+
 }
 
 void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer) {
@@ -126,7 +131,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 
 }
 
-void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity) {
+void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity,const uint64_t& order_sn) {
 	require_auth( taker );
 
 	check( deal_quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
@@ -136,28 +141,48 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
-	check( itr->quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
+	check( itr->quantity - itr -> fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
 	///TODO: check if frozen amount timeout already
 
 	asset order_price = itr->price;
 	name order_maker = itr->owner;
 
-	sk_deal_t deals(_self, _self.value);
-	auto deal_id = deals.available_primary_key();
-	deals.emplace( _self, [&]( auto& row ) {
-		row.id 				= deal_id;
-		row.order_id 		= order_id;
-		row.order_price		= order_price;
-		row.deal_quantity	= deal_quantity;
-		row.order_maker		= order_maker;
-		row.order_taker		= taker;
-		row.closed			= false;
-		row.created_at		= time_point_sec(current_time_point());
-	});
+    sk_deal_t deals(_self, _self.value);
+    auto ordersn_index = deals.get_index<"ordersn"_n>();
+    auto lower_itr = ordersn_index.lower_bound(order_sn);
+    auto upper_itr = ordersn_index.upper_bound(order_sn);
+    // for_each(lower_itr,upper_itr,[&](auto& row){
+    //     check( false,"order_sn not the only one");
+    // });
+	check(ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one");
 
-	orders.modify( *itr, _self, [&]( auto& row ) {
-		row.frozen_quantity += deal_quantity;
-	});
+    auto created_at = time_point_sec(current_time_point());
+    auto deal_id = deals.available_primary_key();
+    deals.emplace( _self, [&]( auto& row ) {
+        row.id 				= deal_id;
+        row.order_id 		= order_id;
+        row.order_price		= order_price;
+        row.deal_quantity	= deal_quantity;
+        row.order_maker		= order_maker;
+        row.order_taker		= taker;
+        row.closed			= false;
+        row.created_at		= created_at;
+        row.order_sn = order_sn;
+		row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+		row.restart_taker_num = 0;
+		row.restart_maker_num = 0;
+    });
+
+    // 添加交易到期表数据
+    exp_tal_t exp_time(_self,_self.value);
+    exp_time.emplace( _self, [&]( auto& row ){
+        row.deal_id = deal_id;
+        row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+    });
+
+    orders.modify( *itr, _self, [&]( auto& row ) {
+        row.frozen_quantity += deal_quantity;
+    });
 }
 
 /**
@@ -170,6 +195,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+    check( deal_itr -> order_taker == taker, "no permission");
 
 	auto order_id = deal_itr->order_id;
 	sell_order_t orders(_self, _self.value);
@@ -191,7 +217,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 
 }
 
-void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass) {
+void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass,const uint8_t& pay_type) {
 	require_auth( owner );
 
 	sk_deal_t deals(_self, _self.value);
@@ -208,33 +234,51 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 	switch ((UserType) user_type) {
 		case MAKER: 
 		{
+			check( deal_itr->order_maker == owner, "no permission");
+			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
-				row.maker_passed = true;
+				row.maker_passed = pass;
 				row.maker_passed_at = now;
-			});	
+			});
 			break;
 		}
-		case TAKER: 
+		case TAKER:
 		{
+			// exp_tal_t exp_time(_self,_self.value);
+			// auto exp_itr = exp_time.find(deal_id);
+			// // 超时表中没有数据表示已经超时
+			// check( exp_itr != exp_time.end() ,"the order has timed out");
+			// // 有数据可能是没有及时删除，进行时间检测
+			// check( exp_itr -> expiration_at > now,"the order has timed out");
+			check( deal_itr->order_taker == owner, "no permission");
+			check( deal_itr->expiration_at > now,"the order has timed out");
+			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
-				row.taker_passed = true;
+				row.taker_passed = pass;
 				row.taker_passed_at = now;
-			});	
+				row.pay_type = pay_type;
+				row.maker_expiration_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+			});
 			break;
 		}
-		case ARBITER: 
+		case ARBITER:
 		{
 			//verify if truly ariter
+			check( deal_itr -> arbiter_passed_at == time_point_sec() , "No operation required" );
 			check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
-				row.arbiter_passed = true;
+				row.arbiter = owner;
+				row.arbiter_passed = pass;
 				row.arbiter_passed_at = now;
-			});	
+			});
 			break;
 		}
 		default:
 			break;
-	} 
+	}
 
 	int count = 0;
 	if (deal_itr->maker_passed_at != time_point_sec())
@@ -245,7 +289,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 	if (deal_itr->arbiter_passed_at != time_point_sec())
 		count++;
-	
+
 	if (count < 2) return;	//at least 2 persons must have responded
 
 	int maker 	= deal_itr->maker_passed ? 1 : 0;
@@ -259,8 +303,8 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		deals.modify( *deal_itr, _self, [&]( auto& row ) {
 			row.closed = true;
 			row.closed_at = now;
-		});	
-		
+		});
+
 		check( order_itr->frozen_quantity >= deal_itr->deal_quantity, "oversize deal quantity vs fronzen one" );
 		orders.modify( *order_itr, _self, [&]( auto& row ) {
 			row.frozen_quantity 	-= deal_itr->deal_quantity;
@@ -269,14 +313,14 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 	} else { //at least two parties agreed, hence we can settle now!
 		action(
 			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
-			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity, 
+			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity,
 						std::string("") )
 		).send();
 
 		deals.modify( *deal_itr, _self, [&]( auto& row ) {
 			row.closed = true;
 			row.closed_at = now;
-		});	
+		});
 
 		check( order_itr->frozen_quantity >= deal_itr->deal_quantity, "oversize deal quantity vs fronzen one" );
 		orders.modify( *order_itr, _self, [&]( auto& row ) {
@@ -287,7 +331,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 				row.closed = true;
 				row.closed_at = now;
 			}
-		});	
+		});
 
 		seller_t seller(deal_itr->order_maker);
 		check( _dbc.get(seller), "Err: seller not found: " + deal_itr->order_maker.to_string() );
@@ -295,7 +339,63 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		seller.processed_deals++;
 		_dbc.set( seller );
 	}
+
 }
+
+/**
+ * 
+ * 款项异常，回退代付款状态
+ * 
+ */
+void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
+	require_auth( owner );
+
+	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
+	sk_deal_t deals(_self, _self.value);
+	auto deal_itr = deals.find(deal_id);
+	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
+	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+	check( deal_itr->taker_passed_at != time_point_sec(), "No operation required" );
+	
+	auto exp_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+	deals.modify( *deal_itr, _self, [&]( auto& row ) {
+		row.arbiter = owner;
+		row.arbiter_passed = false;
+		row.arbiter_passed_at = time_point_sec(current_time_point());;
+		row.taker_passed = false;
+		row.taker_passed_at = time_point_sec();
+		row.pay_type = 0;
+		row.maker_expiration_at = time_point_sec();
+		row.maker_passed = false;
+		row.maker_passed_at = time_point_sec();
+		row.expiration_at = exp_at;
+		row.restart_taker_num = 0;
+		row.restart_maker_num = 0;
+	});
+
+	exp_tal_t exp_time(_self,_self.value);
+	auto exp_itr = exp_time.find(deal_id);
+
+	if ( exp_itr != exp_time.end() ) {
+
+		exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
+			row.expiration_at = exp_at;
+		});
+
+	} else {
+
+		exp_time.emplace( _self, [&]( auto& row ){
+			row.deal_id = deal_id;
+			row.expiration_at = exp_at;
+   		});
+
+	}
+	
+
+
+}
+
 
 /**
  *  提取
@@ -318,6 +418,122 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 
 }
 
+/**
+ * 超时检测
+ *
+ */
+void mgp_otcstore::timeout() {
+
+	auto check_time = current_time_point().sec_since_epoch() - seconds_per_day;
+
+	exp_tal_t exp_time(_self,_self.value);
+	auto exp_index = exp_time.get_index<"expirationed"_n>();
+	auto lower_itr = exp_index.find(check_time);
+	// auto itr = exp_time.begin()
+
+	for(auto itr = exp_index.begin(); itr != lower_itr ; ){
+
+		if ( itr -> expiration_at <= time_point_sec(check_time) ){
+
+			sk_deal_t deals(_self, _self.value);
+			auto deal_itr = deals.find(itr -> deal_id);
+
+ 			// 订单处于买家未操作状态进行关闭
+			if ( deal_itr != deals.end() && !deal_itr->closed &&  !deal_itr -> taker_passed  ){
+
+				auto order_id = deal_itr->order_id;
+				sell_order_t orders(_self, _self.value);
+				auto order_itr = orders.find(order_id);
+				check( order_itr != orders.end(), "sell order not found: " + to_string(order_id) );
+				check( !order_itr->closed, "order already closed" );
+
+				auto deal_quantity = deal_itr->deal_quantity;
+				check( order_itr->frozen_quantity >= deal_quantity, "Err: order frozen quantity smaller than deal quantity" );
+
+				orders.modify( *order_itr, _self, [&]( auto& row ) {
+					row.frozen_quantity -= deal_quantity;
+				});
+
+				deals.modify( *deal_itr, _self, [&]( auto& row ) {
+					row.closed = true;
+					row.closed_at = time_point_sec(current_time_point());
+				});
+			}
+
+			itr = exp_index.erase(itr);
+		} else {
+			itr ++;
+		}
+	}
+
+}
+
+/**
+ * 
+ * 超时重启
+ */
+void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type){
+	require_auth( owner );
+
+	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
+	sk_deal_t deals(_self, _self.value);
+	auto deal_itr = deals.find(deal_id);
+	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
+	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+
+	sell_order_t orders(_self, _self.value);
+	auto order_itr = orders.find(deal_itr->order_id);
+	check( order_itr != orders.end(), "order not found: " + to_string(deal_itr->order_id) );
+
+	auto restart_time = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+	auto check_time = time_point_sec(current_time_point().sec_since_epoch() - seconds_per_day);
+	auto now = time_point_sec(current_time_point());
+
+	switch ((UserType) user_type) {
+		case MAKER: 
+		{
+			check( deal_itr -> restart_maker_num == 0 , "It has been rebooted more than 1 time.");
+			check( deal_itr -> maker_expiration_at <= now ,"Did not time out.");
+			check( deal_itr -> maker_expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
+
+			deals.modify( *deal_itr, _self, [&]( auto& row ) {
+				row.restart_maker_num ++;
+				row.maker_expiration_at = restart_time;
+			});
+
+			break;
+		}
+		case TAKER:
+		{
+
+			check( deal_itr -> restart_taker_num == 0 , "It has been rebooted more than 1 time.");
+			check( deal_itr -> expiration_at <= now ,"Did not time out.");
+			check( deal_itr -> expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
+
+			deals.modify( *deal_itr, _self, [&]( auto& row ) {
+				row.restart_taker_num ++;
+				row.expiration_at = restart_time;
+			});
+
+			exp_tal_t exp_time(_self,_self.value);
+			auto exp_itr = exp_time.find(deal_id);
+			check( exp_itr != exp_time.end() ,"the order has timed out");
+			check( exp_itr -> expiration_at > check_time,"The order has timed out by 24 hours.");
+
+			exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
+				row.expiration_at = restart_time;
+			});
+
+			break;
+		}
+		default:
+			break;
+	}
+}
+
 /*************** Begin of eosio.token transfer trigger function ******************/
 /**
  * This happens when a seller deicdes to open sell orders
@@ -327,12 +543,49 @@ void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 
 	seller_t seller(from);
 	_dbc.get( seller );
-	seller.available_quantity += quantity;
+
+	if (quantity.symbol == SYS_SYMBOL){
+		seller.available_quantity += quantity;
+	}
+	
 	_dbc.set( seller );
 	
 	
 }
 
+/**
+ * 进行数据清除，测试用，发布正式环境去除
+ */
+void mgp_otcstore::deltable(){
+	require_auth( _self );
+
+	sell_order_t sellorders(_self,_self.value);
+	auto itr = sellorders.begin();
+	while(itr != sellorders.end()){
+		itr = sellorders.erase(itr);
+	}
+
+	sk_deal_t deals(_self,_self.value);
+	auto itr1 = deals.begin();
+	while(itr1 != deals.end()){
+		itr1 = deals.erase(itr1);
+	}
+
+	seller_t::tbl_t sellers(_self,_self.value);
+	auto itr2 = sellers.begin();
+	while(itr2 != sellers.end()){
+		itr2 = sellers.erase(itr2);
+	}
+
+	exp_tal_t exp(_self,_self.value);
+	auto itr3 = exp.begin();
+	while(itr3 != exp.end()){
+		itr3 = exp.erase(itr3);
+	}
+
+	
+
+}
 
 
 }  //end of namespace:: mgpbpvoting
