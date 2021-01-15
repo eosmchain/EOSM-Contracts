@@ -99,6 +99,9 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     [[eosio::action]]
     void deltable();
 
+    [[eosio::action]]
+    void backdeal(const name& owner,const uint64_t& deal_id);
+
      [[eosio::action]]
     void restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type);
 

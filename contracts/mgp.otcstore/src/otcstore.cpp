@@ -339,6 +339,61 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 }
 
 /**
+ * 
+ * 款项异常，回退代付款状态
+ * 
+ */
+void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
+	require_auth( owner );
+
+	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+
+	sk_deal_t deals(_self, _self.value);
+	auto deal_itr = deals.find(deal_id);
+	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
+	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
+	check( deal_itr->taker_passed_at != time_point_sec(), "No operation required" );
+	
+	auto exp_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+	deals.modify( *deal_itr, _self, [&]( auto& row ) {
+		row.arbiter = owner;
+		row.arbiter_passed = false;
+		row.arbiter_passed_at = time_point_sec(current_time_point());;
+		row.taker_passed = false;
+		row.taker_passed_at = time_point_sec();
+		row.pay_type = 0;
+		row.maker_expiration_at = time_point_sec();
+		row.maker_passed = false;
+		row.maker_passed_at = time_point_sec();
+		row.expiration_at = exp_at;
+		row.restart_taker_num = 0;
+		row.restart_maker_num = 0;
+	});
+
+	exp_tal_t exp_time(_self,_self.value);
+	auto exp_itr = exp_time.find(deal_id);
+
+	if ( exp_itr != exp_time.end() ) {
+
+		exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
+			row.expiration_at = exp_at;
+		});
+
+	} else {
+
+		exp_time.emplace( _self, [&]( auto& row ){
+			row.deal_id = deal_id;
+			row.expiration_at = exp_at;
+   		});
+
+	}
+	
+
+
+}
+
+
+/**
  *  提取
  * 
  */
