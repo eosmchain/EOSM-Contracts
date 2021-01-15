@@ -18,6 +18,7 @@ using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name token_account{"eosio.token"_n};
+static constexpr eosio::name cs_contact{""_n};
 
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
 static constexpr symbol   CNY_SYMBOL            = symbol(symbol_code("CNY"), 2);
@@ -28,6 +29,7 @@ static constexpr uint32_t seconds_per_week      = 24 * 3600 * 7;
 static constexpr uint32_t seconds_per_day       = 24 * 3600;
 static constexpr uint32_t seconds_per_hour      = 3600;
 static constexpr uint32_t max_memo_size         = 1024;
+
 
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.otcstore")]]
 
@@ -40,6 +42,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     name transaction_fee_receiver;  // receiver account to transaction fees
     uint64_t transaction_fee_ratio; // fee ratio boosted by 10000
     set<name> otc_arbiters;
+    string cs_contact_title;
+    string cs_contact;
 
     global_t() {
         min_buy_order_quantity      = asset(10, SYS_SYMBOL);
@@ -52,7 +56,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
                                 (min_pos_stake_quantity)(pos_staking_contract)
                                 (withhold_expire_sec)(transaction_fee_receiver)
-                                (transaction_fee_ratio)(otc_arbiters) )
+                                (transaction_fee_ratio)(otc_arbiters) (cs_contact_title)
+                                (cs_contact))
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 

@@ -18,8 +18,7 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
 
- 	// _global.remove();
-
+	
 	// seller_t seller("masteraychen"_n);
 	// check( _dbc.get(seller), "masteraychen not found in sellers" );
 	// _dbc.del(seller);
@@ -31,6 +30,11 @@ void mgp_otcstore::init() {
 	_gstate.withhold_expire_sec = 900;
 	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
+	_gstate.cs_contact_title="Custom Service Contact";
+	_gstate.cs_contact="cs_contact_mango";
+
+
+
 }
 
 void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer) {
@@ -579,6 +583,7 @@ void mgp_otcstore::deltable(){
 		itr3 = exp.erase(itr3);
 	}
 
+	
 
 }
 
