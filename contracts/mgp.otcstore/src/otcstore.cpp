@@ -131,7 +131,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 
 }
 
-void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity,const uint64_t& order_sn) {
+void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity, const uint64_t& order_sn) {
 	require_auth( taker );
 
 	check( deal_quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
@@ -141,8 +141,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
-	check( itr->quantity - itr -> fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
-	///TODO: check if frozen amount timeout already
+	check( itr->quantity - itr->fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
 
 	asset order_price = itr->price;
 	name order_maker = itr->owner;

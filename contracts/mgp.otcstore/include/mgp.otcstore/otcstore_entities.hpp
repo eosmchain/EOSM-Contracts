@@ -101,7 +101,7 @@ struct CONTRACT_TBL order_t {
     order_t(const uint64_t& i): id(i) {}
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return price.symbol.code().raw(); }
+    // uint64_t scope() const { return price.symbol.code().raw(); } //not in use actually
 
     uint64_t by_price() const { return closed ? -1 : price.amount; } //for seller: smaller & higher
     uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; }  //for buyer: bigger & higher
