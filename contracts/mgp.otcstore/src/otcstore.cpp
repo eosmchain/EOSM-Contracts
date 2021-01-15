@@ -118,10 +118,10 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->frozen_quantity.amount == 0, "order being processed" );
-	check( itr->quantity >= itr-> fulfilled_quantity, "Err: insufficient quanitty" );
+	check( itr->quantity >= itr->fulfilled_quantity, "Err: insufficient quanitty" );
 
 	// 撤单后币未交易完成的币退回
-	seller.available_quantity += itr -> quantity - itr -> fulfilled_quantity;
+	seller.available_quantity += itr->quantity - itr->fulfilled_quantity;
 	_dbc.set( seller );
 
 	orders.modify( *itr, _self, [&]( auto& row ) {

@@ -104,7 +104,7 @@ struct CONTRACT_TBL order_t {
     uint64_t scope() const { return price.symbol.code().raw(); }
 
     uint64_t by_price() const { return closed ? -1 : price.amount; } //for seller: smaller & higher
-    uint64_t by_invprice() const { return closed ? 0 : -price.amount; }  //for buyer: bigger & higher
+    uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; }  //for buyer: bigger & higher
     uint64_t by_maker() const { return owner.value; } 
 
     EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
@@ -116,7 +116,7 @@ struct CONTRACT_TBL order_t {
 //     < "buyorders"_n,  order_t,
 //         indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_invprice> >,
 //         indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
-//     > sk_buyorder_t;
+//     > buy_order_t;
 
 typedef eosio::multi_index
     < "selorders"_n, order_t,
@@ -125,7 +125,7 @@ typedef eosio::multi_index
     > sell_order_t;
 
 /**
- * buy&sell deal
+ * buy/sell deal
  *
  */
 struct CONTRACT_TBL deal_t {
