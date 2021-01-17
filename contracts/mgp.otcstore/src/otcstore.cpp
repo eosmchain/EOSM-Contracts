@@ -311,7 +311,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 	} else { //at least two parties agreed, hence we can settle now!
 		action(
-			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
+			permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
 			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity,
 						std::string("") )
 		).send();
@@ -413,7 +413,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
 	
-	TRANSFER( token_account, owner, quantity, "withdraw" )
+	TRANSFER( SYS_BANK, owner, quantity, "withdraw" )
 
 }
 
