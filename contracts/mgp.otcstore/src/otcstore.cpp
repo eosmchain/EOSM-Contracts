@@ -144,7 +144,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( !itr->closed, "order already closed" );
 	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
 	check( itr->quantity - itr -> fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
-	check( itr->price.amount * deal_quantity.amount > itr->min_accept_quantity.amount, "The minimum quantity is not exceeded" );
+	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "The minimum quantity is not exceeded" );
 	///TODO: check if frozen amount timeout already
 
 	asset order_price = itr->price;
