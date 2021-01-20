@@ -18,23 +18,18 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
 
+	_gstate.transaction_fee_receiver 		= wallet_admin;
+	_gstate.min_buy_order_quantity.amount 	= 10;
+	_gstate.min_sell_order_quantity.amount 	= 10;
+	_gstate.min_pos_stake_quantity.amount 	= 50000;
+	_gstate.withhold_expire_sec 			= 900;
+	_gstate.pos_staking_contract 			= "addressbookt"_n;
+	_gstate.cs_contact_title				= "Custom Service Contact";
+	_gstate.cs_contact						= "cs_contact_mango";
 
-	// seller_t seller("masteraychen"_n);
-	// check( _dbc.get(seller), "masteraychen not found in sellers" );
-	// _dbc.del(seller);
-
-	_gstate.transaction_fee_receiver = wallet_admin;
-	_gstate.min_buy_order_quantity.amount = 10;
-	_gstate.min_sell_order_quantity.amount = 10;
-	_gstate.min_pos_stake_quantity.amount = 10;
-	_gstate.withhold_expire_sec = 900;
-	_gstate.pos_staking_contract = "addressbookt"_n;
 	_gstate.otc_arbiters.insert( wallet_admin );
 	_gstate.otc_arbiters.insert( "testzyuting1"_n );
 	_gstate.otc_arbiters.insert( "testchenhanl"_n);
-	_gstate.cs_contact_title="Custom Service Contact";
-	_gstate.cs_contact="cs_contact_mango";
-
 
 
 }
