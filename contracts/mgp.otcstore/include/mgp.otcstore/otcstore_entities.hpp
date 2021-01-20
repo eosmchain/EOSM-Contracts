@@ -86,7 +86,7 @@ enum UserType: uint8_t {
  */
 struct CONTRACT_TBL order_t {
     uint64_t id;                //PK: available_primary_key
-    
+
     name owner;                 //order maker's account
     asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
     asset quantity;
@@ -105,7 +105,7 @@ struct CONTRACT_TBL order_t {
 
     uint64_t by_price() const { return closed ? -1 : price.amount; } //for seller: smaller & higher
     uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; }  //for buyer: bigger & higher
-    uint64_t by_maker() const { return owner.value; } 
+    uint64_t by_maker() const { return owner.value; }
 
     EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
                                 (frozen_quantity)(fulfilled_quantity)
@@ -153,12 +153,12 @@ struct CONTRACT_TBL deal_t {
 
     uint64_t order_sn; // 订单号（前端生成）
     uint8_t pay_type; // 选择的支付类型
-    time_point_sec expiration_at; // 订单到期时间
-    
-    time_point_sec maker_expiration_at; // 卖家操作到期时间
+    time_point_sec expired_at; // 订单到期时间
+
+    time_point_sec maker_expired_at; // 卖家操作到期时间
     uint8_t restart_taker_num; // 重启买家超时次数
     uint8_t restart_maker_num; // 重启卖家超时次数
-    
+
     deal_t() {}
 
     deal_t(uint64_t i): id(i) {}
@@ -172,26 +172,26 @@ struct CONTRACT_TBL deal_t {
     uint64_t by_taker()     const { return order_taker.value; }
     uint64_t by_arbiter()   const { return arbiter.value; }
     uint64_t by_ordersn()   const { return order_sn;}
-    uint64_t by_expiration_at() const    { return uint64_t(expiration_at.sec_since_epoch()); }
-    uint64_t by_maker_expiration_at() const    { return uint64_t(maker_expiration_at.sec_since_epoch()); }
+    uint64_t by_expired_at() const    { return uint64_t(expired_at.sec_since_epoch()); }
+    uint64_t by_maker_expired_at() const    { return uint64_t(maker_expired_at.sec_since_epoch()); }
 
     EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(deal_quantity)
                                 (order_maker)(maker_passed)(maker_passed_at)
                                 (order_taker)(taker_passed)(taker_passed_at)
                                 (arbiter)(arbiter_passed)(arbiter_passed_at)
-                                (closed)(created_at)(closed_at)(order_sn)(pay_type) 
-                                (expiration_at)(maker_expiration_at)
+                                (closed)(created_at)(closed_at)(order_sn)(pay_type)
+                                (expired_at)(maker_expired_at)
                                 (restart_taker_num)(restart_maker_num))
 };
 
 typedef eosio::multi_index
-    <"deals"_n, deal_t, 
+    <"deals"_n, deal_t,
         indexed_by<"order"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_order> >,
         indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
         indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
         indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
         indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >,
-        indexed_by<"expirationed"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expiration_at> >
+        indexed_by<"expiry"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expired_at> >
     > sk_deal_t;
 
 struct CONTRACT_TBL seller_t {
@@ -218,24 +218,24 @@ struct CONTRACT_TBL seller_t {
  * 交易订单过期时间
  *
  */
-struct CONTRACT_TBL expiration_t{
+struct CONTRACT_TBL deal_expiry_t{
     uint64_t deal_id;
-    time_point_sec expiration_at;
+    time_point_sec expired_at;
 
-    expiration_t() {}
-    expiration_t(uint64_t i): deal_id(i) {}
+    deal_expiry_t() {}
+    deal_expiry_t(uint64_t i): deal_id(i) {}
 
     uint64_t primary_key()const { return deal_id; }
     uint64_t scope()const { return 0; }
 
-    uint64_t by_expiration_at() const    { return uint64_t(expiration_at.sec_since_epoch()); }
+    uint64_t by_expired_at() const    { return uint64_t(expired_at.sec_since_epoch()); }
 
-    EOSLIB_SERIALIZE(expiration_t,  (deal_id)(expiration_at) )
+    EOSLIB_SERIALIZE(deal_expiry_t,  (deal_id)(expired_at) )
 };
 
 typedef eosio::multi_index
-    <"expirations"_n, expiration_t ,
-        indexed_by<"expirationed"_n,    const_mem_fun<expiration_t, uint64_t, &expiration_t::by_expiration_at>   >
-    > exp_tal_t;
+    <"dealexpiries"_n, deal_expiry_t ,
+        indexed_by<"expiry"_n,    const_mem_fun<deal_expiry_t, uint64_t, &deal_expiry_t::by_expired_at>   >
+    > deal_expiry_tbl;
 
 } // MGP
