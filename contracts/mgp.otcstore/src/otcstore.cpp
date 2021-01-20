@@ -18,7 +18,7 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	auto wallet_admin = "mwalletadmin"_n;
 
-	
+
 	// seller_t seller("masteraychen"_n);
 	// check( _dbc.get(seller), "masteraychen not found in sellers" );
 	// _dbc.del(seller);
@@ -59,7 +59,7 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 	seller.memo = memo_to_buyer;
 
 	_dbc.set( seller );
-	
+
 }
 
 /**
@@ -81,7 +81,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 	check( min_accept_quantity.symbol == price.symbol, "min accept symbol not equal to price symbol" );
 
 	seller_t seller(owner);
-	check( _dbc.get(seller), "seller not found: " + owner.to_string() ); 
+	check( _dbc.get(seller), "seller not found: " + owner.to_string() );
 	check( seller.available_quantity >= quantity, "seller insufficient quantitiy to sell" );
 	seller.available_quantity -= quantity;
 	_dbc.set( seller );
@@ -113,7 +113,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	require_auth( owner );
 
 	seller_t seller(owner);
-	check( _dbc.get(seller), "seller not found: " + owner.to_string() ); 
+	check( _dbc.get(seller), "seller not found: " + owner.to_string() );
 
 	sell_order_t orders(_self, _self.value);
 	auto itr = orders.find(order_id);
@@ -169,16 +169,16 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
         row.closed			= false;
         row.created_at		= created_at;
         row.order_sn = order_sn;
-		row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+		row.expired_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
 		row.restart_taker_num = 0;
 		row.restart_maker_num = 0;
     });
 
     // 添加交易到期表数据
-    exp_tal_t exp_time(_self,_self.value);
+    deal_expiry_tbl exp_time(_self,_self.value);
     exp_time.emplace( _self, [&]( auto& row ){
         row.deal_id = deal_id;
-        row.expiration_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+        row.expired_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
     });
 
     orders.modify( *itr, _self, [&]( auto& row ) {
@@ -233,7 +233,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 	auto now = time_point_sec(current_time_point());
 
 	switch ((UserType) user_type) {
-		case MAKER: 
+		case MAKER:
 		{
 			check( deal_itr->order_maker == owner, "no permission");
 			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
@@ -246,21 +246,21 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		}
 		case TAKER:
 		{
-			// exp_tal_t exp_time(_self,_self.value);
+			// deal_expiry_tbl exp_time(_self,_self.value);
 			// auto exp_itr = exp_time.find(deal_id);
 			// // 超时表中没有数据表示已经超时
 			// check( exp_itr != exp_time.end() ,"the order has timed out");
 			// // 有数据可能是没有及时删除，进行时间检测
-			// check( exp_itr -> expiration_at > now,"the order has timed out");
+			// check( exp_itr -> expired_at > now,"the order has timed out");
 			check( deal_itr->order_taker == owner, "no permission");
-			check( deal_itr->expiration_at > now,"the order has timed out");
+			check( deal_itr->expired_at > now,"the order has timed out");
 			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
 
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.taker_passed = pass;
 				row.taker_passed_at = now;
 				row.pay_type = pay_type;
-				row.maker_expiration_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+				row.maker_expired_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
 			});
 			break;
 		}
@@ -344,9 +344,9 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 }
 
 /**
- * 
+ *
  * 款项异常，回退代付款状态
- * 
+ *
  */
 void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 	require_auth( owner );
@@ -358,7 +358,7 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
 	check( deal_itr->taker_passed_at != time_point_sec(), "No operation required" );
-	
+
 	auto exp_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
 	deals.modify( *deal_itr, _self, [&]( auto& row ) {
 		row.arbiter = owner;
@@ -367,32 +367,32 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 		row.taker_passed = false;
 		row.taker_passed_at = time_point_sec();
 		row.pay_type = 0;
-		row.maker_expiration_at = time_point_sec();
+		row.maker_expired_at = time_point_sec();
 		row.maker_passed = false;
 		row.maker_passed_at = time_point_sec();
-		row.expiration_at = exp_at;
+		row.expired_at = exp_at;
 		row.restart_taker_num = 0;
 		row.restart_maker_num = 0;
 	});
 
-	exp_tal_t exp_time(_self,_self.value);
+	deal_expiry_tbl exp_time(_self,_self.value);
 	auto exp_itr = exp_time.find(deal_id);
 
 	if ( exp_itr != exp_time.end() ) {
 
 		exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
-			row.expiration_at = exp_at;
+			row.expired_at = exp_at;
 		});
 
 	} else {
 
 		exp_time.emplace( _self, [&]( auto& row ){
 			row.deal_id = deal_id;
-			row.expiration_at = exp_at;
+			row.expired_at = exp_at;
    		});
 
 	}
-	
+
 
 
 }
@@ -400,7 +400,7 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 
 /**
  *  提取
- * 
+ *
  */
 void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	require_auth( owner );
@@ -414,7 +414,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	check( seller.available_quantity >= quantity, "The withdrawl amount must be less than the balance" );
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
-	
+
 	TRANSFER( SYS_BANK, owner, quantity, "withdraw" )
 
 }
@@ -427,14 +427,14 @@ void mgp_otcstore::timeout() {
 
 	auto check_time = current_time_point().sec_since_epoch() - seconds_per_day;
 
-	exp_tal_t exp_time(_self,_self.value);
-	auto exp_index = exp_time.get_index<"expirationed"_n>();
+	deal_expiry_tbl exp_time(_self,_self.value);
+	auto exp_index = exp_time.get_index<"expiry"_n>();
 	auto lower_itr = exp_index.find(check_time);
 	// auto itr = exp_time.begin()
 
 	for(auto itr = exp_index.begin(); itr != lower_itr ; ){
 
-		if ( itr -> expiration_at <= time_point_sec(check_time) ){
+		if ( itr -> expired_at <= time_point_sec(check_time) ){
 
 			sk_deal_t deals(_self, _self.value);
 			auto deal_itr = deals.find(itr -> deal_id);
@@ -470,7 +470,7 @@ void mgp_otcstore::timeout() {
 }
 
 /**
- * 
+ *
  * 超时重启
  */
 void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type){
@@ -492,16 +492,16 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 	auto now = time_point_sec(current_time_point());
 
 	switch ((UserType) user_type) {
-		case MAKER: 
+		case MAKER:
 		{
 			check( deal_itr -> restart_maker_num == 0 , "It has been rebooted more than 1 time.");
-			check( deal_itr -> maker_expiration_at <= now ,"Did not time out.");
-			check( deal_itr -> maker_expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> maker_expired_at <= now ,"Did not time out.");
+			check( deal_itr -> maker_expired_at > check_time ,"The order has timed out by 24 hours.");
 			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
 
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.restart_maker_num ++;
-				row.maker_expiration_at = restart_time;
+				row.maker_expired_at = restart_time;
 			});
 
 			break;
@@ -510,22 +510,22 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 		{
 
 			check( deal_itr -> restart_taker_num == 0 , "It has been rebooted more than 1 time.");
-			check( deal_itr -> expiration_at <= now ,"Did not time out.");
-			check( deal_itr -> expiration_at > check_time ,"The order has timed out by 24 hours.");
+			check( deal_itr -> expired_at <= now ,"Did not time out.");
+			check( deal_itr -> expired_at > check_time ,"The order has timed out by 24 hours.");
 			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
 
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.restart_taker_num ++;
-				row.expiration_at = restart_time;
+				row.expired_at = restart_time;
 			});
 
-			exp_tal_t exp_time(_self,_self.value);
+			deal_expiry_tbl exp_time(_self,_self.value);
 			auto exp_itr = exp_time.find(deal_id);
 			check( exp_itr != exp_time.end() ,"the order has timed out");
-			check( exp_itr -> expiration_at > check_time,"The order has timed out by 24 hours.");
+			check( exp_itr -> expired_at > check_time,"The order has timed out by 24 hours.");
 
 			exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
-				row.expiration_at = restart_time;
+				row.expired_at = restart_time;
 			});
 
 			break;
@@ -548,10 +548,10 @@ void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	if (quantity.symbol == SYS_SYMBOL){
 		seller.available_quantity += quantity;
 	}
-	
+
 	_dbc.set( seller );
-	
-	
+
+
 }
 
 /**
@@ -578,13 +578,13 @@ void mgp_otcstore::deltable(){
 		itr2 = sellers.erase(itr2);
 	}
 
-	exp_tal_t exp(_self,_self.value);
+	deal_expiry_tbl exp(_self,_self.value);
 	auto itr3 = exp.begin();
 	while(itr3 != exp.end()){
 		itr3 = exp.erase(itr3);
 	}
 
-	
+
 
 }
 
