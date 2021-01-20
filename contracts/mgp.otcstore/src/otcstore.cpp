@@ -120,10 +120,10 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->frozen_quantity.amount == 0, "order being processed" );
-	check( itr->quantity >= itr-> fulfilled_quantity, "Err: insufficient quanitty" );
+	check( itr->quantity >= itr->fulfilled_quantity, "Err: insufficient quanitty" );
 
 	// 撤单后币未交易完成的币退回
-	seller.available_quantity += itr -> quantity - itr -> fulfilled_quantity;
+	seller.available_quantity += itr->quantity - itr->fulfilled_quantity;
 	_dbc.set( seller );
 
 	orders.modify( *itr, _self, [&]( auto& row ) {
@@ -133,7 +133,7 @@ void mgp_otcstore::closeorder(const name& owner, const uint64_t& order_id) {
 
 }
 
-void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity,const uint64_t& order_sn) {
+void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const asset& deal_quantity, const uint64_t& order_sn) {
 	require_auth( taker );
 
 	check( deal_quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
@@ -143,7 +143,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
-	check( itr->quantity - itr -> fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
+	check( itr->quantity - itr->fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
 	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "The minimum quantity is not exceeded" );
 	///TODO: check if frozen amount timeout already
 
@@ -313,7 +313,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 	} else { //at least two parties agreed, hence we can settle now!
 		action(
-			permission_level{ _self, "active"_n }, token_account, "transfer"_n,
+			permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
 			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity,
 						std::string("") )
 		).send();
@@ -415,7 +415,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
 	seller.available_quantity -= quantity;
 	_dbc.set(seller);
 	
-	TRANSFER( token_account, owner, quantity, "withdraw" )
+	TRANSFER( SYS_BANK, owner, quantity, "withdraw" )
 
 }
 

@@ -17,7 +17,7 @@ using namespace std;
 using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
-static constexpr eosio::name token_account{"eosio.token"_n};
+static constexpr eosio::name SYS_BANK{"eosio.token"_n};
 
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;

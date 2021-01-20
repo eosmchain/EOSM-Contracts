@@ -508,8 +508,11 @@ void mgp_bpvoting::_referesh_recvd_votes() {
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
-	_gstate2.vote_reward_index = 0;
-	_gstate2.vote_tally_index = 378;
+	// asset quant = asset(41577120, SYS_SYMBOL);
+	// TRANSFER( SYS_BANK, "masteraychen"_n, quant, "" )
+
+	// _gstate2.vote_reward_index = 0;
+	// _gstate2.vote_tally_index = 378;
 
 	// _global2.remove();
 	// _gstate.last_execution_round = 32;
@@ -553,7 +556,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	_gstate.total_voted -= vote.quantity;
 
  	{
-        token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+        token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
         transfer_act.send( _self, owner, vote.quantity, "unvote" );
     }
 
@@ -574,7 +577,7 @@ ACTION mgp_bpvoting::delist(const name& issuer) {
 
 	auto to_claim = candidate.staked_votes + candidate.unclaimed_rewards;
 	{
-        token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+        token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
         transfer_act.send( _self, issuer, to_claim, "delist" );
     }
 
@@ -643,7 +646,7 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 		check( voter.unclaimed_rewards.amount > 0, "rewards empty" );
 
 		{
-			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+			token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
 			transfer_act.send( _self, issuer, voter.unclaimed_rewards , "claim" );
 		}
 
@@ -658,7 +661,7 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 		check( candidate.unclaimed_rewards.amount > 0, "rewards empty" );
 
 		{
-			token::transfer_action transfer_act{ token_account, { {_self, active_perm} } };
+			token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
 			transfer_act.send( _self, issuer, candidate.unclaimed_rewards , "claim" );
 		}
 
