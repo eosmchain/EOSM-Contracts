@@ -16,10 +16,12 @@ using namespace eosio;
 using namespace wasm::safemath;
 
 void mgp_otcstore::init() {
+	// _global.remove();
+
 	_gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
-	_gstate.min_buy_order_quantity.amount 	= 10;
-	_gstate.min_sell_order_quantity.amount 	= 10;
-	_gstate.min_pos_stake_quantity.amount 	= 20000; //close to $200
+	_gstate.min_buy_order_quantity.amount 	= 10'0000;
+	_gstate.min_sell_order_quantity.amount 	= 10'0000;
+	_gstate.min_pos_stake_quantity.amount 	= 20000'0000; //close to $200
 	_gstate.withhold_expire_sec 			= 900;
 	_gstate.pos_staking_contract 			= "addressbookt"_n;
 	_gstate.cs_contact_title				= "Custom Service Contact";
