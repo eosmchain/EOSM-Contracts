@@ -16,6 +16,10 @@ namespace mgp {
 using namespace std;
 using namespace eosio;
 
+
+static constexpr eosio::name active_perm{"active"_n};
+static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+
 #define CONTRACT_TBL [[eosio::table, eosio::contract("mgp.vstaking")]]
 
 struct CONTRACT_TBL configs_ {
