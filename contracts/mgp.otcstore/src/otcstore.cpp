@@ -19,7 +19,7 @@ void mgp_otcstore::init() {
 	_gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
 	_gstate.min_buy_order_quantity.amount 	= 10;
 	_gstate.min_sell_order_quantity.amount 	= 10;
-	_gstate.min_pos_stake_quantity.amount 	= 20000;
+	_gstate.min_pos_stake_quantity.amount 	= 20000; //close to $200
 	_gstate.withhold_expire_sec 			= 900;
 	_gstate.pos_staking_contract 			= "addressbookt"_n;
 	_gstate.cs_contact_title				= "Custom Service Contact";
@@ -61,7 +61,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity > _gstate.min_sell_order_quantity, "min sell order quanity not met: " + quantity.to_string() );
+	check( quantity > _gstate.min_sell_order_quantity, "min sell order quanity not met: " + _gstate.min_sell_order_quantity.to_string() );
 
 	check( price.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( price.is_valid(), "Invalid quantity");
@@ -127,13 +127,15 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	require_auth( taker );
 
 	check( deal_quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+	check( deal_quantity >= _gstate.min_buy_order_quantity, "min buy order quantity not met: " +  _gstate.min_buy_order_quantity.to_string() );
 
 	sell_order_t orders(_self, _self.value);
 	auto itr = orders.find(order_id);
 	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
 	check( !itr->closed, "order already closed" );
 	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
-	check( itr->quantity - itr->fulfilled_quantity - itr->frozen_quantity >= deal_quantity, "insufficient to deal" );
+	check( itr->quantity - itr->frozen_quantity > itr->fulfilled_quantity, "none available to deal" );
+	check( itr->quantity - itr->frozen_quantity - itr->fulfilled_quantity >= deal_quantity, "insufficient to deal" );
 	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "The minimum quantity is not exceeded" );
 	///TODO: check if frozen amount timeout already
 
@@ -145,7 +147,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
     auto lower_itr = ordersn_index.lower_bound(order_sn);
     auto upper_itr = ordersn_index.upper_bound(order_sn);
 
-	check(ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one");
+	check( ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one" );
 
     auto created_at = time_point_sec(current_time_point());
     auto deal_id = deals.available_primary_key();
