@@ -33,7 +33,6 @@ using std::string;
 static constexpr eosio::name SYS_ACCOUNT{"mgpchain2222"_n};
 static constexpr eosio::name SHOP_ACCOUNT{"mgpchainshop"_n};
 static constexpr eosio::name AGENT_ACCOUNT{"mgpagentdiya"_n};
-static constexpr eosio::name SYS_BANK{"eosio.token"_n};
 static constexpr eosio::name MASTER_ACCOUNT{"masteraychen"_n};
 
 static constexpr symbol SYS_SYMBOL = symbol(symbol_code("MGP"), 4);

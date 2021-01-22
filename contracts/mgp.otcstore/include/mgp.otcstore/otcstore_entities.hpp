@@ -56,8 +56,8 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
                                 (min_pos_stake_quantity)(pos_staking_contract)
                                 (withhold_expire_sec)(transaction_fee_receiver)
-                                (transaction_fee_ratio)(otc_arbiters) (cs_contact_title)
-                                (cs_contact))
+                                (transaction_fee_ratio)(otc_arbiters)
+                                (cs_contact_title)(cs_contact) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 

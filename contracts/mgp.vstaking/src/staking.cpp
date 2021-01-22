@@ -1,4 +1,5 @@
 #include <mgp.vstaking/staking.hpp>
+#include <eosio.token/eosio.token.hpp>
 
 using namespace eosio;
 using namespace std;
@@ -40,22 +41,22 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	
 	name orderAccount = from;
 	
-	asset to_burn(0, SYS_SYMBOL);
-	to_burn.amount = ( quantity.amount / 100 ) * conf->destruction;
+	asset to_burn_quant(0, SYS_SYMBOL);
+	to_burn_quant.amount = ( quantity.amount / 100 ) * conf->destruction;
 
 	asset remaining;
 	remaining.symbol = quantity.symbol;
 	
 	if (from == SYS_ACCOUNT){
 		orderAccount = name(memo);
-		remaining.amount = quantity.amount;
+		remaining = quantity;
 
 	} else if (from == SHOP_ACCOUNT || from == AGENT_ACCOUNT) {
 		orderAccount = name(memo);
-		remaining.amount = quantity.amount - to_burn.amount;
+		remaining = quantity - to_burn_quant;
 
 	} else {
-		remaining.amount = quantity.amount - to_burn.amount;
+		remaining = quantity - to_burn_quant;
 	}
 
 	balances balance(get_self(), get_self().value);
@@ -71,25 +72,8 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 		});
 	}
 
-
-	/** 
-	 * FIXME: once eosio.token upgraded, use burn
-	 * 
-	 *  Note: probably not to use burn due to data issues
-	 * 
-	 */ 
 	if (from != SYS_ACCOUNT) {
-		// action(
-		// 	permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
-		// 	std::make_tuple( _self, "eosio.token"_n, to_burn, conf->burn_memo)
-		// ).send();
-
-		action(
-			// permission_level{ from, "active"_n }, SYS_BANK, "burn"_n,
-			// std::make_tuple( from, to_burn, std::string("staking burn"))
-			permission_level{ _self, "active"_n }, SYS_BANK, "burn"_n,
-			std::make_tuple( _self, to_burn, std::string("staking burn"))
-		).send();
+		BURN( SYS_BANK, _self, to_burn_quant, std::string("staking burn") )
 	}
 }
 
