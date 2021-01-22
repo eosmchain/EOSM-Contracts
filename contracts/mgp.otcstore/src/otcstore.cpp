@@ -21,7 +21,7 @@ void mgp_otcstore::init() {
 	// _gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
 	// _gstate.min_buy_order_quantity.amount 	= 10'0000;
 	// _gstate.min_sell_order_quantity.amount 	= 10'0000;
-	// _gstate.min_pos_stake_quantity.amount 	= 20000'0000; //close to $200
+	_gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
 	// _gstate.withhold_expire_sec 			= 900;
 	// _gstate.pos_staking_contract 			= "addressbookt"_n;
 	// _gstate.cs_contact_title				= "Custom Service Contact";
@@ -65,7 +65,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity > _gstate.min_sell_order_quantity, "min sell order quanity not met: " + _gstate.min_sell_order_quantity.to_string() );
+	check( quantity >= _gstate.min_sell_order_quantity, "min sell order quanity not met: " + _gstate.min_sell_order_quantity.to_string() );
 
 	check( price.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( price.is_valid(), "Invalid quantity");
