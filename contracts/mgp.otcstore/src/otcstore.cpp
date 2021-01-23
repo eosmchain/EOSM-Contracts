@@ -21,7 +21,7 @@ void mgp_otcstore::init() {
 	// _gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
 	// _gstate.min_buy_order_quantity.amount 	= 10'0000;
 	// _gstate.min_sell_order_quantity.amount 	= 10'0000;
-	// _gstate.min_pos_stake_quantity.amount 	= 20000'0000; //close to $200
+	_gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
 	// _gstate.withhold_expire_sec 			= 900;
 	// _gstate.pos_staking_contract 			= "addressbookt"_n;
 	// _gstate.cs_contact_title				= "Custom Service Contact";
@@ -65,7 +65,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity > _gstate.min_sell_order_quantity, "min sell order quanity not met: " + _gstate.min_sell_order_quantity.to_string() );
+	check( quantity >= _gstate.min_sell_order_quantity, "min sell order quanity not met: " + _gstate.min_sell_order_quantity.to_string() );
 
 	check( price.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( price.is_valid(), "Invalid quantity");
@@ -135,50 +135,50 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 
 	sell_order_t orders(_self, _self.value);
 	auto itr = orders.find(order_id);
-	check( itr != orders.end(), "sell order not found: " + to_string(order_id) );
-	check( !itr->closed, "order already closed" );
-	check( itr->quantity > itr->frozen_quantity, "non-available quantity to deal" );
-	check( itr->quantity - itr->frozen_quantity > itr->fulfilled_quantity, "none available to deal" );
-	check( itr->quantity - itr->frozen_quantity - itr->fulfilled_quantity >= deal_quantity, "insufficient to deal" );
-	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "The minimum quantity is not exceeded" );
+	check( itr != orders.end(), "Order not found: " + to_string(order_id) );
+	check( !itr->closed, "Order already closed" );
+	check( itr->quantity > itr->frozen_quantity, "Err: Remaining quantity insufficient" );
+	check( itr->quantity - itr->frozen_quantity > itr->fulfilled_quantity, "Err: Remaining quantity insufficient" );
+	check( itr->quantity - itr->frozen_quantity - itr->fulfilled_quantity >= deal_quantity, "Insufficient amount to make a deal" );
+	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "Order's min accept quantity not met!" );
 	///TODO: check if frozen amount timeout already
 
 	asset order_price = itr->price;
 	name order_maker = itr->owner;
 
     sk_deal_t deals(_self, _self.value);
-    auto ordersn_index = deals.get_index<"ordersn"_n>();
-    auto lower_itr = ordersn_index.lower_bound(order_sn);
-    auto upper_itr = ordersn_index.upper_bound(order_sn);
+    auto ordersn_index 			= deals.get_index<"ordersn"_n>();
+    auto lower_itr 				= ordersn_index.lower_bound(order_sn);
+    auto upper_itr 				= ordersn_index.upper_bound(order_sn);
 
-	check( ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one" );
+	check( ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn already existing!" );
 
     auto created_at = time_point_sec(current_time_point());
     auto deal_id = deals.available_primary_key();
     deals.emplace( _self, [&]( auto& row ) {
-        row.id 				= deal_id;
-        row.order_id 		= order_id;
-        row.order_price		= order_price;
-        row.deal_quantity	= deal_quantity;
-        row.order_maker		= order_maker;
-        row.order_taker		= taker;
-        row.closed			= false;
-        row.created_at		= created_at;
-        row.order_sn = order_sn;
-		row.expired_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
-		row.restart_taker_num = 0;
-		row.restart_maker_num = 0;
+        row.id 					= deal_id;
+        row.order_id 			= order_id;
+        row.order_price			= order_price;
+        row.deal_quantity		= deal_quantity;
+        row.order_maker			= order_maker;
+        row.order_taker			= taker;
+        row.closed				= false;
+        row.created_at			= created_at;
+        row.order_sn 			= order_sn;
+		row.expired_at 			= time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+		row.restart_taker_num 	= 0;
+		row.restart_maker_num 	= 0;
     });
 
     // 添加交易到期表数据
-    deal_expiry_tbl exp_time(_self,_self.value);
-    exp_time.emplace( _self, [&]( auto& row ){
+    deal_expiry_tbl deal_expiries(_self, _self.value);
+    deal_expiries.emplace( _self, [&]( auto& row ){
         row.deal_id = deal_id;
-        row.expired_at = time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
+        row.expired_at 			= time_point_sec(created_at.sec_since_epoch() + _gstate.withhold_expire_sec);
     });
 
     orders.modify( *itr, _self, [&]( auto& row ) {
-        row.frozen_quantity += deal_quantity;
+        row.frozen_quantity 	+= deal_quantity;
     });
 }
 
