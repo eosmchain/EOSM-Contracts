@@ -103,9 +103,15 @@ struct CONTRACT_TBL order_t {
     uint64_t primary_key() const { return id; }
     // uint64_t scope() const { return price.symbol.code().raw(); } //not in use actually
 
-    uint64_t by_price() const { return closed ? -1 : price.amount; } //for seller: smaller & higher
-    uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; }  //for buyer: bigger & higher
+    //to sort sellers orders: smaller-price order first
+    uint64_t by_price() const { return closed || (frozen_quantity + fulfilled_quantity + min_accept_quantity > quantity) ? -1 : price.amount; } 
+    
+    //to sort buyers orders: bigger-price order first
+    uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; } 
+
+    //to sort by order makers account
     uint64_t by_maker() const { return owner.value; }
+  
 
     EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
                                 (frozen_quantity)(fulfilled_quantity)
@@ -160,7 +166,6 @@ struct CONTRACT_TBL deal_t {
     uint8_t restart_maker_num; // 重启卖家超时次数
 
     deal_t() {}
-
     deal_t(uint64_t i): id(i) {}
 
     uint64_t primary_key() const { return id; }
