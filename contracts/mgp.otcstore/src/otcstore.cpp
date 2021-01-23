@@ -151,7 +151,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
     auto lower_itr 				= ordersn_index.lower_bound(order_sn);
     auto upper_itr 				= ordersn_index.upper_bound(order_sn);
 
-	check( ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn not the only one" );
+	check( ordersn_index.find(order_sn) == ordersn_index.end() , "order_sn already existing!" );
 
     auto created_at = time_point_sec(current_time_point());
     auto deal_id = deals.available_primary_key();
