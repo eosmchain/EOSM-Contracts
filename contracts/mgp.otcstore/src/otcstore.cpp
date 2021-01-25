@@ -2,7 +2,7 @@
 #include <mgp.vstaking/staking_entities.hpp>
 #include <mgp.otcstore/otcstore.hpp>
 #include <mgp.otcstore/mgp_math.hpp>
-#include <mgp.otcstore/utils.h>
+#include <mgp.otcstore/utils.hpp>
 
 
 using namespace eosio;
@@ -18,10 +18,115 @@ using namespace wasm::safemath;
 void mgp_otcstore::init() {
 	// _global.remove();
 
+	// sell_order_t orders(_self, _self.value);
+
+	// orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 0;
+    //     row.owner                       = "lichuanhe123"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.quantity                    = asset_from_string("228.0299 MGP");
+    //     row.min_accept_quantity         = asset_from_string("157.00 CNY");
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 1;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     row.closed_at                   = time_point_sec(1611395625);
+    // });
+
+	// orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 1;
+    //     row.owner                       = "131313abcb13"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.quantity                    = asset_from_string("6000.0000 MGP");
+    //     row.min_accept_quantity         = asset_from_string("1000.00 CNY");
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 1;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     row.closed_at                   = time_point_sec(1611395625);
+    // });
+
+    // orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 2;
+    //     row.owner                       = "xieyanmei112"_n;
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.quantity                    = asset_from_string("8934.2471 MGP");
+    //     row.min_accept_quantity.symbol  = CNY_SYMBOL;
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.accepted_payments           = {2, 3};
+    //     row.closed                      = 1;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     row.closed_at                   = time_point_sec(1611395625);
+
+    // });
+
+    // orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 3;
+    //     row.owner                       = "bitcoin22222"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.price                       = asset_from_string("0.68 CNY");
+    //     row.quantity                    = asset_from_string("1380.0000 MGP");
+    //     row.min_accept_quantity         = asset_from_string("68.00 CNY");
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 0;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     // row.closed_at                    = time_point_sec(1611395625);
+
+    // });
+
+    // orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 4;
+    //     row.owner                       = "xieyanmei112"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.quantity                    = asset_from_string("11.4196 MGP");
+    //     row.min_accept_quantity         = asset_from_string("0.00 CNY");
+    //     row.frozen_quantity             = asset_from_string("11.4196 MGP");
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 0;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     // row.closed_at                    = time_point_sec(1611395625);
+    // });
+
+
+    // orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 5;
+    //     row.owner                       = "zclzclzcllts"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.quantity                    = asset_from_string("10.0000 MGP");
+    //     row.min_accept_quantity         = asset_from_string("6.90 CNY");
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 0;
+    //     row.created_at                  = time_point_sec(1611395565);
+    //     // row.closed_at                    = time_point_sec(1611395625);
+    // });
+
+    // orders.emplace( _self, [&]( auto& row ) {
+    //     row.id                          = 6;
+    //     row.owner                       = "xieyanmei112"_n;
+    //     row.accepted_payments           = {2, 3};
+    //     row.quantity                    = asset_from_string("1000.0000 MGP");
+    //     row.price                       = asset_from_string("0.69 CNY");
+    //     row.min_accept_quantity         = asset_from_string("0.00 CNY");
+    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
+    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
+    //     row.closed                      = 0;
+    //     row.created_at                  = time_point_sec(1611396293);
+    //     // row.closed_at                    = time_point_sec(1611395625);
+
+    // });
+
+
 	// _gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
 	// _gstate.min_buy_order_quantity.amount 	= 10'0000;
 	// _gstate.min_sell_order_quantity.amount 	= 10'0000;
-	_gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
+	// _gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
 	// _gstate.withhold_expire_sec 			= 900;
 	// _gstate.pos_staking_contract 			= "addressbookt"_n;
 	// _gstate.cs_contact_title				= "Custom Service Contact";

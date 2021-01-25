@@ -88,6 +88,7 @@ struct CONTRACT_TBL order_t {
     uint64_t id;                //PK: available_primary_key
 
     name owner;                 //order maker's account
+    set<uint8_t> accepted_payments;
     asset price;                // MGP price the buyer willing to buy, symbol CNY|USD
     asset quantity;
     asset min_accept_quantity;
@@ -104,7 +105,7 @@ struct CONTRACT_TBL order_t {
     // uint64_t scope() const { return price.symbol.code().raw(); } //not in use actually
 
     //to sort sellers orders: smaller-price order first
-    uint64_t by_price() const { return closed || (frozen_quantity + fulfilled_quantity + min_accept_quantity > quantity) ? -1 : price.amount; } 
+    uint64_t by_price() const { return closed || (frozen_quantity + fulfilled_quantity >= quantity) ? -1 : price.amount; } 
     
     //to sort buyers orders: bigger-price order first
     uint64_t by_invprice() const { return closed ? 0 : std::numeric_limits<uint64_t>::max() - price.amount; } 
@@ -112,8 +113,7 @@ struct CONTRACT_TBL order_t {
     //to sort by order makers account
     uint64_t by_maker() const { return owner.value; }
   
-
-    EOSLIB_SERIALIZE(order_t,   (id)(owner)(price)(quantity)(min_accept_quantity)
+    EOSLIB_SERIALIZE(order_t,   (id)(owner)(accepted_payments)(price)(quantity)(min_accept_quantity)
                                 (frozen_quantity)(fulfilled_quantity)
                                 (closed)(created_at)(closed_at) )
 };
