@@ -2,7 +2,7 @@
 #include <mgp.vstaking/staking_entities.hpp>
 #include <mgp.otcstore/otcstore.hpp>
 #include <mgp.otcstore/mgp_math.hpp>
-#include <mgp.otcstore/utils.hpp>
+#include <mgp.otcstore/utils.h>
 
 
 using namespace eosio;
@@ -145,8 +145,8 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 	check(memo_to_buyer.size() < max_memo_size, "memo size too large: " + to_string(memo_to_buyer.size()) );
 
 	seller_t seller(owner);
-	check( _dbc.get(seller), "seller not found: " + owner.to_string() );
-
+	//check( _dbc.get(seller), "seller not found: " + owner.to_string() );
+	_dbc.get(seller)
 	seller.accepted_payments.clear();
 	for (auto& method : pay_methods) {
 		check( (PaymentType) method < PaymentType::PAYMAX, "pay method illegal: " + to_string(method) );
@@ -205,6 +205,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		row.created_at			= time_point_sec(current_time_point());
 		row.frozen_quantity.symbol = SYS_SYMBOL;
 		row.fulfilled_quantity.symbol = SYS_SYMBOL;
+		row.accepted_payments = seller.accepted_payments;
 	});
 }
 
@@ -292,7 +293,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
  */
 void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 	require_auth( taker );
-
+	
 	sk_deal_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );

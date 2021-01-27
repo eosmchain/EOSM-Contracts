@@ -66,9 +66,11 @@ enum PaymentType: uint8_t {
     BANK        = 1,
     WECAHAT     = 2,
     ALIPAY      = 3,
-    MASTER      = 4,
-    VISA        = 5,
-    PAYPAL      = 6,
+    USDT_ERC20  = 4,
+    USDT_TRC20  = 5,
+    MASTER      = 6,
+    VISA        = 7,
+    PAYPAL      = 8,
 
 
 };
