@@ -102,8 +102,11 @@ class [[eosio::contract("mgp.otcstore")]] mgp_otcstore: public eosio::contract {
     [[eosio::action]]
     void backdeal(const name& owner,const uint64_t& deal_id);
 
-     [[eosio::action]]
+    [[eosio::action]]
     void restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type);
+
+    [[eosio::action]]
+    void setrate(const name& owner,const asset& mgp_price,const asset& usd_exchange_rate);
 
     using init_action       = action_wrapper<name("init"),        &mgp_otcstore::init       >;
     using setseller_action  = action_wrapper<name("setseller"),   &mgp_otcstore::setseller  >;
