@@ -448,29 +448,30 @@ void mgp_bpvoting::_referesh_tallied_votes() {
 
 	// return;
 
-	uint64_t END_TIME = 1609203600; // 12/29/2020 @ 1:00am (UTC)
-	map<name, asset> cand_votes;
-	
-	vote_t::tbl_t votes(_self, _self.value);
-	auto idx = votes.get_index<"voteda"_n>();
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (itr->voted_at.sec_since_epoch() > END_TIME) break;
+	uint64_t END_ID = _gstate2.vote_tally_index; // 12/29/2020 @ 1:00am (UTC)
+    map<name, asset> cand_votes;
+    time_point ct;
+    vote_t::tbl_t votes(_self, _self.value);
+    auto idx = votes.get_index<"voteda"_n>();
+    for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+        if (itr->id > END_ID) break;
 
-		if (cand_votes.count(itr->candidate) == 0)
-			cand_votes[itr->candidate] = itr->quantity;
-		else 
-			cand_votes[itr->candidate] += itr->quantity;
-	}
+        if (cand_votes.count(itr->candidate) == 0)
+            cand_votes[itr->candidate] = asset(0, SYS_SYMBOL);
 
-	for (auto& item: cand_votes) {
-		candidate_t can(item.first);
-		check(_dbc.get(can), "not found: " + item.first.to_string());
-		can.tallied_votes = item.second;
-		if (can.tallied_votes > can.received_votes)
-			can.tallied_votes = can.received_votes;
+        if (itr->unvoted_at.sec_since_epoch() == ct.sec_since_epoch())
+            cand_votes[itr->candidate] += itr->quantity;
+    }
 
-		_dbc.set(can);
-	}
+    for (auto& item: cand_votes) {
+        candidate_t can(item.first);
+        check(_dbc.get(can), "not found: " + item.first.to_string());
+        can.tallied_votes = item.second;
+        if (can.tallied_votes > can.received_votes)
+            can.tallied_votes = can.received_votes;
+
+        _dbc.set(can);
+    }
 
 }
 
