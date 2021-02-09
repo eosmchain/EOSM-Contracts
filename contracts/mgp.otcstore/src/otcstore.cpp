@@ -123,18 +123,19 @@ void mgp_otcstore::init() {
     // });
 
 
-	// _gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
-	// _gstate.min_buy_order_quantity.amount 	= 10'0000;
-	// _gstate.min_sell_order_quantity.amount 	= 10'0000;
-	// _gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
-	// _gstate.withhold_expire_sec 			= 900;
-	// _gstate.pos_staking_contract 			= "addressbookt"_n;
-	// _gstate.cs_contact_title				= "Custom Service Contact";
-	// _gstate.cs_contact						= "cs_contact_mango";
+	_gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
+	_gstate.min_buy_order_quantity.amount 	= 10'0000;
+	_gstate.min_sell_order_quantity.amount 	= 10'0000;
+	_gstate.min_pos_stake_quantity.amount 	= 2000'0000; //close to $200
+	_gstate.withhold_expire_sec 			= 900;
+	_gstate.pos_staking_contract 			= "addressbookt"_n;
+	_gstate.cs_contact_title				= "Custom Service Contact";
+	_gstate.cs_contact						= "cs_contact_mango";
 
-	// _gstate.otc_arbiters.insert( "mangoma23523"_n );
-
-	// _gstate.otc_arbiters.insert( "prodchenhang"_n );
+	_gstate.otc_arbiters.insert( "mangoma23523"_n );
+	_gstate.otc_arbiters.insert( "mwalletadmin"_n );
+	_gstate.otc_arbiters.insert( "prodchenhang"_n );
+	_gstate.action_operator = "mwalletadmin"_n;
 
 }
 
@@ -146,10 +147,11 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 
 	seller_t seller(owner);
 	//check( _dbc.get(seller), "seller not found: " + owner.to_string() );
-	_dbc.get(seller)
+	_dbc.get(seller);
 	seller.accepted_payments.clear();
 	for (auto& method : pay_methods) {
 		check( (PaymentType) method < PaymentType::PAYMAX, "pay method illegal: " + to_string(method) );
+		check( (PaymentType) method > PaymentType::PAYMIN, "pay method illegal: " + to_string(method) );
 
 		seller.accepted_payments.insert( method );
 	}
@@ -166,7 +168,8 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
  */
 void mgp_otcstore::openorder(const name& owner, const asset& quantity, const asset& price, const asset& min_accept_quantity) {
 	require_auth( owner );
-
+	
+	// check( _gstate.usd_exchange_rate > asset(0, USD_SYMBOL), "The exchange rate is incorrect");
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
@@ -199,6 +202,7 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		row.id 					= order_id;
 		row.owner 				= owner;
 		row.price				= price;
+		row.price_usd			= asset( price.amount * 10000 / _gstate.usd_exchange_rate.amount , USD_SYMBOL);
 		row.quantity			= quantity;
 		row.min_accept_quantity = min_accept_quantity;
 		row.closed				= false;
@@ -249,7 +253,9 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "Order's min accept quantity not met!" );
 	///TODO: check if frozen amount timeout already
 
+	
 	asset order_price = itr->price;
+	asset order_price_usd = itr->price_usd;
 	name order_maker = itr->owner;
 
     sk_deal_t deals(_self, _self.value);
@@ -265,6 +271,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
         row.id 					= deal_id;
         row.order_id 			= order_id;
         row.order_price			= order_price;
+		row.order_price_usd		= order_price_usd;
         row.deal_quantity		= deal_quantity;
         row.order_maker			= order_maker;
         row.order_taker			= taker;
@@ -331,6 +338,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 	sell_order_t orders(_self, _self.value);
 	auto order_itr = orders.find(deal_itr->order_id);
 	check( order_itr != orders.end(), "order not found: " + to_string(deal_itr->order_id) );
+	check( order_itr -> accepted_payments.count(pay_type) , "pay method illegal: " + to_string(pay_type) );
 
 	auto now = time_point_sec(current_time_point());
 
@@ -414,11 +422,13 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		});
 
 	} else { //at least two parties agreed, hence we can settle now!
-		action(
-			permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
-			std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity,
-						std::string("") )
-		).send();
+
+		TRANSFER( SYS_BANK, deal_itr->order_taker, deal_itr->deal_quantity, "Transaction completed" )
+		// action(
+		// 	permission_level{ _self, "active"_n }, SYS_BANK, "transfer"_n,
+		// 	std::make_tuple( _self, deal_itr->order_taker, deal_itr->deal_quantity,
+		// 				std::string("") )
+		// ).send();
 
 		deals.modify( *deal_itr, _self, [&]( auto& row ) {
 			row.closed = true;
@@ -637,6 +647,22 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 	}
 }
 
+/**
+ * 更新汇率及mgp价格
+ */ 
+void mgp_otcstore::setrate(const name& owner,const asset& mgp_price,const asset& usd_exchange_rate){
+	require_auth( owner );
+	
+	check( owner == _gstate.action_operator , "No operation permission" );
+	check( mgp_price.symbol == USD_SYMBOL , "mgp price is USD" );
+	check( usd_exchange_rate.symbol == CNY_SYMBOL , "The exchange rate is CNY" );
+
+	_gstate.mgp_price = mgp_price;
+	_gstate.usd_exchange_rate = usd_exchange_rate;
+
+	
+
+}
 /*************** Begin of eosio.token transfer trigger function ******************/
 /**
  * This happens when a seller deicdes to open sell orders
