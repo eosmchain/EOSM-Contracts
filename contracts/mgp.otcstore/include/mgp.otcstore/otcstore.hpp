@@ -129,6 +129,7 @@ public:
 
 private:
     void _init();
+    void _data_migrate();
 };
 
 inline vector <string> string_split(string str, char delimiter) {
