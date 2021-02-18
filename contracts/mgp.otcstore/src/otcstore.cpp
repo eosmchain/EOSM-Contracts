@@ -28,69 +28,67 @@ void mgp_otcstore::_init() {
 	_gstate.otc_arbiters.insert( "mangoma23523"_n );
 	_gstate.otc_arbiters.insert( "mwalletadmin"_n );
 	_gstate.otc_arbiters.insert( "prodchenhang"_n );
+
 	_gstate2.admin = "mwalletadmin"_n;
 }
 
 void mgp_otcstore::init() {
 	// _global.remove();
 	
-	// check( false, "stop here" );
+	// sell_order_t orders(_self, _self.value);
+	// for (auto itr = orders.begin(); itr != orders.end(); ) {
+	// 	// order_t::idx_t order(_self, _self.value);
 
-	sell_order_t orders(_self, _self.value);
-	for (auto itr = orders.begin(); itr != orders.end(); ) {
-		tmp_order_t::idx_t order(_self, _self.value);
+	// 	// order.emplace( _self, [&]( auto& row ) {
+	// 	// 	row.id 					= itr->id;
+	// 	// 	row.owner 				= itr->owner;
+	// 	// 	row.price				= itr->price;
+	// 	// 	row.price_usd			= asset( itr->price.amount * 10000 / _gstate2.usd_exchange_rate.amount , USD_SYMBOL);
+	// 	// 	row.quantity			= itr->quantity;
+	// 	// 	row.min_accept_quantity = itr->min_accept_quantity;
+	// 	// 	row.closed				= itr->closed;
+	// 	// 	row.created_at			= itr->created_at;
+	// 	// 	row.frozen_quantity.symbol = SYS_SYMBOL;
+	// 	// 	row.fulfilled_quantity.symbol = SYS_SYMBOL;
+	// 	// 	row.accepted_payments = itr->accepted_payments;
+	// 	// });
 
-		order.emplace( _self, [&]( auto& row ) {
-			row.id 					= itr->id;
-			row.owner 				= itr->owner;
-			row.price				= itr->price;
-			row.price_usd			= asset( itr->price.amount * 10000 / _gstate2.usd_exchange_rate.amount , USD_SYMBOL);
-			row.quantity			= itr->quantity;
-			row.min_accept_quantity = itr->min_accept_quantity;
-			row.closed				= itr->closed;
-			row.created_at			= itr->created_at;
-			row.frozen_quantity.symbol = SYS_SYMBOL;
-			row.fulfilled_quantity.symbol = SYS_SYMBOL;
-			row.accepted_payments = itr->accepted_payments;
-		});
+	// 	// itr++;
+	// 	itr = orders.erase(itr);
+	// }
 
-		itr++;
-		// itr = orders.erase(itr);
-	}
+	// deal_t::idx_t deals(_self, _self.value);
+	// for (auto itr = deals.begin(); itr != deals.end(); ) {
+	// 	// tmpdeal_idx_t tmpdeal(_self, _self.value);
+	// 	// tmpdeal.emplace( _self, [&]( auto& row ) {
+	// 	// 	row.id 					= itr->id;
+	// 	// 	row.order_id 			= itr->order_id;
+	// 	// 	row.order_price			= itr->order_price;
+	// 	// 	row.order_price_usd		= asset( itr->order_price.amount * 10000 / _gstate2.usd_exchange_rate.amount , USD_SYMBOL);
+	// 	// 	row.deal_quantity		= itr->deal_quantity;
+	// 	// 	row.order_maker			= itr->order_maker;
+	// 	// 	row.maker_passed		= itr->maker_passed;
+	// 	// 	row.maker_passed_at		= itr->maker_passed_at;
+	// 	// 	row.order_taker			= itr->order_taker;
+	// 	// 	row.taker_passed		= itr->taker_passed;
+	// 	// 	row.taker_passed_at		= itr->taker_passed_at;
+	// 	// 	row.arbiter				= itr->arbiter;
+	// 	// 	row.arbiter_passed		= itr->arbiter_passed;
+	// 	// 	row.arbiter_passed_at	= itr->arbiter_passed_at;
+	// 	// 	row.closed				= itr->closed;
+	// 	// 	row.created_at			= itr->created_at;
+	// 	// 	row.closed_at			= itr->closed_at;
+	// 	// 	row.order_sn 			= itr->order_sn;
+	// 	// 	row.pay_type			= itr->pay_type;
+	// 	// 	row.expired_at 			= itr->expired_at;
+	// 	// 	row.maker_expired_at	= itr->maker_expired_at;
+	// 	// 	row.restart_taker_num 	= itr->restart_taker_num;
+	// 	// 	row.restart_maker_num 	= itr->restart_maker_num;
+	// 	// });
 
-	deal_t::idx_t deals(_self, _self.value);
-	for (auto itr = deals.begin(); itr != deals.end(); ) {
-
-		tmpdeal_idx_t tmpdeal(_self, _self.value);
-		tmpdeal.emplace( _self, [&]( auto& row ) {
-			row.id 					= itr->id;
-			row.order_id 			= itr->order_id;
-			row.order_price			= itr->order_price;
-			row.order_price_usd		= asset( itr->order_price.amount * 10000 / _gstate2.usd_exchange_rate.amount , USD_SYMBOL);
-			row.deal_quantity		= itr->deal_quantity;
-			row.order_maker			= itr->order_maker;
-			row.maker_passed		= itr->maker_passed;
-			row.maker_passed_at		= itr->maker_passed_at;
-			row.order_taker			= itr->order_taker;
-			row.taker_passed		= itr->taker_passed;
-			row.taker_passed_at		= itr->taker_passed_at;
-			row.arbiter				= itr->arbiter;
-			row.arbiter_passed		= itr->arbiter_passed;
-			row.arbiter_passed_at	= itr->arbiter_passed_at;
-			row.closed				= itr->closed;
-			row.created_at			= itr->created_at;
-			row.closed_at			= itr->closed_at;
-			row.order_sn 			= itr->order_sn;
-			row.pay_type			= itr->pay_type;
-			row.expired_at 			= itr->expired_at;
-			row.maker_expired_at	= itr->maker_expired_at;
-			row.restart_taker_num 	= itr->restart_taker_num;
-			row.restart_maker_num 	= itr->restart_maker_num;
-		});
-
-		itr++;
-		// itr = deals.erase(itr);
-	}
+	// 	// itr++;
+	// 	itr = deals.erase(itr);
+	// }
 
 	//_init();
 
@@ -608,11 +606,11 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 /**
  * 更新汇率及mgp价格
  */ 
-void mgp_otcstore::setrate(const name& owner,const asset& mgp_price, const asset& usd_exchange_rate){
+void mgp_otcstore::setrate(const name& owner, const asset& mgp_price, const asset& usd_exchange_rate){
 	require_auth( owner );
 	
-	check( owner == _gstate2.admin , "No operation permission" );
-	check( mgp_price.symbol == USD_SYMBOL , "mgp price is USD" );
+	check( owner == _gstate2.admin || owner == _self, "None-admin access denied" );
+	check( mgp_price.symbol == USD_SYMBOL , "MGP price is must be in USD" );
 	check( usd_exchange_rate.symbol == CNY_SYMBOL , "The exchange rate is CNY" );
 
 	_gstate2.mgp_price = mgp_price;
