@@ -85,6 +85,9 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 
+    [[eosio::action]]
+    void refunds();
+
     using init_action     = action_wrapper<name("init"),      &mgp_bpvoting::init     >;
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
