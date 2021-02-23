@@ -18,7 +18,6 @@ using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
-static constexpr eosio::name cs_contact{""_n};
 
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
 static constexpr symbol   CNY_SYMBOL            = symbol(symbol_code("CNY"), 2);
@@ -44,9 +43,6 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
     set<name> otc_arbiters;
     string cs_contact_title;
     string cs_contact;
-    asset mgp_price; // mgp 价格
-    asset usd_exchange_rate; // usd汇率
-    name action_operator; // action 调用员
 
     global_t() {
         min_buy_order_quantity      = asset(10, SYS_SYMBOL);
@@ -54,17 +50,30 @@ struct [[eosio::table("global"), eosio::contract("mgp.otcstore")]] global_t {
         min_pos_stake_quantity      = asset(0, SYS_SYMBOL);
         withhold_expire_sec         = 600; //10 mins
         transaction_fee_ratio       = 0;
-        mgp_price  = asset(0, USD_SYMBOL);
-        usd_exchange_rate = asset(0, CNY_SYMBOL);
+        
     }
 
     EOSLIB_SERIALIZE( global_t, (min_buy_order_quantity)(min_sell_order_quantity)
                                 (min_pos_stake_quantity)(pos_staking_contract)
                                 (withhold_expire_sec)(transaction_fee_receiver)
                                 (transaction_fee_ratio)(otc_arbiters)
-                                (cs_contact_title)(cs_contact)(mgp_price)(usd_exchange_rate)(action_operator) )
+                                (cs_contact_title)(cs_contact) )
 };
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
+
+struct [[eosio::table("global2"), eosio::contract("mgp.otcstore")]] global2_t {
+    asset mgp_price; // mgp 价格
+    asset usd_exchange_rate; // usd汇率
+    name admin; // action 调用员
+
+    global2_t() {
+        mgp_price  = asset(0, USD_SYMBOL);
+        usd_exchange_rate = asset(0, CNY_SYMBOL);
+    }
+
+    EOSLIB_SERIALIZE( global2_t, (mgp_price)(usd_exchange_rate)(admin) )
+};
+typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
 
 enum PaymentType: uint8_t {
     PAYMIN      = 0,
@@ -77,8 +86,6 @@ enum PaymentType: uint8_t {
     VISA        = 7,
     PAYPAL      = 8,
     PAYMAX      = 9
-
-
 };
 
 enum UserType: uint8_t {
@@ -126,21 +133,21 @@ struct CONTRACT_TBL order_t {
     uint64_t by_maker() const { return owner.value; }
   
     EOSLIB_SERIALIZE(order_t,   (id)(owner)(accepted_payments)(price)(price_usd)(quantity)(min_accept_quantity)
-                                (frozen_quantity)(fulfilled_quantity)
-                                (closed)(created_at)(closed_at))
+                                    (frozen_quantity)(fulfilled_quantity)
+                                    (closed)(created_at)(closed_at))
 };
 
 typedef eosio::multi_index
-    < "buyorders"_n,  order_t,
-        indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_invprice> >,
-        indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
-    > buy_order_t;
+< "buyorders"_n,  order_t,
+    indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_invprice> >,
+    indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
+> buy_order_t;
 
 typedef eosio::multi_index
-    < "selorders"_n, order_t,
-        indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_price> >,
-        indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
-    > sell_order_t;
+< "selorders"_n, order_t,
+    indexed_by<"price"_n, const_mem_fun<order_t, uint64_t, &order_t::by_price> >,
+    indexed_by<"maker"_n, const_mem_fun<order_t, uint64_t, &order_t::by_maker> >
+> sell_order_t;
 
 /**
  * buy/sell deal
@@ -182,8 +189,7 @@ struct CONTRACT_TBL deal_t {
     deal_t(uint64_t i): id(i) {}
 
     uint64_t primary_key() const { return id; }
-    uint64_t scope() const { return 0; }
-    // uint64_t scope() const { return order_price.symbol.code().raw(); }
+    uint64_t scope() const { return /*order_price.symbol.code().raw()*/ 0; }
 
     uint64_t by_order()     const { return order_id; }
     uint64_t by_maker()     const { return order_maker.value; }
@@ -193,6 +199,16 @@ struct CONTRACT_TBL deal_t {
     uint64_t by_expired_at() const    { return uint64_t(expired_at.sec_since_epoch()); }
     uint64_t by_maker_expired_at() const    { return uint64_t(maker_expired_at.sec_since_epoch()); }
 
+    typedef eosio::multi_index
+    <"deals"_n, deal_t,
+        indexed_by<"order"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_order> >,
+        indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
+        indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
+        indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
+        indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >,
+        indexed_by<"expiry"_n,  const_mem_fun<deal_t, uint64_t, &deal_t::by_expired_at> >
+    > idx_t;
+
     EOSLIB_SERIALIZE(deal_t,    (id)(order_id)(order_price)(order_price_usd)(deal_quantity)
                                 (order_maker)(maker_passed)(maker_passed_at)
                                 (order_taker)(taker_passed)(taker_passed_at)
@@ -201,16 +217,6 @@ struct CONTRACT_TBL deal_t {
                                 (expired_at)(maker_expired_at)
                                 (restart_taker_num)(restart_maker_num))
 };
-
-typedef eosio::multi_index
-    <"deals"_n, deal_t,
-        indexed_by<"order"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_order> >,
-        indexed_by<"maker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_maker> >,
-        indexed_by<"taker"_n,   const_mem_fun<deal_t, uint64_t, &deal_t::by_taker> >,
-        indexed_by<"arbiter"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_arbiter> >,
-        indexed_by<"ordersn"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_ordersn> >,
-        indexed_by<"expiry"_n, const_mem_fun<deal_t, uint64_t, &deal_t::by_expired_at> >
-    > sk_deal_t;
 
 struct CONTRACT_TBL seller_t {
     name owner;
@@ -226,7 +232,7 @@ struct CONTRACT_TBL seller_t {
     uint64_t primary_key()const { return owner.value; }
     uint64_t scope()const { return 0; }
 
-    typedef eosio::multi_index<"sellers"_n, seller_t> tbl_t;
+    typedef eosio::multi_index<"sellers"_n, seller_t> idx_t;
 
     EOSLIB_SERIALIZE(seller_t,  (owner)(available_quantity)(accepted_payments)
                                 (processed_deals)(email)(memo) )

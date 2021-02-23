@@ -15,114 +15,7 @@ using namespace std;
 using namespace eosio;
 using namespace wasm::safemath;
 
-void mgp_otcstore::init() {
-	// _global.remove();
-
-	// sell_order_t orders(_self, _self.value);
-
-	// orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 0;
-    //     row.owner                       = "lichuanhe123"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.quantity                    = asset_from_string("228.0299 MGP");
-    //     row.min_accept_quantity         = asset_from_string("157.00 CNY");
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 1;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     row.closed_at                   = time_point_sec(1611395625);
-    // });
-
-	// orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 1;
-    //     row.owner                       = "131313abcb13"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.quantity                    = asset_from_string("6000.0000 MGP");
-    //     row.min_accept_quantity         = asset_from_string("1000.00 CNY");
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 1;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     row.closed_at                   = time_point_sec(1611395625);
-    // });
-
-    // orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 2;
-    //     row.owner                       = "xieyanmei112"_n;
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.quantity                    = asset_from_string("8934.2471 MGP");
-    //     row.min_accept_quantity.symbol  = CNY_SYMBOL;
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.accepted_payments           = {2, 3};
-    //     row.closed                      = 1;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     row.closed_at                   = time_point_sec(1611395625);
-
-    // });
-
-    // orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 3;
-    //     row.owner                       = "bitcoin22222"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.price                       = asset_from_string("0.68 CNY");
-    //     row.quantity                    = asset_from_string("1380.0000 MGP");
-    //     row.min_accept_quantity         = asset_from_string("68.00 CNY");
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 0;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     // row.closed_at                    = time_point_sec(1611395625);
-
-    // });
-
-    // orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 4;
-    //     row.owner                       = "xieyanmei112"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.quantity                    = asset_from_string("11.4196 MGP");
-    //     row.min_accept_quantity         = asset_from_string("0.00 CNY");
-    //     row.frozen_quantity             = asset_from_string("11.4196 MGP");
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 0;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     // row.closed_at                    = time_point_sec(1611395625);
-    // });
-
-
-    // orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 5;
-    //     row.owner                       = "zclzclzcllts"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.quantity                    = asset_from_string("10.0000 MGP");
-    //     row.min_accept_quantity         = asset_from_string("6.90 CNY");
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 0;
-    //     row.created_at                  = time_point_sec(1611395565);
-    //     // row.closed_at                    = time_point_sec(1611395625);
-    // });
-
-    // orders.emplace( _self, [&]( auto& row ) {
-    //     row.id                          = 6;
-    //     row.owner                       = "xieyanmei112"_n;
-    //     row.accepted_payments           = {2, 3};
-    //     row.quantity                    = asset_from_string("1000.0000 MGP");
-    //     row.price                       = asset_from_string("0.69 CNY");
-    //     row.min_accept_quantity         = asset_from_string("0.00 CNY");
-    //     row.frozen_quantity.symbol      = SYS_SYMBOL;
-    //     row.fulfilled_quantity.symbol   = SYS_SYMBOL;
-    //     row.closed                      = 0;
-    //     row.created_at                  = time_point_sec(1611396293);
-    //     // row.closed_at                    = time_point_sec(1611395625);
-
-    // });
-
-
+void mgp_otcstore::_init() {
 	_gstate.transaction_fee_receiver 		= "mgp.devshare"_n;
 	_gstate.min_buy_order_quantity.amount 	= 10'0000;
 	_gstate.min_sell_order_quantity.amount 	= 10'0000;
@@ -135,7 +28,71 @@ void mgp_otcstore::init() {
 	_gstate.otc_arbiters.insert( "mangoma23523"_n );
 	_gstate.otc_arbiters.insert( "mwalletadmin"_n );
 	_gstate.otc_arbiters.insert( "prodchenhang"_n );
-	_gstate.action_operator = "mwalletadmin"_n;
+
+	_gstate2.admin = "mwalletadmin"_n;
+}
+
+void mgp_otcstore::_data_migrate() {
+	// sell_order_t orders(_self, _self.value);
+	// for (auto itr = orders.begin(); itr != orders.end(); ) {
+	// 	new_sell_order_t order(_self, _self.value);
+
+	// 	order.emplace( _self, [&]( auto& row ) {
+	// 		row.id 					= itr->id;
+	// 		row.owner 				= itr->owner;
+	// 		row.price				= itr->price;
+	// 		row.price_usd			= itr->price_usd;
+	// 		row.quantity			= itr->quantity;
+	// 		row.min_accept_quantity = itr->min_accept_quantity;
+	// 		row.closed				= itr->closed;
+	// 		row.created_at			= itr->created_at;
+	// 		row.frozen_quantity.symbol = SYS_SYMBOL;
+	// 		row.fulfilled_quantity.symbol = SYS_SYMBOL;
+	// 		row.accepted_payments = itr->accepted_payments;
+	// 	});
+
+	// 	itr = orders.erase(itr);
+	// }
+
+	// deal_t::idx_t deals(_self, _self.value);
+	// for (auto itr = deals.begin(); itr != deals.end(); ) {
+	// 	deal_t::new_idx_t newdeal(_self, _self.value);
+	// 	newdeal.emplace( _self, [&]( auto& row ) {
+	// 		row.id 					= itr->id;
+	// 		row.order_id 			= itr->order_id;
+	// 		row.order_price			= itr->order_price;
+	// 		row.order_price_usd		= itr->order_price_usd;
+	// 		row.deal_quantity		= itr->deal_quantity;
+	// 		row.order_maker			= itr->order_maker;
+	// 		row.maker_passed		= itr->maker_passed;
+	// 		row.maker_passed_at		= itr->maker_passed_at;
+	// 		row.order_taker			= itr->order_taker;
+	// 		row.taker_passed		= itr->taker_passed;
+	// 		row.taker_passed_at		= itr->taker_passed_at;
+	// 		row.arbiter				= itr->arbiter;
+	// 		row.arbiter_passed		= itr->arbiter_passed;
+	// 		row.arbiter_passed_at	= itr->arbiter_passed_at;
+	// 		row.closed				= itr->closed;
+	// 		row.created_at			= itr->created_at;
+	// 		row.closed_at			= itr->closed_at;
+	// 		row.order_sn 			= itr->order_sn;
+	// 		row.pay_type			= itr->pay_type;
+	// 		row.expired_at 			= itr->expired_at;
+	// 		row.maker_expired_at	= itr->maker_expired_at;
+	// 		row.restart_taker_num 	= itr->restart_taker_num;
+	// 		row.restart_maker_num 	= itr->restart_maker_num;
+	// 	});
+
+	// 	itr = deals.erase(itr);
+	// }
+}
+
+void mgp_otcstore::init() {
+	// _global.remove();
+	
+	check( false, "init completed!" );
+
+	//_init();
 
 }
 
@@ -196,13 +153,13 @@ void mgp_otcstore::openorder(const name& owner, const asset& quantity, const ass
 		check( itr->remaining >= _gstate.min_pos_stake_quantity, "POS Staking requirement not met" );
 	}
 
-	sell_order_t order(_self, _self.value);
-	auto order_id = order.available_primary_key();
-	order.emplace( _self, [&]( auto& row ) {
+	sell_order_t orders(_self, _self.value);
+	auto order_id = orders.available_primary_key();
+	orders.emplace( _self, [&]( auto& row ) {
 		row.id 					= order_id;
 		row.owner 				= owner;
 		row.price				= price;
-		row.price_usd			= asset( price.amount * 10000 / _gstate.usd_exchange_rate.amount , USD_SYMBOL);
+		row.price_usd			= asset( price.amount * 10000 / _gstate2.usd_exchange_rate.amount , USD_SYMBOL);
 		row.quantity			= quantity;
 		row.min_accept_quantity = min_accept_quantity;
 		row.closed				= false;
@@ -251,14 +208,12 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 	check( itr->quantity - itr->frozen_quantity > itr->fulfilled_quantity, "Err: Remaining quantity insufficient" );
 	check( itr->quantity - itr->frozen_quantity - itr->fulfilled_quantity >= deal_quantity, "Insufficient amount to make a deal" );
 	check( itr->price.amount * deal_quantity.amount >= itr->min_accept_quantity.amount * 10000, "Order's min accept quantity not met!" );
-	///TODO: check if frozen amount timeout already
-
 	
 	asset order_price = itr->price;
 	asset order_price_usd = itr->price_usd;
 	name order_maker = itr->owner;
 
-    sk_deal_t deals(_self, _self.value);
+    deal_t::idx_t deals(_self, _self.value);
     auto ordersn_index 			= deals.get_index<"ordersn"_n>();
     auto lower_itr 				= ordersn_index.lower_bound(order_sn);
     auto upper_itr 				= ordersn_index.upper_bound(order_sn);
@@ -301,7 +256,7 @@ void mgp_otcstore::opendeal(const name& taker, const uint64_t& order_id, const a
 void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 	require_auth( taker );
 	
-	sk_deal_t deals(_self, _self.value);
+	deal_t::idx_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
@@ -330,7 +285,7 @@ void mgp_otcstore::closedeal(const name& taker, const uint64_t& deal_id) {
 void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const uint64_t& deal_id, const bool& pass,const uint8_t& pay_type) {
 	require_auth( owner );
 
-	sk_deal_t deals(_self, _self.value);
+	deal_t::idx_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
@@ -465,7 +420,7 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 
 	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
 
-	sk_deal_t deals(_self, _self.value);
+	deal_t::idx_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
@@ -535,7 +490,7 @@ void mgp_otcstore::withdraw(const name& owner, asset quantity){
  * 超时检测
  *
  */
-void mgp_otcstore::timeout() {
+void mgp_otcstore::timeoutdeal() {
 
 	auto check_time = current_time_point().sec_since_epoch() - seconds_per_day;
 
@@ -543,16 +498,15 @@ void mgp_otcstore::timeout() {
 	auto exp_index = exp_time.get_index<"expiry"_n>();
 	auto lower_itr = exp_index.find(check_time);
 	// auto itr = exp_time.begin()
+	bool processed = false;
 
-	for(auto itr = exp_index.begin(); itr != lower_itr ; ){
-
-		if ( itr -> expired_at <= time_point_sec(check_time) ){
-
-			sk_deal_t deals(_self, _self.value);
+	for (auto itr = exp_index.begin(); itr != lower_itr; ) {
+		if (itr->expired_at <= time_point_sec(check_time)) {
+			deal_t::idx_t deals(_self, _self.value);
 			auto deal_itr = deals.find(itr -> deal_id);
 
  			// 订单处于买家未操作状态进行关闭
-			if ( deal_itr != deals.end() && !deal_itr->closed &&  !deal_itr -> taker_passed  ){
+			if (deal_itr != deals.end() && !deal_itr->closed &&  !deal_itr->taker_passed ) {
 
 				auto order_id = deal_itr->order_id;
 				sell_order_t orders(_self, _self.value);
@@ -571,6 +525,8 @@ void mgp_otcstore::timeout() {
 					row.closed = true;
 					row.closed_at = time_point_sec(current_time_point());
 				});
+
+				processed = true;
 			}
 
 			itr = exp_index.erase(itr);
@@ -590,7 +546,7 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 
 	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
 
-	sk_deal_t deals(_self, _self.value);
+	deal_t::idx_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
 	check( deal_itr != deals.end(), "deal not found: " + to_string(deal_id) );
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
@@ -650,22 +606,20 @@ void mgp_otcstore::restart(const name& owner,const uint64_t& deal_id,const uint8
 /**
  * 更新汇率及mgp价格
  */ 
-void mgp_otcstore::setrate(const name& owner,const asset& mgp_price,const asset& usd_exchange_rate){
+void mgp_otcstore::setrate(const name& owner, const asset& mgp_price, const asset& usd_exchange_rate){
 	require_auth( owner );
 	
-	check( owner == _gstate.action_operator , "No operation permission" );
-	check( mgp_price.symbol == USD_SYMBOL , "mgp price is USD" );
+	check( owner == _gstate2.admin || owner == _self, "None-admin access denied" );
+	check( mgp_price.symbol == USD_SYMBOL , "MGP price is must be in USD" );
 	check( usd_exchange_rate.symbol == CNY_SYMBOL , "The exchange rate is CNY" );
 
-	_gstate.mgp_price = mgp_price;
-	_gstate.usd_exchange_rate = usd_exchange_rate;
-
-	
-
+	_gstate2.mgp_price = mgp_price;
+	_gstate2.usd_exchange_rate = usd_exchange_rate;
 }
+
 /*************** Begin of eosio.token transfer trigger function ******************/
 /**
- * This happens when a seller deicdes to open sell orders
+ * This happens when a seller decides to open sell orders
  */
 void mgp_otcstore::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
@@ -694,13 +648,13 @@ void mgp_otcstore::deltable(){
 		itr = sellorders.erase(itr);
 	}
 
-	sk_deal_t deals(_self,_self.value);
+	deal_t::idx_t deals(_self,_self.value);
 	auto itr1 = deals.begin();
 	while(itr1 != deals.end()){
 		itr1 = deals.erase(itr1);
 	}
 
-	seller_t::tbl_t sellers(_self,_self.value);
+	seller_t::idx_t sellers(_self,_self.value);
 	auto itr2 = sellers.begin();
 	while(itr2 != sellers.end()){
 		itr2 = sellers.erase(itr2);

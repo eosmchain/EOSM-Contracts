@@ -692,6 +692,7 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 }
 
 /**
+ *
  * 退回撤票的币
  */
 ACTION mgp_bpvoting::refunds(){
@@ -714,6 +715,14 @@ ACTION mgp_bpvoting::refunds(){
 			itr ++;
 		}
 	}
+ 
+/*
+ * ACTION:	refresh tallied votes for data correction
+ */
+ACTION mgp_bpvoting::refreshtally() {
+	require_auth( _self );
+
+	_referesh_tallied_votes();
 }
 
 }  //end of namespace:: mgpbpvoting
