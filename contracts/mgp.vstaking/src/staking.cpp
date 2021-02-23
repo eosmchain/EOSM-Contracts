@@ -40,8 +40,9 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 	
 	name orderAccount = from;
-	if(name(memo)){
+	if(is_account(name(memo))){
 		orderAccount = name(memo);
+
 	}
 	
 	asset to_burn_quant(0, SYS_SYMBOL);
