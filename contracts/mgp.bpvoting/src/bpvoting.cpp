@@ -715,7 +715,8 @@ ACTION mgp_bpvoting::refunds(){
 			itr ++;
 		}
 	}
- 
+}
+
 /*
  * ACTION:	refresh tallied votes for data correction
  */
