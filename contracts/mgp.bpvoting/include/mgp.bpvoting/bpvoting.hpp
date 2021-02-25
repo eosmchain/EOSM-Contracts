@@ -82,6 +82,9 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void refreshtally();
 
+    [[eosio::action]]
+    void checkvotes(const name& voter, const uint64_t& last_election_round);
+
     [[eosio::on_notify("eosio.token::transfer")]]
     void deposit(name from, name to, asset quantity, string memo);
 

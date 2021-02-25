@@ -501,6 +501,33 @@ void mgp_bpvoting::_referesh_recvd_votes() {
 	}
 }
 
+ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election_round) {
+
+	// voter_t the_voter(voter);
+	// check( _dbc.get(the_voter), "voter not found: " + voter.to_string() );
+
+	election_round_t er(last_election_round);
+	check( _dbc.get(er), "ER not found: " + to_string(last_election_round) );
+
+	vote_t::tbl_t votes(_self, _self.value);
+	auto idx = votes.get_index<"voter"_n>();
+	auto total_voted = asset(0, SYS_SYMBOL);
+	auto total_unvoted = asset(0, SYS_SYMBOL);
+
+	string res = "";
+	for (auto itr = idx.begin(); itr != idx.end(); itr++ ) {
+		if (itr->voted_at > er.started_at) break;
+
+		res += to_string(itr->id) + ": " + itr->quantity.to_string() + ", ";
+		if (itr->unvoted_at.sec_since_epoch() > 0) 
+			total_unvoted += itr->quantity;
+
+		total_voted += itr->quantity;
+	}
+
+	check( false, "Res: " + res + "\n\ntotal_voted:" + total_voted.to_string() 
+					+ "\ntotal_unvoted: " + total_unvoted.to_string() );
+}
 
 /*************** Begin of ACTION functions ***************************************/
 /**
@@ -568,7 +595,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 		row.owner = owner;
 		row.quantity = vote.quantity;
 		row.created_at = time_point_sec(current_time_point());
-		row.refund_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+		row.refunded_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
 
 	});
 
@@ -591,12 +618,9 @@ ACTION mgp_bpvoting::delist(const name& issuer) {
 	// check( candidate.staked_votes.amount > 0, "Err: none staked" );
 
 	_gstate.total_listed -= candidate.staked_votes;
-
 	auto to_claim = candidate.staked_votes + candidate.unclaimed_rewards;
-	{
-        token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
-        transfer_act.send( _self, issuer, to_claim, "delist" );
-    }
+
+	TRANSFER( SYS_BANK, issuer, to_claim, "delist" )
 
 	_dbc.del( candidate );
 
@@ -662,14 +686,11 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 		check( _dbc.get(voter), "not a voter" );
 		check( voter.unclaimed_rewards.amount > 0, "rewards empty" );
 
-		{
-			token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
-			transfer_act.send( _self, issuer, voter.unclaimed_rewards , "claim" );
-		}
+		TRANSFER( SYS_BANK, issuer, voter.unclaimed_rewards , "claim" )
 
 		voter.total_claimed_rewards += voter.unclaimed_rewards;
 		voter.last_claimed_rewards = voter.unclaimed_rewards;
-		voter.unclaimed_rewards = asset(0, SYS_SYMBOL);
+		voter.unclaimed_rewards.amount = 0;
 		_dbc.set( voter );
 
 	} else { //candidate
@@ -677,14 +698,11 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 		check( _dbc.get(candidate), "not a candidate" );
 		check( candidate.unclaimed_rewards.amount > 0, "rewards empty" );
 
-		{
-			token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
-			transfer_act.send( _self, issuer, candidate.unclaimed_rewards , "claim" );
-		}
+		TRANSFER( SYS_BANK, issuer, candidate.unclaimed_rewards , "claim" )
 
 		candidate.total_claimed_rewards += candidate.unclaimed_rewards;
 		candidate.last_claimed_rewards = candidate.unclaimed_rewards;
-		candidate.unclaimed_rewards = asset(0, SYS_SYMBOL);
+		candidate.unclaimed_rewards.amount = 0;
 		_dbc.set( candidate );
 
 	}
@@ -701,18 +719,15 @@ ACTION mgp_bpvoting::refunds(){
 
 	unvote_tbl unvotes(_self, _self.value);
 	auto unvote_index = unvotes.get_index<"unvote"_n>();
-	auto lower_itr = unvote_index.find(now.sec_since_epoch());
+	auto lower_itr = unvote_index.find( now.sec_since_epoch() );
 
-	for( auto itr = unvote_index.begin(); itr != lower_itr ;){
-
-		if ( itr -> refund_at <= now){
-
+	for (auto itr = unvote_index.begin(); itr != lower_itr; ){
+		if (itr->refunded_at <= now){
 			TRANSFER( SYS_BANK, itr->owner, itr->quantity, "unvote" )
 
 			itr = unvote_index.erase(itr);
-		}else{
-
-			itr ++;
+		} else {
+			itr++;
 		}
 	}
 }

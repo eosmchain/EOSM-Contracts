@@ -277,7 +277,7 @@ struct CONTRACT_TBL unvote_t {
     name owner;
     asset quantity;
     time_point_sec created_at;
-    time_point_sec refund_at;
+    time_point_sec refunded_at;
     
     unvote_t() {}
     unvote_t(const uint64_t& i): id(i) {}
@@ -290,15 +290,15 @@ struct CONTRACT_TBL unvote_t {
 
     uint64_t by_created_at() const   { return uint64_t(created_at.sec_since_epoch()); } 
 
-    uint64_t by_refund_at() const    { return uint64_t(refund_at.sec_since_epoch()); }
+    uint64_t by_refunded_at() const    { return uint64_t(refunded_at.sec_since_epoch()); }
 
-    EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refund_at) )
+    EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refunded_at) )
 };
 
 typedef eosio::multi_index
     <"unvotes"_n, unvote_t ,
         indexed_by<"owner"_n,        const_mem_fun<unvote_t, uint64_t, &unvote_t::by_owner> >,
-        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refund_at>   >
+        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refunded_at>   >
     > unvote_tbl;
 
 }
