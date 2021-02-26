@@ -73,7 +73,7 @@ struct [[eosio::table("global"), eosio::contract("mgp.bpvoting")]] global_t {
 typedef eosio::singleton< "global"_n, global_t > global_singleton;
 
 struct [[eosio::table("global2"), eosio::contract("mgp.bpvoting")]] global2_t {
-    uint64_t vote_tally_index = 0;  //always grow, round by round
+    uint64_t last_vote_tally_index = 0;  //always grow, round by round
     uint64_t vote_reward_index = 0; //always reset to 0 after finishing at each reward round
 };
 typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
@@ -277,7 +277,7 @@ struct CONTRACT_TBL unvote_t {
     name owner;
     asset quantity;
     time_point_sec created_at;
-    time_point_sec refunded_at;
+    time_point_sec refundable_at;
     
     unvote_t() {}
     unvote_t(const uint64_t& i): id(i) {}
@@ -290,15 +290,15 @@ struct CONTRACT_TBL unvote_t {
 
     uint64_t by_created_at() const   { return uint64_t(created_at.sec_since_epoch()); } 
 
-    uint64_t by_refunded_at() const    { return uint64_t(refunded_at.sec_since_epoch()); }
+    uint64_t by_refundable_at() const    { return uint64_t(refundable_at.sec_since_epoch()); }
 
-    EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refunded_at) )
+    EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refundable_at) )
 };
 
 typedef eosio::multi_index
     <"unvotes"_n, unvote_t ,
         indexed_by<"owner"_n,        const_mem_fun<unvote_t, uint64_t, &unvote_t::by_owner> >,
-        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refunded_at>   >
+        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refundable_at>   >
     > unvote_tbl;
 
 }

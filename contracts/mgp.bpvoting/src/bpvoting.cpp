@@ -138,18 +138,15 @@ void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate)
 
 void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& execution_round) {
 	vote_t::tbl_t votes(_self, _self.value);
-	auto upper_itr = votes.upper_bound( _gstate2.vote_tally_index );
-	int step = 0;
-
-	// check(false, "last_round=" + to_string(last_round.round_id) );
+	auto upper_itr = votes.upper_bound( _gstate2.last_vote_tally_index );
 	bool completed = true;
-
+	int step = 0;
 	for (auto itr = upper_itr; itr != votes.end() && itr->voted_at <= last_round.ended_at; itr++) {
 		if (step++ == _gstate.max_tally_vote_iterate_steps) {
 			completed = false;
 			break;
 		}
-		_gstate2.vote_tally_index = itr->id;
+		_gstate2.last_vote_tally_index = itr->id;
 
 		candidate_t candidate(itr->candidate);
 		if ( _dbc.get(candidate) ) {
@@ -166,7 +163,6 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 
 	last_round.vote_tally_completed = completed;
 	_dbc.set( last_round );
-
 	_dbc.set( execution_round );
 
 }
@@ -448,7 +444,7 @@ void mgp_bpvoting::_referesh_tallied_votes() {
 
 	// return;
 
-	uint64_t END_ID = _gstate2.vote_tally_index; // 12/29/2020 @ 1:00am (UTC)
+	uint64_t END_ID = _gstate2.last_vote_tally_index; // 12/29/2020 @ 1:00am (UTC)
 	map<name, asset> cand_votes;
 	time_point ct;
 	vote_t::tbl_t votes(_self, _self.value);
@@ -540,7 +536,7 @@ ACTION mgp_bpvoting::init() {
 	// TRANSFER( SYS_BANK, "masteraychen"_n, quant, "" )
 
 	// _gstate2.vote_reward_index = 0;
-	// _gstate2.vote_tally_index = 378;
+	// _gstate2.last_vote_tally_index = 378;
 
 	// _global2.remove();
 	// _gstate.last_execution_round = 32;
@@ -589,13 +585,12 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	auto unvote_itr = unvotes.find(vote_id);
 	check( unvote_itr == unvotes.end()  , "The vote has been withdrawn");
 
-	unvotes.emplace( _self, [&]( auto& row){
-
+	unvotes.emplace( _self, [&](auto& row) {
 		row.id = vote_id;
 		row.owner = owner;
 		row.quantity = vote.quantity;
 		row.created_at = time_point_sec(current_time_point());
-		row.refunded_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+		row.refundable_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
 
 	});
 
@@ -706,7 +701,6 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
 		_dbc.set( candidate );
 
 	}
-
 }
 
 /**
@@ -722,7 +716,7 @@ ACTION mgp_bpvoting::refunds(){
 	auto lower_itr = unvote_index.find( now.sec_since_epoch() );
 
 	for (auto itr = unvote_index.begin(); itr != lower_itr; ){
-		if (itr->refunded_at <= now){
+		if (itr->refundable_at <= now){
 			TRANSFER( SYS_BANK, itr->owner, itr->quantity, "unvote" )
 
 			itr = unvote_index.erase(itr);
@@ -741,4 +735,4 @@ ACTION mgp_bpvoting::refreshtally() {
 	_referesh_tallied_votes();
 }
 
-}  //end of namespace:: mgpbpvoting
+}  //end of namespace:: mgp_bpvoting
