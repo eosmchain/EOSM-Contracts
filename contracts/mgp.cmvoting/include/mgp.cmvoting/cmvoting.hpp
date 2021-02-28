@@ -62,22 +62,22 @@ class [[eosio::contract("mgp.cmvoting")]] mgp_cmvoting: public eosio::contract {
     
     //scheme是否开启投递方案  vote是否开启投票  award是否开启结算
     [[eosio::action]]
-    void control(const bool& scheme,const bool& vote,const bool& award,const asset& cash_money,const asset& vote_count,const string& close_time);
+    void control(const bool& scheme,const bool& vote,const bool& award,const asset& deposit,const asset& vote_count,const string& close_time);
 
     //提交方案 名称小写
     [[eosio::action]] 
-    void addscheme(const name& account,const string& scheme_title,const string& scheme_content,const asset& cash_money);
+    void addscheme(const name& account,const string& title,const string& content,const asset& deposit);
 
     //添加投票记录
     [[eosio::action]] 
-    void addvote(const name& account,const asset& vote_count,const uint64_t& scheme_id,const bool& is_super_node,const string& scheme_title,const string& scheme_content);
+    void addvote(const name& account,const asset& vote_count,const uint64_t& proposal_id,const bool& is_super_node,const string& title,const string& content);
 
     //退回方案押金 投票押金 结算
     [[eosio::action]]
     void award(const asset& super_node_count,const asset& scheme_award,const asset& vote_award);
 
     [[eosio::action]]
-    void del();
+    void reset();
 
     //测试转账
     [[eosio::action]]
@@ -88,11 +88,11 @@ class [[eosio::contract("mgp.cmvoting")]] mgp_cmvoting: public eosio::contract {
     
     //审核方案
     [[eosio::action]]
-    void audit(const uint64_t& id,const uint64_t& audit_status,const string& audit_msg);
+    void audit(const uint64_t& id,const uint64_t& audit_status,const string& audit_result);
 
     //编辑方案
     [[eosio::action]]
-    void upscheme(const uint64_t& scheme_id,const name& account,const string& scheme_title,const string& scheme_content);
+    void upscheme(const uint64_t& proposal_id,const name& account,const string& title,const string& content);
 
 
 

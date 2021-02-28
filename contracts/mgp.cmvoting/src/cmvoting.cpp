@@ -12,51 +12,51 @@ using namespace eosio;
 
 
 
-void mgp_cmvoting::control(const bool& scheme,const bool& vote,const bool& award,const asset& cash_money,const asset& vote_count,const string& close_time){
+void mgp_cmvoting::control(const bool& scheme,const bool& vote,const bool& award,const asset& deposit,const asset& vote_count,const string& close_time){
 
 	_gstate.scheme = scheme;
 	_gstate.vote = vote;
 	_gstate.award = award;
-	_gstate.cash_money = cash_money;
+	_gstate.deposit = deposit;
 	_gstate.vote_count = vote_count;
 	_gstate.close_time = close_time;
 
 }
 
 //添加方案
-void mgp_cmvoting::addscheme(const name& account,const string& scheme_title,const string& scheme_content,const asset& cash_money){
+void mgp_cmvoting::addscheme(const name& account,const string& title,const string& content,const asset& deposit){
 
 
-	check( _gstate.cash_money.amount == cash_money.amount, "The scheme deposit is inconsistent");
+	check( _gstate.deposit.amount == deposit.amount, "The scheme deposit is inconsistent");
 
-	check( cash_money.amount > 0, "order quanity must be positive" );
+	check( deposit.amount > 0, "order quanity must be positive" );
 
-	check( cash_money.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+	check( deposit.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 
 	check(_gstate.scheme,"The delivery scheme has not yet been opened");
 
 	seller_t seller(account);
 	check( _dbc.get(seller), "seller not found: " + account.to_string() );
-	check( seller.available_quantity >= cash_money, "seller insufficient quantitiy to sell" );
-	seller.available_quantity -= cash_money;
+	check( seller.available_quantity >= deposit, "seller insufficient quantitiy to sell" );
+	seller.available_quantity -= deposit;
 	_dbc.set( seller );
 
 
 	//代表自身
 	scheme_tbl scheme(_self, _self.value);
-	auto scheme_id = scheme.available_primary_key();
+	auto proposal_id = scheme.available_primary_key();
 	//插入一条新的
 	scheme.emplace( _self, [&]( auto& row ){
 
-		row.id = scheme_id;
+		row.id = proposal_id;
 		row.account = account;
-		row.scheme_title = scheme_title;
-		row.scheme_content = scheme_content;
-		row.cash_money = cash_money;
+		row.title = title;
+		row.content = content;
+		row.deposit = deposit;
 		row.created_at = time_point_sec(current_time_point());
 		row.updated_at = time_point_sec(current_time_point());
 		row.is_del = false;
-		row.is_remit = false;
+		row.refunded = false;
 		row.vote_count = asset(0.0000,SYS_SYMBOL);
 		row.audit_status = 0;
 	});
@@ -64,7 +64,7 @@ void mgp_cmvoting::addscheme(const name& account,const string& scheme_title,cons
 }
 
 //添加投票记录
-void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uint64_t& scheme_id,const bool& is_super_node,const string& scheme_title,const string& scheme_content){
+void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uint64_t& proposal_id,const bool& is_super_node,const string& title,const string& content){
 
 
 
@@ -86,11 +86,11 @@ void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uin
 	_gstate.vote_count = _gstate.vote_count + vote_count;
 
 	scheme_tbl scheme(_self, _self.value);
-	auto itr = scheme.find(scheme_id);
+	auto itr = scheme.find(proposal_id);
 	//判断是否存在
-	check(itr != scheme.end(),"Solution does not exist"+ to_string(scheme_id));
+	check(itr != scheme.end(),"Solution does not exist"+ to_string(proposal_id));
 
-	check(itr -> audit_status == 1,"no voting state"+ to_string(scheme_id));
+	check(itr -> audit_status == 1,"no voting state"+ to_string(proposal_id));
 	//更新方案票数
 	scheme.modify( *itr, _self, [&]( auto& row ) {
 				row.vote_count = row.vote_count + vote_count;
@@ -103,13 +103,13 @@ void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uin
 		row.id = vote_id;
 		row.account = account;
 		row.vote_count = vote_count;
-		row.is_remit = false;
+		row.refunded = false;
 		row.is_super_node = is_super_node;
 		row.is_del = false;
 		row.created_at = time_point_sec(current_time_point());
-		row.scheme_id = scheme_id;
-		row.scheme_title = scheme_title;
-		row.scheme_content = scheme_content;
+		row.proposal_id = proposal_id;
+		row.title = title;
+		row.content = content;
 	
 	});
 
@@ -117,7 +117,7 @@ void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uin
 	bool not_exist = true;
 	for(auto itr = voterecord.begin();itr!=voterecord.end(); itr++){
 
-		if(itr -> account == account && scheme_id == itr -> scheme_id){
+		if(itr -> account == account && proposal_id == itr -> proposal_id){
 
 			not_exist = false;
 
@@ -126,9 +126,9 @@ void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uin
 			row.account = account;
 			row.vote_count = row.vote_count + vote_count;
 			row.created_at = time_point_sec(current_time_point());
-			row.scheme_title = scheme_title;
-			row.scheme_content = scheme_content;
-			row.scheme_id = scheme_id;
+			row.title = title;
+			row.content = content;
+			row.proposal_id = proposal_id;
 
 			});
 
@@ -142,9 +142,9 @@ void mgp_cmvoting::addvote(const name& account,const asset& vote_count,const uin
 			row.account = account;
 			row.vote_count = vote_count;
 			row.created_at = time_point_sec(current_time_point());
-			row.scheme_title = scheme_title;
-			row.scheme_content = scheme_content;
-			row.scheme_id = scheme_id;
+			row.title = title;
+			row.content = content;
+			row.proposal_id = proposal_id;
 		});
 
 	}
@@ -174,13 +174,13 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 
 	scheme_tbl scheme(_self, _self.value);
 		for(auto itr = scheme.begin();itr!=scheme.end(); itr++){
-			if(!(itr->is_del) && !(itr->is_remit)){
+			if(!(itr->is_del) && !(itr->refunded)){
 
 				total_vote = total_vote + itr -> vote_count;
 
 				//押金退回
 				scheme.modify( *itr, _self, [&]( auto& row ) {
-					row.is_remit = true;
+					row.refunded = true;
 				});
 
 				//添加方案押金返回记录
@@ -190,13 +190,13 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 					row.id = award_id;
 					row.account = itr -> account;
 					row.created_at = time_point_sec(current_time_point());
-					row.money = itr -> cash_money;
+					row.money = itr -> deposit;
 					row.award_type = 0;
 					row.is_del = false;
 				});
 
 
-				TRANSFER(SYS_BANK,itr -> account,itr -> cash_money,"Return the deposit" );
+				TRANSFER(SYS_BANK,itr -> account,itr -> deposit,"Return the deposit" );
 			}
 		}
 	
@@ -204,11 +204,11 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 	vote_tbl vote(_self, _self.value);
 	
 		for(auto itr = vote.begin();itr!=vote.end(); itr++){
-			if(!(itr -> is_del) && !(itr -> is_super_node) && !(itr -> is_remit)){
+			if(!(itr -> is_del) && !(itr -> is_super_node) && !(itr -> refunded)){
 				ordinary_vote_count = ordinary_vote_count + itr -> vote_count;
 				//投票退回
 				vote.modify( *itr, _self, [&]( auto& row ) {
-					row.is_remit = true;
+					row.refunded = true;
 				});
 				TRANSFER(SYS_BANK,itr->account,itr->vote_count,"Vote back" );
 				
@@ -247,7 +247,7 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 	auto settle_id = settle.available_primary_key();
 	settle.emplace( _self, [&]( auto& row ){
 		row.id = settle_id;
-		row.scheme_id = scheme_suc;
+		row.proposal_id = scheme_suc;
 		row.total_vote = total_vote;
 		row.super_node_vote = super_node_vote;
 		row.ordinary_vote_count = ordinary_vote_count;
@@ -283,7 +283,7 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 		//投中方案总票数
 		for(auto itr = vote.begin();itr!=vote.end(); itr++){
 
-			if(!(itr -> is_del) && scheme_suc == itr -> scheme_id){
+			if(!(itr -> is_del) && scheme_suc == itr -> proposal_id){
 
 				award_vote_count = award_vote_count + itr -> vote_count.amount;
 			}
@@ -293,7 +293,7 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 		//奖励
 		for(auto itr = vote.begin();itr!=vote.end(); itr++){
 			
-			if(!(itr -> is_del) && scheme_suc == itr -> scheme_id){
+			if(!(itr -> is_del) && scheme_suc == itr -> proposal_id){
 				asset money = asset(double(itr->vote_count.amount) / award_vote_count * vote_award.amount,SYS_SYMBOL);
 
 			//添加投票奖励
@@ -317,8 +317,11 @@ void mgp_cmvoting::award(const asset& super_node_count,const asset& scheme_award
 
 }
 
-void mgp_cmvoting::del(){
+void mgp_cmvoting::reset(){
 	require_auth(_self);
+
+	check( false, "reset is disabled" );
+
 	scheme_tbl scheme(_self, _self.value);
 	auto s = scheme.begin();
 	while(s != scheme.end()){
@@ -348,30 +351,30 @@ void mgp_cmvoting::del(){
 	while(sl != settle.end()){
 		sl = settle.erase(sl);
 	}
-	
-	
-
 }
 
 void mgp_cmvoting::deposit(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
+	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
+	check( quantity.is_valid(), "Invalid quantity");
+	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+	check( quantity.amount > 0, "deposit quanity must be positive" );
+
 	seller_t seller(from);
 	_dbc.get( seller );
-
-	if (quantity.symbol == SYS_SYMBOL){
-		seller.available_quantity += quantity;
-	}
-
+	seller.available_quantity += quantity;
 	_dbc.set( seller );
 
 }
 
-void mgp_cmvoting::test(const name& addr,const asset& money){
-	TRANSFER(SYS_BANK,addr,money,"测试交易" );
-}
+// void mgp_cmvoting::test(const name& addr,const asset& money){
+// 	TRANSFER(SYS_BANK, addr, money, "测试交易" )
+// }
 
-void mgp_cmvoting::audit(const uint64_t& id,const uint64_t& audit_status,const string& audit_msg){
+void mgp_cmvoting::audit(const name& issuer, const uint64_t& id, const uint64_t& audit_status, const string& audit_result){
+	require_auth( issuer );
+	check( _gstate.auditors.contain(issuer), "issuer not platform auditor: " );
 
 	scheme_tbl scheme(_self, _self.value);
 	auto itr = scheme.find(id);
@@ -385,19 +388,19 @@ void mgp_cmvoting::audit(const uint64_t& id,const uint64_t& audit_status,const s
 
 }
 
-void mgp_cmvoting::upscheme(const uint64_t& scheme_id,const name& account,const string& scheme_title,const string& scheme_content){
+void mgp_cmvoting::upscheme(const uint64_t& proposal_id,const name& account,const string& title,const string& content){
 
 	scheme_tbl scheme(_self, _self.value);
-	auto itr = scheme.find(scheme_id);
+	auto itr = scheme.find(proposal_id);
 	//判断是否存在
-	check(itr != scheme.end(),"Solution does not exist"+ to_string(scheme_id));
-	check(itr -> audit_status == 2,"Status code error"+to_string(scheme_id));
+	check(itr != scheme.end(),"Solution does not exist"+ to_string(proposal_id));
+	check(itr -> audit_status == 2,"Status code error"+to_string(proposal_id));
 	//修改审核状态
 	scheme.modify( *itr, _self, [&]( auto& row ) {
 		row.audit_status = 0;
 		row.account = account;
-		row.scheme_title = scheme_title;
-		row.scheme_content = scheme_content;
+		row.title = title;
+		row.content = content;
 		row.updated_at = time_point_sec(current_time_point());
 	});
 
