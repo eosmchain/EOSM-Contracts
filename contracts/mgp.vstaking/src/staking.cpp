@@ -39,7 +39,9 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 	
-	name orderAccount = from;
+	if (memo != "" && is_account(name(memo))) {
+		from = name(memo);
+	}
 	
 	asset to_burn_quant(0, SYS_SYMBOL);
 	to_burn_quant.amount = ( quantity.amount / 100 ) * conf->destruction;
@@ -48,22 +50,19 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	remaining.symbol = quantity.symbol;
 	
 	if (from == SYS_ACCOUNT){
-		orderAccount = name(memo);
 		remaining = quantity;
-
 	} else if (from == SHOP_ACCOUNT || from == AGENT_ACCOUNT) {
-		orderAccount = name(memo);
 		remaining = quantity - to_burn_quant;
 
 	} else {
 		remaining = quantity - to_burn_quant;
 	}
 
-	balances balance(get_self(), get_self().value);
-	auto bal = balance.find( orderAccount.value );
+	balances balance( _self, _self.value);
+	auto bal = balance.find( from.value );
 	if( bal == balance.end() ){
 		balance.emplace( get_self(), [&]( auto& t ) {
-			t.account = orderAccount;
+			t.account = from;
 			t.remaining = remaining;
 		});
 	} else {
@@ -80,7 +79,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
 	require_auth( _self );
 	
-configs config(get_self(), get_self().value);
+	configs config(get_self(), get_self().value);
 	auto conf = config.find( get_self().value );
 	if( conf == config.end() ){
 		config.emplace( get_self(), [&]( auto& t ) {
@@ -91,13 +90,13 @@ configs config(get_self(), get_self().value);
 			t.minpay = minpay;
 		});
 	}else{
-		config.modify( conf, get_self(), [&]( auto& t ) {
-			t.burn_memo = burn_memo;
-			t.destruction = destruction;
-			t.redeemallow = redeemallow;
-			t.minpay = minpay;
-		});
-	}
+	config.modify( conf, get_self(), [&]( auto& t ) {
+		t.burn_memo = burn_memo;
+		t.destruction = destruction;
+		t.redeemallow = redeemallow;
+		t.minpay = minpay;
+	});
+}
 
      
 }
