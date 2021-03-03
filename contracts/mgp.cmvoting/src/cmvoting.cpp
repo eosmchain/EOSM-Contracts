@@ -374,7 +374,7 @@ void mgp_cmvoting::deposit(name from, name to, asset quantity, string memo) {
 
 void mgp_cmvoting::audit(const name& issuer, const uint64_t& id, const uint64_t& audit_status, const string& audit_result){
 	require_auth( issuer );
-	check( _gstate.auditors.contain(issuer), "issuer not platform auditor: " );
+	check( _gstate.auditors.find(issuer) != _gstate.auditors.end(), "issuer not platform auditor: " );
 
 	scheme_tbl scheme(_self, _self.value);
 	auto itr = scheme.find(id);
