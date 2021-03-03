@@ -16,6 +16,10 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	require_auth( from );
 	if (to != _self) return;
 	
+	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
+	check( quantity.is_valid(), "Invalid quantity");
+	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
+
 	configs config(get_self(), get_self().value);
 	auto conf = config.find( get_self().value );
 	if( conf == config.end() ){
@@ -31,24 +35,15 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 		});
 		conf = config.find( get_self().value );
 	}
-	if(conf->minpay.amount > quantity.amount){
-		check( false, "Amount should be more then ["+to_string(conf->minpay.amount/10000)+"]");
-	}
 
-	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
-	check( quantity.is_valid(), "Invalid quantity");
-	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	
-	
+	if (conf->minpay.amount > quantity.amount) {
+		check( false, "Amount should be more than [" + to_string(conf->minpay.amount/10000) + "]" );
+	}
 	
 	asset to_burn_quant(0, SYS_SYMBOL);
 	to_burn_quant.amount = ( quantity.amount / 100 ) * conf->destruction;
-
-	asset remaining;
-	remaining.symbol = quantity.symbol;
+	asset remaining(0, SYS_SYMBOL);
 	
-
-
 	if (from == AGENT_ACCOUNT) {
 		size_t pos;
 		// 解析memo数据：接收者:销毁数:总MGP数

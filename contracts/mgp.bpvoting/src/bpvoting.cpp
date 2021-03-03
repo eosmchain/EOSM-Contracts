@@ -358,7 +358,6 @@ void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
 }
 
 /*************** Begin of ACTION helper functions ***************************************/
-
 void mgp_bpvoting::_init() {
 	check (_gstate.started_at == time_point(), "already kickstarted" );
 
@@ -418,39 +417,12 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 }
 
 void mgp_bpvoting::_referesh_tallied_votes() {
-
-	// vote_t::tbl_t votes(_self, _self.value);
-	// auto idx = votes.get_index<"rewardround"_n>();
-	// auto lower_itr = idx.lower_bound( 34 );
-	// auto upper_itr = idx.upper_bound( 34 );
-
-	// string res = "";
-	// for (auto itr = idx.begin(); itr != idx.end();) {
-	// 	res += to_string(itr->reward_round) + ",";
-	// 	itr++;
-	// }
-	// check(false, res);
-
-	// candidate_t::tbl_t cands(_self, _self.value);
-
-	// for (auto itr = cands.begin(); itr != cands.end(); itr++) {
-	// 	if (itr->tallied_votes > itr->received_votes) {
-
-	// 		cands.modify( *itr, _self, [&]( auto& row ) {
-	// 			row.tallied_votes = row.received_votes;
-	// 		});
-	// 	}
-	// }
-
-	// return;
-
-	uint64_t END_ID = _gstate2.last_vote_tally_index; // 12/29/2020 @ 1:00am (UTC)
 	map<name, asset> cand_votes;
 	time_point ct;
 	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"voteda"_n>();
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (itr->id > END_ID) break;
+		if (itr->id > _gstate2.last_vote_tally_index) break;
 
 		if (cand_votes.count(itr->candidate) == 0)
 			cand_votes[itr->candidate] = asset(0, SYS_SYMBOL);
@@ -531,6 +503,10 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
  */
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
+
+	election_round_t round(1);
+	_dbc.get(round);
+	_gstate.started_at = round.started_at;
 
 	// asset quant = asset(41577120, SYS_SYMBOL);
 	// TRANSFER( SYS_BANK, "masteraychen"_n, quant, "" )
