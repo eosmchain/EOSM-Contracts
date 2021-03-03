@@ -69,5 +69,21 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
 	}
 }
 
+inline vector <string> string_split(string str, char delimiter) {
+      vector <string> r;
+      string tmpstr;
+      while (!str.empty()) {
+          int ind = str.find_first_of(delimiter);
+          if (ind == -1) {
+              r.push_back(str);
+              str.clear();
+          } else {
+              r.push_back(str.substr(0, ind));
+              str = str.substr(ind + 1, str.size() - ind - 1);
+          }
+      }
+      return r;
+
+  }
 
 } //end of namespace mgpecoshare
