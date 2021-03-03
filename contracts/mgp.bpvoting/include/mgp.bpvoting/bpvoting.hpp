@@ -86,7 +86,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void checkvotes(const name& voter, const uint64_t& last_election_round);
 
     [[eosio::on_notify("eosio.token::transfer")]]
-    void deposit(name from, name to, asset quantity, string memo);
+    void ontransfer(name from, name to, asset quantity, string memo);
 
     [[eosio::action]]
     void refunds();
@@ -95,7 +95,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     using unvote_action   = action_wrapper<name("unvote"),    &mgp_bpvoting::unvote   >;
     using execute_action  = action_wrapper<name("execute"),   &mgp_bpvoting::execute  >;
     using delist_action   = action_wrapper<name("delist"),    &mgp_bpvoting::delist   >;
-    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::deposit  >;
+    using transfer_action = action_wrapper<name("transfer"),  &mgp_bpvoting::ontransfer >;
 
   private:
     uint64_t get_round_id(const time_point& ct);

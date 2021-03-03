@@ -20,16 +20,25 @@ using namespace wasm::safemath;
 uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
-	auto rounds = elapsed / _gstate.election_round_sec + 1;
+	auto rounds = elapsed / _gstate.election_round_sec;
 
-	return rounds; //usually in days
+	return (rounds == 0) ? 1 : rounds; //usually in days
 }
 
 void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& curr_round) {
 	auto round_id = get_round_id(ct);
 	curr_round.round_id = round_id;
+	
+	bool _curr_round = _dbc.get( curr_round );
+	if (_curr_round && curr_round.next_round_id > 0) {
+		round_id = curr_round.next_round_id;
+		curr_round.round_id = round_id;
 
-	if (!_dbc.get( curr_round )) {
+		_curr_round = _dbc.get( curr_round );
+		check( curr_round.next_round_id == 0, "Err: next_round_id: " + to_string(curr_round.next_round_id) );
+	}
+	
+	if (!_curr_round) {
 		election_round_t last_election_round(_gstate.last_election_round);
 		check( _dbc.get(last_election_round), "Err: last_election_round[" + to_string(_gstate.last_election_round) + "] not found" );
 		check( last_election_round.next_round_id == 0, "Err: next_round_id already set" );
@@ -304,13 +313,13 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
  *      ""					: all other cases will be treated as rewards deposit
  *
  */
-void mgp_bpvoting::deposit(name from, name to, asset quantity, string memo) {
+void mgp_bpvoting::ontransfer(name from, name to, asset quantity, string memo) {
 	if (to != _self) return;
 
 	check( quantity.symbol.is_valid(), "Invalid quantity symbol name" );
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
-	check( quantity.amount > 0, "deposit quanity must be positive" );
+	check( quantity.amount > 0, "ontransfer quanity must be positive" );
 
     std::vector<string> memo_arr = string_split(memo, ':');
     if (memo_arr.size() == 2) {
@@ -504,9 +513,9 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
-	election_round_t round(1);
-	_dbc.get(round);
-	_gstate.started_at = round.started_at;
+	// election_round_t round(1);
+	// _dbc.get(round);
+	// _gstate.started_at = round.started_at;
 
 	// asset quant = asset(41577120, SYS_SYMBOL);
 	// TRANSFER( SYS_BANK, "masteraychen"_n, quant, "" )
