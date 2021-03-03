@@ -39,9 +39,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 	
-	if (memo != "" && is_account(name(memo))) {
-		from = name(memo);
-	}
+	
 	
 	asset to_burn_quant(0, SYS_SYMBOL);
 	to_burn_quant.amount = ( quantity.amount / 100 ) * conf->destruction;
@@ -49,14 +47,28 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	asset remaining;
 	remaining.symbol = quantity.symbol;
 	
-	if (from == SYS_ACCOUNT){
-		remaining = quantity;
-	} else if (from == SHOP_ACCOUNT || from == AGENT_ACCOUNT) {
-		remaining = quantity - to_burn_quant;
 
-	} else {
-		remaining = quantity - to_burn_quant;
-	}
+
+	if (from == AGENT_ACCOUNT) {
+		size_t pos;
+		// 解析memo数据：接收者:销毁数:总MGP数
+		std::vector<string> memo_arr = string_split(memo, ':');
+		check(memo_arr.size() == 3,"Err: Parsing failed");
+		from = name(memo_arr[0]);
+		check(is_account(from),"It's not an account.");
+		//print(stol(memo_arr[1],&pos));
+		to_burn_quant.amount = stol(memo_arr[1],&pos);
+
+	}else {
+		if (memo != "" && is_account(name(memo))) {
+			from = name(memo);
+		}
+	} 
+
+	remaining = quantity - to_burn_quant;
+
+	check(to_burn_quant <= quantity, "The number of destruction is incorrect.");
+	check(remaining <= quantity, "The data is incorrect.");
 
 	balances balance( _self, _self.value);
 	auto bal = balance.find( from.value );
@@ -71,7 +83,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 		});
 	}
 
-	if (from != SYS_ACCOUNT) {
+	if (to_burn_quant.amount > 0) {
 		BURN( SYS_BANK, _self, to_burn_quant, std::string("staking burn") )
 	}
 }
