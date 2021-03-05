@@ -21,8 +21,7 @@ uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
 	auto rounds = elapsed / _gstate.election_round_sec;
-
-	return (rounds == 0) ? 1 : rounds; //usually in days
+	return rounds; //usually in days
 }
 
 void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_t& curr_round) {
@@ -286,8 +285,11 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
 	
-		auto total_voter_rewards 		= round.elected_bps[itr->candidate].allocated_voter_rewards;
-		auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
+		auto elected_bp					= round.elected_bps[itr->candidate];
+		auto total_voter_rewards 		= elected_bp.allocated_voter_rewards;
+		// auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
+		auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / elected_bp.received_votes.amount;
+
 		voter.unclaimed_rewards 		+= voter_rewards;
 
 		_dbc.set(voter);
