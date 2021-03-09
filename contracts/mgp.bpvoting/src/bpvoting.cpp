@@ -20,7 +20,7 @@ using namespace wasm::safemath;
 uint64_t mgp_bpvoting::get_round_id(const time_point& ct) {
 	check( time_point_sec(ct) > _gstate.started_at, "too early to start a round" );
 	auto elapsed = ct.sec_since_epoch() - _gstate.started_at.sec_since_epoch();
-	auto rounds = elapsed / _gstate.election_round_sec;
+	auto rounds = elapsed / _gstate.election_round_sec + 1;
 	return rounds; //usually in days
 }
 
@@ -47,8 +47,8 @@ void mgp_bpvoting::_current_election_round(const time_point& ct, election_round_
 		//create a new current round
 		curr_round.started_at = last_election_round.ended_at;
 		auto elapsed = ct.sec_since_epoch() - last_election_round.ended_at.sec_since_epoch();
-		auto rounds = elapsed / _gstate.election_round_sec;
-		check( rounds > 0 && round_id != 1, "Too early to create a new round" );
+		auto rounds = elapsed / _gstate.election_round_sec + 1;
+		check( round_id > 1, "Too early to create a new round" );
 		curr_round.ended_at = curr_round.started_at + eosio::seconds(rounds * _gstate.election_round_sec);
 		curr_round.created_at = ct;
 		_dbc.set( curr_round );
