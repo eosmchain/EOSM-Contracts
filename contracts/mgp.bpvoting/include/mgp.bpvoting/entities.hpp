@@ -80,8 +80,8 @@ typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
 
 struct bp_info_t {
     asset received_votes            = asset(0, SYS_SYMBOL);
-    asset allocated_bp_rewards      = asset(0, SYS_SYMBOL);
-    asset allocated_voter_rewards   = asset(0, SYS_SYMBOL);
+    asset allocated_bp_rewards      = asset(0, SYS_SYMBOL); //must be reset upon execution
+    asset allocated_voter_rewards   = asset(0, SYS_SYMBOL); //must be reset upon execution
 
     bp_info_t() {}
     bp_info_t(const asset& rv, const asset& abr, const asset& avr):

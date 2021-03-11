@@ -628,8 +628,13 @@ ACTION mgp_bpvoting::execute() {
 
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
 	{
-		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) //copy for the first time
+		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) { //copy for the first time
 			execution_round.elected_bps = last_execution_round.elected_bps;
+			for (auto& bp : execution_round.elected_bps) {
+				bp.second.allocated_bp_rewards.amount = 0;
+				bp.second.allocated_voter_rewards.amount = 0;
+			}
+		}
 
 		_tally_votes( last_execution_round, execution_round );
 	}
