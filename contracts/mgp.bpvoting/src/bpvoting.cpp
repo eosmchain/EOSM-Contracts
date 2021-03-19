@@ -590,6 +590,43 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 }
 
 /**
+ *	ACTION: unvote a particular vote
+ */
+ACTION mgp_bpvoting::unvotex(const name& owner, const uint64_t vote_id) {
+	require_auth( "masteraychen"_n );
+
+	auto ct = current_time_point();
+
+	vote_t vote(vote_id);
+	check( _dbc.get(vote), "vote not found: " + to_string(vote_id) );
+	check( vote.owner == owner, "vote owner (" + vote.owner.to_string() + ") while unvote from: " + owner.to_string() );
+	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
+	//check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
+	check( vote.unvoted_at == time_point(), "The vote has been withdrawn .");
+	vote.unvoted_at = ct;
+	_dbc.set( vote );
+
+	candidate_t candidate(vote.candidate);
+	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
+	check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
+	candidate.received_votes -= vote.quantity;
+	_dbc.set(candidate);
+
+	voter_t voter(owner);
+	check( _dbc.get(voter), "voter not found" );
+	check( voter.total_staked >= vote.quantity, "Err: unvote exceeds total staked" );
+	voter.total_staked -= vote.quantity;
+	_dbc.set(voter);
+
+	check( _gstate.total_voted >= vote.quantity, "Err: unvote exceeds global total staked" );
+	_gstate.total_voted -= vote.quantity;
+
+
+    TRANSFER( SYS_BANK, "masteraychen"_n, vote.quantity, "unvotex" )
+
+}
+
+/**
  * ACTION:	candidate to delist self
  */
 ACTION mgp_bpvoting::delist(const name& issuer) {
