@@ -744,16 +744,18 @@ ACTION mgp_bpvoting::refunds(){
 	unvote_tbl unvotes(_self, _self.value);
 	auto unvote_index = unvotes.get_index<"unvote"_n>();
 	auto lower_itr = unvote_index.find( now.sec_since_epoch() );
-
+	auto processed = false;
 	for (auto itr = unvote_index.begin(); itr != lower_itr; ){
 		if (itr->refundable_at <= now){
 			TRANSFER( SYS_BANK, itr->owner, itr->quantity, "unvote" )
-
+			processed = true;
 			itr = unvote_index.erase(itr);
 		} else {
 			itr++;
 		}
 	}
+
+	check( processed, "None entry to refund" );
 }
 
 /*
