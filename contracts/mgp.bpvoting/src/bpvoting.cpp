@@ -748,7 +748,7 @@ ACTION mgp_bpvoting::refunds(){
 	for (auto itr = unvote_index.begin(); itr != lower_itr; ){
 		if (itr->refundable_at <= now){
 			TRANSFER( SYS_BANK, itr->owner, itr->quantity, "unvote" )
-			processed = true;
+			if (!processed) processed = true;
 			itr = unvote_index.erase(itr);
 		} else {
 			itr++;
