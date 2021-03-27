@@ -26,13 +26,13 @@ struct CONTRACT_TBL configs_ {
     name account;
     string burn_memo;
     int destruction;
-    bool redeemallow;
+    bool redeemable;
     asset minpay;
 
     uint64_t primary_key() const { return account.value; }
 
     EOSLIB_SERIALIZE( configs_, (account)(burn_memo)(destruction)
-                                (redeemallow)(minpay) )
+                                (redeemable)(minpay) )
 };
 typedef eosio::multi_index<"configs"_n, configs_> configs;	
 

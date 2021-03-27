@@ -42,11 +42,12 @@ class [[eosio::contract("mgp.vstaking")]]  smart_mgp: public eosio::contract {
   public:
     using contract::contract;
 
-  	ACTION configure( string burn_memo, int destruction, bool redeemallow, asset minpay );
+  	ACTION configure( string burn_memo, int destruction, bool redeemable, asset minpay );
     ACTION encorrection( bool enable_data_correction );
     ACTION bindaddress(const name& account, const string& address);
     ACTION delbind(const name& account, const string& address);
     ACTION redeem(name account);
+    ACTION redeemx(name account);
     ACTION reloadnum(const name& from, const name& to, const asset& quant);
 	
     /// NOTE: 
@@ -64,7 +65,8 @@ extern "C" void apply(uint64_t receiver, uint64_t code, uint64_t action) {
 	} else if (code == receiver) {
 		switch (action) {
 			EOSIO_DISPATCH_HELPER( smart_mgp,   (configure)(encorrection)
-                                                (redeem)(bindaddress)(delbind)(reloadnum) )
+                                          (redeem)(redeemx)
+                                          (bindaddress)(delbind)(reloadnum) )
 		}
 	}
 }
