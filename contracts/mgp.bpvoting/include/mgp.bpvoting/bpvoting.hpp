@@ -71,7 +71,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void unvote(const name& owner, const uint64_t vote_id);
 
     [[eosio::action]]
-    void unvotex(const name& owner, const uint64_t vote_id);
+    void unvotex(const uint64_t vote_id);
 
     [[eosio::action]]
     void execute(); //anyone can invoke, but usually by the platform
@@ -83,7 +83,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void claimrewards(const name& issuer, const bool is_voter); //voter/candidate to claim rewards
 
     [[eosio::action]]
-    void refreshtally();
+    void refreshtally(const name& candidate);
 
     [[eosio::action]]
     void checkvotes(const name& voter, const uint64_t& last_election_round);
@@ -109,7 +109,7 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     /** Init functions **/
     void _init();
     void _referesh_recvd_votes();
-    void _referesh_tallied_votes();
+    void _referesh_tallied_votes(const name& candidate);
     void _referesh_ers(uint64_t round);
 
 };

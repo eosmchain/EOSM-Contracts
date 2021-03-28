@@ -122,19 +122,19 @@ void mgp_bpvoting::_vote(const name& owner, const name& target, const asset& qua
 
 void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate) {
 	
-	round.elected_bps[ candidate.owner ].received_votes = candidate.staked_votes + candidate.tallied_votes;
+	round.elected_bps[ candidate.owner ].total_votes = candidate.staked_votes + candidate.tallied_votes;
 
 	typedef std::pair<name, bp_info_t> bp_entry_t;
 	// std::vector<bp_info_t, decltype(cmp)> bps(cmp);
 	std::vector<bp_entry_t> bps;
 
-	string _bps = "";
+	// string _bps = "";
 	for (auto& it : round.elected_bps) {
 		bps.push_back(it);
-		_bps += it.first.to_string() + ": " + it.second.received_votes.to_string() + "\n";
+		// _bps += it.first.to_string() + ": " + it.second.total_votes.to_string() + "\n";
 	}
 	
-	auto cmp = [](bp_entry_t a, bp_entry_t b) {return a.second.received_votes > b.second.received_votes; };
+	auto cmp = [](bp_entry_t a, bp_entry_t b) { return a.second.total_votes > b.second.total_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
 
 	round.elected_bps.clear();
@@ -409,13 +409,14 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 		bp_asset.amount = bp_rewards;
 		asset voter_asset = asset(0, SYS_SYMBOL);
 		voter_asset.amount = voter_rewards;
-		bp_info_t bpinfo(itr->received_votes, bp_asset, voter_asset);
+		auto total_votes = itr->received_votes + itr->tallied_votes;
+		bp_info_t bpinfo(total_votes, bp_asset, voter_asset);
 		bp_entry_t bp = std::make_pair(itr->owner, bpinfo);
 
 		bps.push_back(bp);
 	}
 	
-	auto cmp = [](bp_entry_t a, bp_entry_t b) {return a.second.received_votes > b.second.received_votes; };
+	auto cmp = [](bp_entry_t a, bp_entry_t b) {return a.second.total_votes > b.second.total_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
 
 	er.elected_bps.clear();
@@ -427,30 +428,29 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 
 }
 
-void mgp_bpvoting::_referesh_tallied_votes() {
-	map<name, asset> cand_votes;
-	time_point ct;
+void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
+	asset cand_votes = asset(0, SYS_SYMBOL);
 	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"voteda"_n>();
+	auto last_tally_vote_id = _gstate2.last_vote_tally_index;
+	vote_t last_tally_vote(last_tally_vote_id);
+	check( _dbc.get(last_tally_vote), "vote not found: " + to_string(last_tally_vote_id) );
+	election_round_t last_er(last_tally_vote.election_round);
+	check( _dbc.get(last_er), "last ER not found: " + to_string(last_tally_vote.election_round));
+	
+	auto initial_time = time_point();
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (itr->id > _gstate2.last_vote_tally_index) break;
+		if (itr->candidate != candidate) continue;
 
-		if (cand_votes.count(itr->candidate) == 0)
-			cand_votes[itr->candidate] = asset(0, SYS_SYMBOL);
-
-		if (itr->unvoted_at.sec_since_epoch() == ct.sec_since_epoch())
-			cand_votes[itr->candidate] += itr->quantity;
+		if (itr->unvoted_at == initial_time || itr->unvoted_at > last_er.ended_at) //not unvoted
+			cand_votes += itr->quantity;
 	}
 
-	for (auto& item: cand_votes) {
-		candidate_t can(item.first);
-		check(_dbc.get(can), "not found: " + item.first.to_string());
-		can.tallied_votes = item.second;
-		if (can.tallied_votes > can.received_votes)
-			can.tallied_votes = can.received_votes;
-
-		_dbc.set(can);
-	}
+	candidate_t cand(candidate);
+	check(_dbc.get(cand), "candidate not found: " + candidate.to_string());
+	cand.tallied_votes = cand_votes;
+	_dbc.set(cand);
 
 }
 
@@ -535,7 +535,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	check( vote.owner == owner, "vote owner (" + vote.owner.to_string() + ") while unvote from: " + owner.to_string() );
 	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	//check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
-	check( vote.unvoted_at == time_point(), "The vote has been withdrawn .");
+	check( vote.unvoted_at == time_point(), "The vote has been withdrawn.");
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
@@ -567,16 +567,14 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 /**
  *	ACTION: unvote a particular vote
  */
-ACTION mgp_bpvoting::unvotex(const name& owner, const uint64_t vote_id) {
+ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
 	require_auth( "masteraychen"_n );
 
 	auto ct = current_time_point();
 
 	vote_t vote(vote_id);
 	check( _dbc.get(vote), "vote not found: " + to_string(vote_id) );
-	check( vote.owner == owner, "vote owner (" + vote.owner.to_string() + ") while unvote from: " + owner.to_string() );
 	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
-	//check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
 	check( vote.unvoted_at == time_point(), "The vote has been withdrawn .");
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
@@ -587,7 +585,7 @@ ACTION mgp_bpvoting::unvotex(const name& owner, const uint64_t vote_id) {
 	candidate.received_votes -= vote.quantity;
 	_dbc.set(candidate);
 
-	voter_t voter(owner);
+	voter_t voter(vote.owner);
 	check( _dbc.get(voter), "voter not found" );
 	check( voter.total_staked >= vote.quantity, "Err: unvote exceeds total staked" );
 	voter.total_staked -= vote.quantity;
@@ -595,7 +593,6 @@ ACTION mgp_bpvoting::unvotex(const name& owner, const uint64_t vote_id) {
 
 	check( _gstate.total_voted >= vote.quantity, "Err: unvote exceeds global total staked" );
 	_gstate.total_voted -= vote.quantity;
-
 
     TRANSFER( SYS_BANK, "masteraychen"_n, vote.quantity, "unvotex" )
 
@@ -736,10 +733,10 @@ ACTION mgp_bpvoting::refunds(){
 /*
  * ACTION:	refresh tallied votes for data correction
  */
-ACTION mgp_bpvoting::refreshtally() {
+ACTION mgp_bpvoting::refreshtally(const name& candidate) {
 	require_auth( _self );
 
-	_referesh_tallied_votes();
+	_referesh_tallied_votes(candidate);
 }
 
 }  //end of namespace:: mgp_bpvoting

@@ -79,15 +79,15 @@ struct [[eosio::table("global2"), eosio::contract("mgp.bpvoting")]] global2_t {
 typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
 
 struct bp_info_t {
-    asset received_votes            = asset(0, SYS_SYMBOL);
+    asset total_votes               = asset(0, SYS_SYMBOL);
     asset allocated_bp_rewards      = asset(0, SYS_SYMBOL); //must be reset upon execution
     asset allocated_voter_rewards   = asset(0, SYS_SYMBOL); //must be reset upon execution
 
     bp_info_t() {}
-    bp_info_t(const asset& rv, const asset& abr, const asset& avr):
-        received_votes(rv), allocated_bp_rewards(abr), allocated_voter_rewards(avr) {}
+    bp_info_t(const asset& tv, const asset& abr, const asset& avr):
+        total_votes(tv), allocated_bp_rewards(abr), allocated_voter_rewards(avr) {}
 
-    EOSLIB_SERIALIZE(bp_info_t, (received_votes)(allocated_bp_rewards)(allocated_voter_rewards) )
+    EOSLIB_SERIALIZE(bp_info_t, (total_votes)(allocated_bp_rewards)(allocated_voter_rewards) )
 };
 
 typedef std::pair<name, bp_info_t> bp_entry_t;
@@ -114,7 +114,7 @@ struct CONTRACT_TBL election_round_t{
     asset total_voteage                 = asset(0, SYS_SYMBOL);
     asset total_rewarded                = asset(0, SYS_SYMBOL); //total received accumualted rewards
 
-    std::map<name, bp_info_t> elected_bps;      //max 21 bps
+    std::map<name, bp_info_t> elected_bps;      //max 50 bps (but top 21 get rewarded only)
 
     election_round_t() {}
     election_round_t(uint64_t rid): round_id(rid) {}
@@ -137,7 +137,7 @@ struct CONTRACT_TBL candidate_t {
     uint32_t self_reward_share;     //boost by 10000
     asset staked_votes;             //self staked
     asset received_votes;           //other voted
-    asset tallied_votes;            //received only, updated upon vote/unvote tally
+    asset tallied_votes;            //for election sorting usage, updated upon vote/unvote tally
     asset last_claimed_rewards;     //unclaimed total rewards
     asset total_claimed_rewards;    //unclaimed total rewards
     asset unclaimed_rewards;        //unclaimed total rewards
