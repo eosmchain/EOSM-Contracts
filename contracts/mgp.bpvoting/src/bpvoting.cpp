@@ -156,17 +156,16 @@ void mgp_bpvoting::_tally_votes(election_round_t& last_round, election_round_t& 
 		}
 		_gstate2.last_vote_tally_index = itr->id;
 
-		candidate_t candidate(itr->candidate);
-		if ( _dbc.get(candidate) ) {
-			voter_t voter(itr->owner);
-			check( _dbc.get(voter), "Err: voter["+ voter.owner.to_string() +"] not found" );
+		if (itr->unvoted_at > time_point()) continue; //unvoted and shall be skipped in tally
 
-			candidate.tallied_votes += itr->quantity;
-			if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
-				_elect(execution_round, candidate);
-			
-			_dbc.set( candidate );
-		}
+		candidate_t candidate(itr->candidate);
+		if ( !_dbc.get(candidate) ) continue;	//candidate delisted and shall be skipped in tally
+
+		candidate.tallied_votes += itr->quantity;
+		if (candidate.staked_votes + candidate.tallied_votes >= _gstate.min_bp_accept_quantity)
+			_elect(execution_round, candidate);
+		
+		_dbc.set( candidate );
 	}
 
 	last_round.vote_tally_completed = completed;
@@ -516,25 +515,6 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
-	// voteage_t::tbl_t vas(_self, _self.value);
-	// for (auto itr = vas.begin(); itr != vas.end();) {
-	// 	itr = vas.erase(itr);
-	// }
-
-	// election_round_t round(1);
-	// _dbc.get(round);
-	// _gstate.started_at = round.started_at;
-
-	// asset quant = asset(41577120, SYS_SYMBOL);
-	// TRANSFER( SYS_BANK, "masteraychen"_n, quant, "" )
-
-	// _gstate2.vote_reward_index = 0;
-	// _gstate2.last_vote_tally_index = 378;
-
-	// _global2.remove();
-	// _gstate.last_execution_round = 32;
-	// _gstate.refund_delay_sec = 60;
-	// _gstate.election_round_sec = 60;
 	// _init();
 	// _referesh_recvd_votes();
 	//_referesh_tallied_votes();

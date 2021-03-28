@@ -213,10 +213,6 @@ struct CONTRACT_TBL vote_t {
     > tbl_t;
     
     vote_t() {}
-    // vote_t(const name& code) {
-    //     index_t tbl(code, code.value); //scope: o
-    //     id = tbl.available_primary_key();
-    // }
     vote_t(const uint64_t& pk): id(pk) {}
 
     EOSLIB_SERIALIZE( vote_t,   (id)(owner)(candidate)(quantity)
