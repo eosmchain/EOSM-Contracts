@@ -516,6 +516,11 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
+	// voteage_t::tbl_t vas(_self, _self.value);
+	// for (auto itr = vas.begin(); itr != vas.end();) {
+	// 	itr = vas.erase(itr);
+	// }
+
 	// election_round_t round(1);
 	// _dbc.get(round);
 	// _gstate.started_at = round.started_at;
@@ -554,6 +559,14 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
+	unvote_t unvote(vote_id);
+	check( !_dbc.get(unvote), "unvote (" + to_string(vote_id) + ") exists");
+	unvote.owner = owner;
+	unvote.quantity = vote.quantity;
+	unvote.created_at = time_point_sec(current_time_point());
+	unvote.refundable_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+	_dbc.set( unvote );
+
 	candidate_t candidate(vote.candidate);
 	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
 	check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
@@ -568,24 +581,6 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 
 	check( _gstate.total_voted >= vote.quantity, "Err: unvote exceeds global total staked" );
 	_gstate.total_voted -= vote.quantity;
-
-	unvote_tbl unvotes( _self, _self.value);
-	auto unvote_itr = unvotes.find(vote_id);
-	check( unvote_itr == unvotes.end()  , "The vote has been withdrawn");
-
-	unvotes.emplace( _self, [&](auto& row) {
-		row.id = vote_id;
-		row.owner = owner;
-		row.quantity = vote.quantity;
-		row.created_at = time_point_sec(current_time_point());
-		row.refundable_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
-
-	});
-
- 	// {
-    //     token::transfer_action transfer_act{ SYS_BANK, { {_self, active_perm} } };
-    //     transfer_act.send( _self, owner, vote.quantity, "unvote" );
-    // }
 
 }
 

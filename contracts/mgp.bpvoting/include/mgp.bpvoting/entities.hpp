@@ -224,29 +224,6 @@ struct CONTRACT_TBL vote_t {
                                 (election_round)(reward_round) )
 };
 
-
-/**
- *  vote table
- */
-struct CONTRACT_TBL voteage_t {
-    uint64_t vote_id;        //PK
-    asset votes;
-    uint64_t age;           //days
-
-    voteage_t() {}
-    voteage_t(const uint64_t vid): vote_id(vid) {}
-    voteage_t(const uint64_t vid, const asset& v, const uint64_t a): vote_id(vid), votes(v), age(a) {}
-
-    asset value() { return votes * age; }
-
-    uint64_t primary_key() const { return vote_id; }
-    uint64_t scope() const { return 0; }
-
-    typedef eosio::multi_index<"voteages"_n, voteage_t> tbl_t;
-
-    EOSLIB_SERIALIZE( voteage_t,  (vote_id)(votes)(age) )
-};
-
 /**
  *  Incoming rewards for whole bpvoting cohort
  *
@@ -283,22 +260,18 @@ struct CONTRACT_TBL unvote_t {
     unvote_t(const uint64_t& i): id(i) {}
 
     uint64_t primary_key() const { return id; }
-
     uint64_t scope()const { return 0; }
 
-    uint64_t by_owner() const        { return owner.value;                           }
-
-    uint64_t by_created_at() const   { return uint64_t(created_at.sec_since_epoch()); } 
-
-    uint64_t by_refundable_at() const    { return uint64_t(refundable_at.sec_since_epoch()); }
+    uint64_t by_owner()const         { return owner.value;                           }
+    uint64_t by_created_at()const    { return uint64_t(created_at.sec_since_epoch()); } 
+    uint64_t by_refundable_at()const { return uint64_t(refundable_at.sec_since_epoch()); }
+    typedef eosio::multi_index
+    <"unvotes"_n, unvote_t ,
+        indexed_by<"owner"_n,     const_mem_fun<unvote_t, uint64_t, &unvote_t::by_owner> >,
+        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refundable_at> >
+    > tbl_t;
 
     EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refundable_at) )
 };
-
-typedef eosio::multi_index
-    <"unvotes"_n, unvote_t ,
-        indexed_by<"owner"_n,        const_mem_fun<unvote_t, uint64_t, &unvote_t::by_owner> >,
-        indexed_by<"unvote"_n,    const_mem_fun<unvote_t, uint64_t, &unvote_t::by_refundable_at>   >
-    > unvote_tbl;
 
 }
