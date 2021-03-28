@@ -138,7 +138,7 @@ void mgp_bpvoting::_elect(election_round_t& round, const candidate_t& candidate)
 	std::sort(bps.begin(), bps.end(), cmp);
 
 	round.elected_bps.clear();
-	auto size = (bps.size() == 22) ? 21 : bps.size();
+	auto size = (bps.size() >= 22) ? 21 : bps.size();
 	for (int i = 0; i < size; i++) {
 		round.elected_bps.emplace(bps[i].first, bps[i].second);
 	}
