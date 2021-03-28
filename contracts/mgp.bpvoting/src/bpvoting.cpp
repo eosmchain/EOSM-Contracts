@@ -544,7 +544,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	unvote.owner = owner;
 	unvote.quantity = vote.quantity;
 	unvote.created_at = time_point_sec(current_time_point());
-	unvote.refundable_at = time_point_sec( row.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+	unvote.refundable_at = time_point_sec( unvote.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
 	_dbc.set( unvote );
 
 	candidate_t candidate(vote.candidate);
@@ -716,7 +716,7 @@ ACTION mgp_bpvoting::refunds(){
 
 	auto now = time_point_sec(current_time_point());
 
-	unvote_tbl unvotes(_self, _self.value);
+	unvote_t::tbl_t unvotes(_self, _self.value);
 	auto unvote_index = unvotes.get_index<"unvote"_n>();
 	auto lower_itr = unvote_index.find( now.sec_since_epoch() );
 	auto processed = false;
