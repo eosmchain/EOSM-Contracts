@@ -409,7 +409,7 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 		bp_asset.amount = bp_rewards;
 		asset voter_asset = asset(0, SYS_SYMBOL);
 		voter_asset.amount = voter_rewards;
-		auto total_votes = itr->received_votes + itr->tallied_votes;
+		auto total_votes = itr->staked_votes + itr->tallied_votes;
 		bp_info_t bpinfo(total_votes, bp_asset, voter_asset);
 		bp_entry_t bp = std::make_pair(itr->owner, bpinfo);
 
@@ -420,7 +420,7 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 	std::sort(bps.begin(), bps.end(), cmp);
 
 	er.elected_bps.clear();
-	auto size = (bps.size() == 22) ? 21 : bps.size();
+	auto size = (bps.size() >= 22) ? 21 : bps.size();
 	for (int i = 0; i < size; i++) {
 		er.elected_bps.emplace(bps[i].first, bps[i].second);
 	}
@@ -437,7 +437,7 @@ void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 	check( _dbc.get(last_tally_vote), "vote not found: " + to_string(last_tally_vote_id) );
 	election_round_t last_er(last_tally_vote.election_round);
 	check( _dbc.get(last_er), "last ER not found: " + to_string(last_tally_vote.election_round));
-	
+
 	auto initial_time = time_point();
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (itr->id > _gstate2.last_vote_tally_index) break;
@@ -518,7 +518,7 @@ ACTION mgp_bpvoting::init() {
 	// _init();
 	// _referesh_recvd_votes();
 	//_referesh_tallied_votes();
-	// _referesh_ers(31);
+	_referesh_ers(119);
 }
 
 /**
