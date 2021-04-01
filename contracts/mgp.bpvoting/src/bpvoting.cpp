@@ -606,9 +606,25 @@ ACTION mgp_bpvoting::delist(const name& issuer) {
 
 	candidate_t candidate(issuer);
 	check( _dbc.get(candidate), issuer.to_string() + " is not a candidate" );
-	check( candidate.received_votes.amount == 0, "not fully unvoted" );
-	// check( candidate.staked_votes.amount > 0, "Err: none staked" );
+	check( candidate.staked_votes.amount > 0, "Err: none staked" );
 
+	election_round_t last_execution_round(_gstate.last_execution_round);
+	check( _dbc.get(last_execution_round), "Err: last_execution_round[" + to_string(_gstate.last_execution_round) + "] not exist" );
+
+	if (last_execution_round.next_round_id == 0) {
+		auto bps = last_execution_round.elected_bps;
+		check( bps.find(issuer) == bps.end(), "issuer is still a BP: " + issuer.to_string());
+	} else {
+		election_round_t curr_execution_round(last_execution_round.next_round_id);
+		check( _dbc.get(curr_execution_round), "Err: curr_execution_round[" + to_string(last_execution_round.next_round_id) + "] not exist" );
+		
+		auto bps = curr_execution_round.elected_bps;
+		check( bps.find(issuer) == bps.end(), "issuer is still a BP: " + issuer.to_string());
+	}
+
+	check( candidate.received_votes.amount < 20000'0000, "remaining received votes greater than 20000: " + candidate.received_votes.to_string() );
+
+	check( _gstate.total_listed >= candidate.staked_votes, "Err: total listed smaller than staked" );
 	_gstate.total_listed -= candidate.staked_votes;
 	auto to_claim = candidate.staked_votes + candidate.unclaimed_rewards;
 
