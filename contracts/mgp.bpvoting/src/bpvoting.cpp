@@ -518,7 +518,7 @@ ACTION mgp_bpvoting::init() {
 	// _init();
 	// _referesh_recvd_votes();
 	//_referesh_tallied_votes();
-	_referesh_ers(119);
+	// _referesh_ers(119);
 }
 
 /**
@@ -548,10 +548,11 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	_dbc.set( unvote );
 
 	candidate_t candidate(vote.candidate);
-	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
-	check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
-	candidate.received_votes -= vote.quantity;
-	_dbc.set(candidate);
+	if (_dbc.get(candidate)) { //candidate might hv been delisted by itself
+		check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
+		candidate.received_votes -= vote.quantity;
+		_dbc.set(candidate);
+	}
 
 	voter_t voter(owner);
 	check( _dbc.get(voter), "voter not found" );
@@ -580,10 +581,11 @@ ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
 	_dbc.set( vote );
 
 	candidate_t candidate(vote.candidate);
-	check( _dbc.get(candidate), "Err: vote's candidate not found: " + candidate.owner.to_string() );
-	check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
-	candidate.received_votes -= vote.quantity;
-	_dbc.set(candidate);
+	if (_dbc.get(candidate)) { //candidate might hv been delisted by itself
+		check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
+		candidate.received_votes -= vote.quantity;
+		_dbc.set(candidate);
+	}
 
 	voter_t voter(vote.owner);
 	check( _dbc.get(voter), "voter not found" );
@@ -622,7 +624,7 @@ ACTION mgp_bpvoting::delist(const name& issuer) {
 		check( bps.find(issuer) == bps.end(), "issuer is still a BP: " + issuer.to_string());
 	}
 
-	check( candidate.received_votes.amount < 20000'0000, "remaining received votes greater than 20000: " + candidate.received_votes.to_string() );
+	check( candidate.received_votes.amount < 20'000'0000, "remaining received votes greater than 20000: " + candidate.received_votes.to_string() );
 
 	check( _gstate.total_listed >= candidate.staked_votes, "Err: total listed smaller than staked" );
 	_gstate.total_listed -= candidate.staked_votes;
