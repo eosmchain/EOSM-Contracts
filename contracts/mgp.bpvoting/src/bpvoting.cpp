@@ -322,6 +322,7 @@ void mgp_bpvoting::ontransfer(name from, name to, asset quantity, string memo) {
 	check( quantity.is_valid(), "Invalid quantity");
 	check( quantity.symbol == SYS_SYMBOL, "Token Symbol not allowed" );
 	check( quantity.amount > 0, "ontransfer quanity must be positive" );
+	check( get_first_receiver() == SYS_BANK, "must transfer by SYS_BANK: " + SYS_BANK.to_string() );
 
     std::vector<string> memo_arr = string_split(memo, ':');
     if (memo_arr.size() == 2) {
