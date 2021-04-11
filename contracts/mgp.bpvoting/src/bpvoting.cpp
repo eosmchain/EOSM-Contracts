@@ -524,6 +524,7 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
+	check(false, "invoke disabled");
 	// _gstate2.last_vote_tally_index = 3368;
 	// _gstate2.last_vote_tally_index = 0;
 
