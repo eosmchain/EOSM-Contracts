@@ -194,6 +194,8 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 			check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
 			candidate.tallied_votes -= itr->quantity;
 			_elect(round, candidate);
+			
+			_dbc.set( candidate );
 		}
 
 		voter_t voter(itr->owner);
