@@ -432,7 +432,7 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 }
 
 void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
-	asset cand_votes = asset(0, SYS_SYMBOL);
+
 	vote_t::tbl_t votes(_self, _self.value);
 	auto idx = votes.get_index<"voteda"_n>();
 	auto last_tally_vote_id = _gstate2.last_vote_tally_index;
@@ -442,13 +442,19 @@ void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 	check( _dbc.get(last_er), "last ER not found: " + to_string(last_tally_vote.election_round));
 
 	auto initial_time = time_point();
+	auto cand_votes = asset(0, SYS_SYMBOL);
+
+	// string res = "";
 	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		if (itr->id > _gstate2.last_vote_tally_index) break;
 		if (itr->candidate != candidate) continue;
 
 		if (itr->unvoted_at == initial_time || itr->unvoted_at > last_er.ended_at) //not unvoted
 			cand_votes += itr->quantity;
+			// res += to_string(itr->id) + " : " + to_string(itr->quantity.amount /10000) + "\n";
 	}
+
+	// check(false, "votes: \n" + res);
 
 	candidate_t cand(candidate);
 	check(_dbc.get(cand), "candidate not found: " + candidate.to_string());
@@ -518,6 +524,9 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
+	// _gstate2.last_vote_tally_index = 3368;
+	// _gstate2.last_vote_tally_index = 0;
+
 	// _init();
 	// _referesh_recvd_votes();
 	//_referesh_tallied_votes();
@@ -538,7 +547,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	check( vote.owner == owner, "vote owner (" + vote.owner.to_string() + ") while unvote from: " + owner.to_string() );
 	auto elapsed = ct.sec_since_epoch() - vote.voted_at.sec_since_epoch();
 	//check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
-	check( vote.unvoted_at == time_point(), "The vote has been withdrawn.");
+	check( vote.unvoted_at == time_point(), "The vote has been unvoted.");
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
