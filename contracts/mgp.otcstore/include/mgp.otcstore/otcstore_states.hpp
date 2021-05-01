@@ -75,7 +75,7 @@ struct [[eosio::table("global2"), eosio::contract("mgp.otcstore")]] global2_t {
 };
 typedef eosio::singleton< "global2"_n, global2_t > global2_singleton;
 
-enum PaymentType: uint8_t {
+enum PayType: uint8_t {
     PAYMIN      = 0,
     BANK        = 1,
     WECAHAT     = 2,

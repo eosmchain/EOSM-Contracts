@@ -86,6 +86,7 @@ void mgp_devshare::execute(const name& issuer, uint64_t proposal_id){
     }
 
     proposal.executed = true;
+    _dbc.set( proposal );
 
 }
 

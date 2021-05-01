@@ -107,8 +107,8 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 	_dbc.get(seller);
 	seller.accepted_payments.clear();
 	for (auto& method : pay_methods) {
-		check( (PaymentType) method < PaymentType::PAYMAX, "pay method illegal: " + to_string(method) );
-		check( (PaymentType) method > PaymentType::PAYMIN, "pay method illegal: " + to_string(method) );
+		check( (PayType) method < PayType::PAYMAX, "pay method illegal: " + to_string(method) );
+		check( (PayType) method > PayType::PAYMIN, "pay method illegal: " + to_string(method) );
 
 		seller.accepted_payments.insert( method );
 	}
