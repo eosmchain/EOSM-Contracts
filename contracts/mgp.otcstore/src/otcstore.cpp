@@ -121,16 +121,18 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 }
 
 /// to_add: true: to add; false: to remove
-void setarbiter(const name& arbiter, const bool to_add) {
+void mgp_otcstore::setarbiter(const name& arbiter, const bool to_add) {
 	require_auth( _self );
 
 	auto arbiter_existing = (_gstate.otc_arbiters.count(arbiter) == 1);
 	if (to_add) {
-		check( !arbiter_existing, "arbiter already added: " + artibter.to_string() );
+		check( !arbiter_existing, "arbiter already added: " + arbiter.to_string() );
+
 		_gstate.otc_arbiters.insert( arbiter );
 	} else { //to remove
-		check( arbiter_existing, "arbiter not found: " + artibter.to_string() );
-		_gstate.otc_arbiters.remove( arbiter );
+		check( arbiter_existing, "arbiter not found: " + arbiter.to_string() );
+		
+		_gstate.otc_arbiters.erase( arbiter );
 	}
 
 }
