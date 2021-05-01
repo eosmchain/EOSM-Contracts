@@ -131,7 +131,7 @@ void mgp_otcstore::setarbiter(const name& arbiter, const bool to_add) {
 		_gstate.otc_arbiters.insert( arbiter );
 	} else { //to remove
 		check( arbiter_existing, "arbiter not found: " + arbiter.to_string() );
-		
+
 		_gstate.otc_arbiters.erase( arbiter );
 	}
 
@@ -432,13 +432,13 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 
 /**
  *
- * 款项异常，回退代付款状态
+ * 款项异常，回退到：待付款状态
  *
  */
-void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
-	require_auth( owner );
+void mgp_otcstore::reversedeal(const name& arbiter,const uint64_t& deal_id){
+	require_auth( arbiter );
 
-	check( _gstate.otc_arbiters.count(owner), "not an arbiter: " + owner.to_string() );
+	check( _gstate.otc_arbiters.count(arbiter), "not an arbiter: " + arbiter.to_string() );
 
 	deal_t::idx_t deals(_self, _self.value);
 	auto deal_itr = deals.find(deal_id);
@@ -446,9 +446,9 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 	check( !deal_itr->closed, "deal already closed: " + to_string(deal_id) );
 	check( deal_itr->taker_passed_at != time_point_sec(), "No operation required" );
 
-	auto exp_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
+	auto expired_at = time_point_sec(current_time_point().sec_since_epoch() + _gstate.withhold_expire_sec);
 	deals.modify( *deal_itr, _self, [&]( auto& row ) {
-		row.arbiter = owner;
+		row.arbiter = arbiter;
 		row.arbiter_passed = false;
 		row.arbiter_passed_at = time_point_sec(current_time_point());;
 		row.taker_passed = false;
@@ -457,7 +457,7 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 		row.maker_expired_at = time_point_sec();
 		row.maker_passed = false;
 		row.maker_passed_at = time_point_sec();
-		row.expired_at = exp_at;
+		row.expired_at = expired_at;
 		row.restart_taker_num = 0;
 		row.restart_maker_num = 0;
 	});
@@ -466,22 +466,15 @@ void mgp_otcstore::backdeal(const name& owner,const uint64_t& deal_id){
 	auto exp_itr = exp_time.find(deal_id);
 
 	if ( exp_itr != exp_time.end() ) {
-
 		exp_time.modify( *exp_itr, _self, [&]( auto& row ) {
-			row.expired_at = exp_at;
+			row.expired_at = expired_at;
 		});
-
 	} else {
-
 		exp_time.emplace( _self, [&]( auto& row ){
 			row.deal_id = deal_id;
-			row.expired_at = exp_at;
+			row.expired_at = expired_at;
    		});
-
 	}
-
-
-
 }
 
 

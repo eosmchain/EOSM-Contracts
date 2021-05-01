@@ -108,7 +108,7 @@ public:
     void deltable();
 
     [[eosio::action]]
-    void backdeal(const name& owner,const uint64_t& deal_id);
+    void reversedeal(const name& owner,const uint64_t& deal_id);
 
     [[eosio::action]]
     void restart(const name& owner,const uint64_t& deal_id,const uint8_t& user_type);
