@@ -70,6 +70,9 @@ public:
     [[eosio::action]]
     void setseller(const name& owner, const set<uint8_t>pay_methods, const string& email, const string& memo_to_buyer);
     
+    [[eosio::action]]
+    void setarbiter(const name& arbiter, const bool to_add); //true: to add; false: to remove
+    
     /**
      * seller to open sell order
      */
@@ -112,20 +115,6 @@ public:
 
     [[eosio::action]]
     void setrate(const name& owner,const asset& mgp_price,const asset& usd_exchange_rate);
-
-    using init_action       = action_wrapper<name("init"),        &mgp_otcstore::init       >;
-    using setseller_action  = action_wrapper<name("setseller"),   &mgp_otcstore::setseller  >;
-    using orderorder_action = action_wrapper<name("openorder"),   &mgp_otcstore::openorder  >;
-    using closeorder_action = action_wrapper<name("closeorder"),  &mgp_otcstore::closeorder >;
-    
-    using orderdeal_action = action_wrapper<name("opendeal"),     &mgp_otcstore::opendeal   >;
-    using closedeal_action = action_wrapper<name("closedeal"),    &mgp_otcstore::closedeal  >;
-    using passdeal_action  = action_wrapper<name("passdeal"),     &mgp_otcstore::passdeal   >;
-
-    using transfer_action = action_wrapper<name("transfer"),      &mgp_otcstore::deposit    >;
-
-    using withdraw_action = action_wrapper<name("withdraw"),      &mgp_otcstore::withdraw    >;
-    using timeoutdeal_action = action_wrapper<name("timeoutdeal"),&mgp_otcstore::timeoutdeal >;
 
 private:
     void _init();

@@ -120,6 +120,21 @@ void mgp_otcstore::setseller(const name& owner, const set<uint8_t>pay_methods, c
 
 }
 
+/// to_add: true: to add; false: to remove
+void setarbiter(const name& arbiter, const bool to_add) {
+	require_auth( _self );
+
+	auto arbiter_existing = (_gstate.otc_arbiters.count(arbiter) == 1);
+	if (to_add) {
+		check( !arbiter_existing, "arbiter already added: " + artibter.to_string() );
+		_gstate.otc_arbiters.insert( arbiter );
+	} else { //to remove
+		check( arbiter_existing, "arbiter not found: " + artibter.to_string() );
+		_gstate.otc_arbiters.remove( arbiter );
+	}
+
+}
+
 /**
  * only seller allowed to open orders
  */
@@ -301,7 +316,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 		case MAKER:
 		{
 			check( deal_itr->order_maker == owner, "no permission");
-			check( deal_itr -> maker_passed_at == time_point_sec() , "No operation required" );
+			check( deal_itr->maker_passed_at == time_point_sec() , "No operation required" );
 
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.maker_passed = pass;
@@ -319,7 +334,7 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			// check( exp_itr -> expired_at > now,"the order has timed out");
 			check( deal_itr->order_taker == owner, "no permission");
 			check( deal_itr->expired_at > now,"the order has timed out");
-			check( deal_itr -> taker_passed_at == time_point_sec() , "No operation required" );
+			check( deal_itr->taker_passed_at == time_point_sec() , "No operation required" );
 
 			deals.modify( *deal_itr, _self, [&]( auto& row ) {
 				row.taker_passed = pass;
@@ -343,7 +358,10 @@ void mgp_otcstore::passdeal(const name& owner, const uint8_t& user_type, const u
 			break;
 		}
 		default:
+		{
+			check(false, "user type not supported: " + to_string(user_type));
 			break;
+		}
 	}
 
 	int count = 0;
