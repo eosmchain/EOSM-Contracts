@@ -182,8 +182,9 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 	auto vote_idx = votes.get_index<"unvoteda"_n>();
 	auto lower_itr = vote_idx.lower_bound( uint64_t(round.started_at.sec_since_epoch()) );
 	auto upper_itr = vote_idx.upper_bound( uint64_t(round.ended_at.sec_since_epoch()) );
-	auto itr = lower_itr;
-	while (itr != upper_itr && itr != vote_idx.end()) {
+
+	string str = "";
+	for (auto itr = lower_itr; itr != upper_itr && itr != vote_idx.end(); itr++) {
 		if (step++ == _gstate.max_tally_unvote_iterate_steps) {
 			completed = false;
 			break;
@@ -191,8 +192,15 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 
 		candidate_t candidate(itr->candidate);
 		if ( _dbc.get(candidate) ){
-			check( candidate.tallied_votes >= itr->quantity, "Err: unvote exceeded" );
+			check( candidate.tallied_votes >= itr->quantity, 
+				"Err: unvote exceeded: " + candidate.owner.to_string() + 
+				", candidate.tallied_votes: " +  candidate.tallied_votes.to_string() +
+				", vote.id: " + to_string(itr->id) + 
+				", vote.quantity: " + itr->quantity.to_string() + 
+				"\n\n result: \n\n" + str);
+
 			candidate.tallied_votes -= itr->quantity;
+			str += "\ncandidate: " + candidate.owner.to_string() + ", tallied_votes: " + candidate.tallied_votes.to_string();
 			_elect(round, candidate);
 			
 			_dbc.set( candidate );
@@ -203,7 +211,7 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 
 		round.unvote_count++;
 
-		itr = vote_idx.erase( itr );
+		// itr = vote_idx.erase( itr ); BUG: cannot delete here
 	}
 
 	round.unvote_last_round_completed = completed;
@@ -235,7 +243,8 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 	// typedef std::pair< name, tuple<asset, asset, asset> > bp_info_t;
 	for (auto& item : round.elected_bps) {
 		candidate_t bp(item.first);
-		check( _dbc.get(bp), "Err: bp (" + bp.owner.to_string() + ") not found" );
+		// check( _dbc.get(bp), "Err: bp (" + bp.owner.to_string() + ") not found in round: " + to_string(round.round_id) );
+		if (!_dbc.get(bp)) continue;
 
 		auto bp_rewards = (uint64_t) (per_bp_rewards * (double) bp.self_reward_share / share_boost);
 		auto voter_rewards = per_bp_rewards - bp_rewards;
@@ -433,31 +442,52 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 
 void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 
-	vote_t::tbl_t votes(_self, _self.value);
-	auto idx = votes.get_index<"voteda"_n>();
 	auto last_tally_vote_id = _gstate2.last_vote_tally_index;
 	vote_t last_tally_vote(last_tally_vote_id);
 	check( _dbc.get(last_tally_vote), "vote not found: " + to_string(last_tally_vote_id) );
 	election_round_t last_er(last_tally_vote.election_round);
 	check( _dbc.get(last_er), "last ER not found: " + to_string(last_tally_vote.election_round));
 
+	candidate_t cand(candidate);
+	check(_dbc.get(cand), "candidate not found: " + candidate.to_string());
+	if (_gstate2.vote_reward_index == 0)
+		cand.tallied_votes.amount = 0;
+
 	auto initial_time = time_point();
 	auto cand_votes = asset(0, SYS_SYMBOL);
+	
+	check( _gstate2.vote_reward_index < _gstate2.last_vote_tally_index, "tally finished" );
 
-	// string res = "";
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
-		if (itr->id > _gstate2.last_vote_tally_index) break;
+	auto vote = vote_t(_gstate2.vote_reward_index);
+	check( _dbc.get(vote), "vote not found for id: " + to_string(_gstate2.vote_reward_index) );
+	
+	vote_t::tbl_t votes(_self, _self.value);
+	auto idx = votes.get_index<"voteda"_n>();
+	auto itr = idx.upper_bound( vote.voted_at.sec_since_epoch() );
+	
+	check( itr != idx.end(), "already traversed" );
+	// check(false, "itr->id: " + to_string(itr->id) + ", _gstate2.vote_reward_index: " + 
+	// 	to_string(_gstate2.vote_reward_index) );
+
+	int step = 0;
+	// string res = "initial id: " + to_string(_gstate2.vote_reward_index );
+	for (; itr != idx.end() && step < 300; itr++, step++) {
+		_gstate2.vote_reward_index = itr->id; //reset once done
+		// res += "," + to_string(itr->id);
+
+		if (itr->id > _gstate2.last_vote_tally_index) {
+			break; //still allow the rest to be committed onchain
+		}
+
 		if (itr->candidate != candidate) continue;
 
-		if (itr->unvoted_at == initial_time || itr->unvoted_at > last_er.ended_at) //not unvoted
+		if (itr->unvoted_at == initial_time || 
+			itr->unvoted_at > last_er.ended_at) //not unvoted
 			cand_votes += itr->quantity;
 			// res += to_string(itr->id) + " : " + to_string(itr->quantity.amount /10000) + "\n";
 	}
-
-	// check(false, "votes: \n" + res);
-
-	candidate_t cand(candidate);
-	check(_dbc.get(cand), "candidate not found: " + candidate.to_string());
+	// check( false, "res = " + res);
+	
 	cand.tallied_votes = cand_votes;
 	_dbc.set(cand);
 
@@ -524,7 +554,10 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 ACTION mgp_bpvoting::init() {
 	require_auth( _self );
 
-	check(false, "invoke disabled");
+	// check(false, "invoke disabled");
+
+	_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
+
 	// _gstate2.last_vote_tally_index = 3368;
 	// _gstate2.last_vote_tally_index = 0;
 
