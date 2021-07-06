@@ -295,16 +295,9 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		// check(false, str);
 
 		candidate_t candidate_bp(itr->candidate);
-		if (!_dbc.get(candidate_bp))
-			continue;	//unvoted
-
+		check( _dbc.get(candidate_bp), "Err: candidate_bp not found" );
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
-
-		if (candidate_bp.tallied_votes.amount == 0) {
-			_dbc.del(candidate_bp);
-			continue;
-		}
 	
 		auto elected_bp					= round.elected_bps[itr->candidate];
 		auto total_voter_rewards 		= elected_bp.allocated_voter_rewards;
@@ -312,11 +305,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		// auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / elected_bp.received_votes.amount;
 		if (candidate_bp.tallied_votes.amount == 0)
 			continue;
-
-		//add this line of protection
-		if (itr->quantity.amount >= candidate_bp.tallied_votes.amount)
-			continue;
-
+			
 		auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / candidate_bp.tallied_votes.amount;
 
 		voter.unclaimed_rewards 		+= voter_rewards;
@@ -603,26 +592,18 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
-
-	// unvote_t unvote(vote_id);
-	// check( !_dbc.get(unvote), "unvote (" + to_string(vote_id) + ") exists");
-	// unvote.owner = owner;
-	// unvote.quantity = vote.quantity;
-	// unvote.created_at = time_point_sec(current_time_point());
-	// unvote.refundable_at = time_point_sec( unvote.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
-	// _dbc.set( unvote );
-	TRANSFER( SYS_BANK, owner, vote.quantity, "unvote" )
+	unvote_t unvote(vote_id);
+	check( !_dbc.get(unvote), "unvote (" + to_string(vote_id) + ") exists");
+	unvote.owner = owner;
+	unvote.quantity = vote.quantity;
+	unvote.created_at = time_point_sec(current_time_point());
+	unvote.refundable_at = time_point_sec( unvote.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+	_dbc.set( unvote );
 
 	candidate_t candidate(vote.candidate);
 	if (_dbc.get(candidate)) { //candidate might hv been delisted by itself
 		check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
 		candidate.received_votes -= vote.quantity;
-
-		if (candidate.tallied_votes < vote.quantity)
-			candidate.tallied_votes.amount = 0;
-		else
-			candidate.tallied_votes -= vote.quantity;
-
 		_dbc.set(candidate);
 	}
 
