@@ -192,14 +192,18 @@ void mgp_bpvoting::_apply_unvotes(election_round_t& round) {
 
 		candidate_t candidate(itr->candidate);
 		if ( _dbc.get(candidate) ){
-			check( candidate.tallied_votes >= itr->quantity, 
-				"Err: unvote exceeded: " + candidate.owner.to_string() + 
-				", candidate.tallied_votes: " +  candidate.tallied_votes.to_string() +
-				", vote.id: " + to_string(itr->id) + 
-				", vote.quantity: " + itr->quantity.to_string() + 
-				"\n\n result: \n\n" + str);
+			// check( candidate.tallied_votes >= itr->quantity, 
+			// 	"Err: unvote exceeded: " + candidate.owner.to_string() + 
+			// 	", candidate.tallied_votes: " +  candidate.tallied_votes.to_string() +
+			// 	", vote.id: " + to_string(itr->id) + 
+			// 	", vote.quantity: " + itr->quantity.to_string() + 
+			// 	"\n\n result: \n\n" + str);
 
-			candidate.tallied_votes -= itr->quantity;
+			if (candidate.tallied_votes < itr->quantity)
+				candidate.tallied_votes.amount = 0;
+			else 
+				candidate.tallied_votes -= itr->quantity;
+
 			str += "\ncandidate: " + candidate.owner.to_string() + ", tallied_votes: " + candidate.tallied_votes.to_string();
 			_elect(round, candidate);
 			
@@ -291,14 +295,24 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		// check(false, str);
 
 		candidate_t candidate_bp(itr->candidate);
-		check( _dbc.get(candidate_bp), "Err: candidate_bp not found" );
+		if (!_dbc.get(candidate_bp))
+			continue;	//unvoted
+
 		voter_t voter(itr->owner);
 		check( _dbc.get(voter), "Err: voter not found" );
+
+		if (candidate_bp.tallied_votes.amount == 0) {
+			_dbc.del(candidate_bp);
+			continue;
+		}
 	
 		auto elected_bp					= round.elected_bps[itr->candidate];
 		auto total_voter_rewards 		= elected_bp.allocated_voter_rewards;
 		// auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
 		// auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / elected_bp.received_votes.amount;
+		if (candidate_bp.tallied_votes.amount == 0)
+			continue;
+
 		auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / candidate_bp.tallied_votes.amount;
 
 		voter.unclaimed_rewards 		+= voter_rewards;
@@ -585,18 +599,26 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	vote.unvoted_at = ct;
 	_dbc.set( vote );
 
-	unvote_t unvote(vote_id);
-	check( !_dbc.get(unvote), "unvote (" + to_string(vote_id) + ") exists");
-	unvote.owner = owner;
-	unvote.quantity = vote.quantity;
-	unvote.created_at = time_point_sec(current_time_point());
-	unvote.refundable_at = time_point_sec( unvote.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
-	_dbc.set( unvote );
+
+	// unvote_t unvote(vote_id);
+	// check( !_dbc.get(unvote), "unvote (" + to_string(vote_id) + ") exists");
+	// unvote.owner = owner;
+	// unvote.quantity = vote.quantity;
+	// unvote.created_at = time_point_sec(current_time_point());
+	// unvote.refundable_at = time_point_sec( unvote.created_at.sec_since_epoch() + _gstate.refund_delay_sec);
+	// _dbc.set( unvote );
+	TRANSFER( SYS_BANK, owner, vote.quantity, "unvote" )
 
 	candidate_t candidate(vote.candidate);
 	if (_dbc.get(candidate)) { //candidate might hv been delisted by itself
 		check( candidate.received_votes >= vote.quantity, "Err: candidate received_votes insufficient: " + vote.quantity.to_string() );
 		candidate.received_votes -= vote.quantity;
+
+		if (candidate.tallied_votes < vote.quantity)
+			candidate.tallied_votes.amount = 0;
+		else
+			candidate.tallied_votes -= vote.quantity;
+
 		_dbc.set(candidate);
 	}
 
