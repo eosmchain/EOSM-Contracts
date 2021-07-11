@@ -681,10 +681,10 @@ ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
  */
 ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 	auto votes = vote_t::tbl_t(_self, _self.value);
-	auto idx = votes.get_index<"unvote"_n>();
-	auto vector<uint64_t> vote_ids;
+	auto idx = votes.get_index<"unvoteda"_n>();
+	vector<uint64_t> vote_ids;
 	auto assets = asset(0, SYS_SYMBOL);
-	for (auto itr = votes.begin(); itr != idx.end(); itr++) {
+	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
 		assets += itr->quantity;
 
 		if (assets > quant)
@@ -693,18 +693,19 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 		vote_ids.push_back(itr->id);
 	}
 
-	for (auto vote_id : vote_ids) {
+	for (auto i = 0; i < vote_ids.size(); i++) {
+		auto vote_id = vote_ids[i];
 		auto vote = vote_t(vote_id);
 		if (!_dbc.get(vote)) continue;
 		
-		auto candiate = candidate_t(vote.candidate);
-		if (!_dbc.get(candiate)) continue;
-		if (candiate.received_votes > vote.quantity)
+		auto candidate = candidate_t(vote.candidate);
+		if (!_dbc.get(candidate)) continue;
+		if (candidate.received_votes > vote.quantity)
 			candidate.received_votes -= vote.quantity;
 		else 
 			candidate.received_votes.amount = 0;
 		
-		auto voter = vote_t(vote.owner);
+		auto voter = voter_t(vote.owner);
 		if (!_dbc.get(voter)) continue;
 		voter.total_staked -= vote.quantity;
 
@@ -723,7 +724,7 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
  */
 ACTION mgp_bpvoting::unstakeuser(const name& user, const asset& quant) {
 	auto candidate = candidate_t(user);
-	check( _dbc.get(candidate), "Err: candidate not found: " + candidate.to_string() );
+	check( _dbc.get(candidate), "Err: candidate not found: " + candidate.owner.to_string() );
 	if (candidate.staked_votes > quant)
 		candidate.staked_votes -= quant;
 	else

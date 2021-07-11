@@ -74,6 +74,12 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     void unvotex(const uint64_t vote_id);
 
     [[eosio::action]]
+    void unvoteuser(const name& user, const asset& quant);
+    
+    [[eosio::action]]
+    void unstakeuser(const name& user, const asset& quant);
+
+    [[eosio::action]]
     void execute(); //anyone can invoke, but usually by the platform
 
     [[eosio::action]]
