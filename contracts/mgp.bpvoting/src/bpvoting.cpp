@@ -673,6 +673,67 @@ ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
 }
 
 /**
+ * unvote a voter by its given amount
+ * 
+ * only contract ower is allowed to invoke
+ * 
+ * this is meant for data repairing purpose
+ */
+ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
+	auto votes = vote_t::tbl_t(_self, _self.value);
+	auto idx = votes.get_index<"unvote"_n>();
+	auto vector<uint64_t> vote_ids;
+	auto assets = asset(0, SYS_SYMBOL);
+	for (auto itr = votes.begin(); itr != idx.end(); itr++) {
+		assets += itr->quantity;
+
+		if (assets > quant)
+			break;
+
+		vote_ids.push_back(itr->id);
+	}
+
+	for (auto vote_id : vote_ids) {
+		auto vote = vote_t(vote_id);
+		if (!_dbc.get(vote)) continue;
+		
+		auto candiate = candidate_t(vote.candidate);
+		if (!_dbc.get(candiate)) continue;
+		if (candiate.received_votes > vote.quantity)
+			candidate.received_votes -= vote.quantity;
+		else 
+			candidate.received_votes.amount = 0;
+		
+		auto voter = vote_t(vote.owner);
+		if (!_dbc.get(voter)) continue;
+		voter.total_staked -= vote.quantity;
+
+		_dbc.set(voter);
+		_dbc.set(candidate);
+		_dbc.del(vote);
+	}
+}
+
+/**
+ * unvote a voter by its given amount
+ * 
+ * only contract ower is allowed to invoke
+ * 
+ * this is meant for data repairing purpose
+ */
+ACTION mgp_bpvoting::unstakeuser(const name& user, const asset& quant) {
+	auto candidate = candidate_t(user);
+	check( _dbc.get(candidate), "Err: candidate not found: " + candidate.to_string() );
+	if (candidate.staked_votes > quant)
+		candidate.staked_votes -= quant;
+	else
+		candidate.staked_votes.amount = 0;
+
+	_dbc.set(candidate);
+
+}
+
+/**
  * ACTION:	candidate to delist self
  */
 ACTION mgp_bpvoting::delist(const name& issuer) {
