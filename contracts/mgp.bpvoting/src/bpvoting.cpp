@@ -680,6 +680,8 @@ ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
  * this is meant for data repairing purpose
  */
 ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
+	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
+
 	auto votes = vote_t::tbl_t(_self, _self.value);
 	auto idx = votes.get_index<"unvoteda"_n>();
 	vector<uint64_t> vote_ids;
@@ -723,6 +725,8 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
  * this is meant for data repairing purpose
  */
 ACTION mgp_bpvoting::unstakeuser(const name& user, const asset& quant) {
+	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
+	
 	auto candidate = candidate_t(user);
 	check( _dbc.get(candidate), "Err: candidate not found: " + candidate.owner.to_string() );
 	if (candidate.staked_votes > quant)
