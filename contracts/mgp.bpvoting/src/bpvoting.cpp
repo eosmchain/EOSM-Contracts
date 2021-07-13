@@ -506,7 +506,7 @@ void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 	}
 	// check( false, "res = " + res);
 	
-	cand.tallied_votes = cand_votes;
+	cand.tallied_votes += cand_votes;
 	_dbc.set(cand);
 
 }
@@ -672,6 +672,17 @@ ACTION mgp_bpvoting::unvotex(const uint64_t vote_id) {
 
 }
 
+
+ACTION mgp_bpvoting::disclaim(const name& user, const asset& quant){
+	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
+
+	auto voter = voter_t(user);
+	check(_dbc.get(voter),"voter not find");
+	check(voter.unclaimed_rewards >= quant,"not enough");
+	voter.unclaimed_rewards -= quant;
+	_dbc.set(voter);
+
+}
 /**
  * unvote a voter by its given amount
  * 
@@ -683,16 +694,25 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 	auto votes = vote_t::tbl_t(_self, _self.value);
-	auto idx = votes.get_index<"unvoteda"_n>();
+	auto idx = votes.get_index<"voter"_n>();
+	auto lower_itr = idx.lower_bound(user.value);
+	auto upper_itr = idx.upper_bound(user.value);
 	vector<uint64_t> vote_ids;
+	map<uint64_t,asset> sub_vote;
 	auto assets = asset(0, SYS_SYMBOL);
-	for (auto itr = idx.begin(); itr != idx.end(); itr++) {
+	for (auto itr = lower_itr; itr != upper_itr; itr++) {
 		assets += itr->quantity;
 
-		if (assets > quant)
+		if (assets == quant){
+			vote_ids.push_back(itr->id);
 			break;
-
-		vote_ids.push_back(itr->id);
+		}else if (assets > quant){
+			sub_vote[itr->id] = itr->quantity - (assets - quant);
+			break;
+		}else 
+			vote_ids.push_back(itr->id);
+		
+		
 	}
 
 	for (auto i = 0; i < vote_ids.size(); i++) {
@@ -709,11 +729,42 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 		
 		auto voter = voter_t(vote.owner);
 		if (!_dbc.get(voter)) continue;
-		voter.total_staked -= vote.quantity;
+		if (voter.total_staked > vote.quantity)
+			voter.total_staked -= vote.quantity;
+		else 
+			voter.total_staked.amount = 0;
 
 		_dbc.set(voter);
 		_dbc.set(candidate);
 		_dbc.del(vote);
+	}
+
+
+	for (auto& item : sub_vote) {
+		
+		auto vote_id = item.first;
+		auto vote = vote_t(vote_id);
+		if (!_dbc.get(vote)) continue;
+		vote.quantity -= item.second;
+		check(vote.quantity.amount > 0,"quantity should be greater than 0");
+
+		auto candidate = candidate_t(vote.candidate);
+		if (!_dbc.get(candidate)) continue;
+		if (candidate.received_votes > item.second)
+			candidate.received_votes -= item.second;
+		else 
+			candidate.received_votes.amount = 0;
+		
+		auto voter = voter_t(vote.owner);
+		if (!_dbc.get(voter)) continue;
+		if (voter.total_staked > item.second)
+			voter.total_staked -= item.second;
+		else 
+			voter.total_staked.amount = 0;
+
+		_dbc.set(voter);
+		_dbc.set(candidate);
+		_dbc.set(vote);
 	}
 }
 
