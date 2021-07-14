@@ -18,6 +18,7 @@ using namespace eosio;
 
 static constexpr eosio::name active_perm{"active"_n};
 static constexpr eosio::name SYS_BANK{"eosio.token"_n};
+static constexpr eosio::name SYS_REFUND{"mgpbpunvotes"_n};
 static constexpr symbol   SYS_SYMBOL            = symbol(symbol_code("MGP"), 4);
 static constexpr uint32_t seconds_per_year      = 24 * 3600 * 7 * 52;
 static constexpr uint32_t seconds_per_month     = 24 * 3600 * 30;
@@ -267,6 +268,33 @@ struct CONTRACT_TBL unvote_t {
     > tbl_t;
 
     EOSLIB_SERIALIZE(unvote_t,  (id)(owner)(quantity)(created_at)(refundable_at) )
+};
+
+struct CONTRACT_TBL detail_t{
+    uint64_t id;
+    name owner;
+    name candidate;
+    asset quantity;
+    asset before_quantity;
+    asset after_quantity;
+
+
+    detail_t() {}
+    detail_t(const uint64_t& i): id(i) {}
+
+    uint64_t primary_key() const { return id; }
+    uint64_t scope()const { return 0; }
+
+    uint64_t by_owner()const         { return owner.value;                           }
+    uint64_t by_candidate()const         { return candidate.value;                           }
+
+    typedef eosio::multi_index
+    <"details"_n, detail_t ,
+        indexed_by<"owner"_n,     const_mem_fun<detail_t, uint64_t, &detail_t::by_owner> >,
+        indexed_by<"candidate"_n,    const_mem_fun<detail_t, uint64_t, &detail_t::by_candidate> >
+    > tbl_t;
+
+    EOSLIB_SERIALIZE(detail_t,  (id)(owner)(candidate)(quantity)(before_quantity)(after_quantity))
 };
 
 }

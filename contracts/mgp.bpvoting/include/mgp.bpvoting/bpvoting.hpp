@@ -103,6 +103,14 @@ class [[eosio::contract("mgp.bpvoting")]] mgp_bpvoting: public eosio::contract {
     [[eosio::action]]
     void refunds();
 
+    [[eosio::action]]
+    void recovercan(const name& owner,const uint64_t& self_reward_share,const asset& staked_votes,const asset& received_votes);
+
+    [[eosio::action]]
+    void recovervote(const uint64_t& vote_id,const name& user,const name& candidate,const asset& quantity,const time_point& voted_at);
+
+  
+
   private:
     uint64_t get_round_id(const time_point& ct);
     
