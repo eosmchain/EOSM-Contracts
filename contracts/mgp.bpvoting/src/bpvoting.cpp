@@ -281,9 +281,11 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 			completed = false;
 			break;
 		}
-
+		
 		_gstate2.vote_reward_index = itr->id;
 
+		if (itr->unvoted_at > time_point()) continue;
+		
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
@@ -342,6 +344,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	if (completed) {
 		_gstate.last_execution_round 	= round.round_id;
 		_gstate2.vote_reward_index 		= 0;
+		
 	}
 
 	_dbc.set( round );
@@ -615,10 +618,10 @@ ACTION mgp_bpvoting::init() {
 		itr3 = detail.erase(itr3);
 
 	}
-	*/
+	
 
 
-	/*
+	
 	candidate_t::tbl_t can(_self,_self.value);
 	auto itr2 = can.begin();
 	while(itr2 != can.end()){
@@ -895,6 +898,26 @@ ACTION mgp_bpvoting::execute() {
 	check( _dbc.get(execution_round), "Err: execution_round[" + to_string(execution_round.round_id) + "] not exist" );
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
+
+	if (!execution_round.unvote_last_round_completed)
+	{
+		candidate_t::tbl_t can(_self,_self.value);
+		auto itr2 = can.begin();
+		while(itr2 != can.end()){
+			can.modify( *itr2, _self, [&]( auto& row ) {
+				row.tallied_votes.amount = 0;
+			});
+
+			itr2++;
+		}
+	
+		_gstate2.last_vote_tally_index = 0;
+		execution_round.unvote_last_round_completed = true;
+		_dbc.set( execution_round  );
+
+	}
+
+
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
 	{
 		if (execution_round.round_id > 1 && execution_round.elected_bps.size() == 0) { //copy for the first time
@@ -908,11 +931,12 @@ ACTION mgp_bpvoting::execute() {
 		_tally_votes( last_execution_round, execution_round );
 	}
 
+	/*
 	if (last_execution_round.vote_tally_completed && !execution_round.unvote_last_round_completed)
 	{
 		_apply_unvotes( execution_round );
 	}
-
+		*/
 	if (last_execution_round.vote_tally_completed &&
 	    execution_round.unvote_last_round_completed &&
 		!execution_round.reward_allocation_completed )
