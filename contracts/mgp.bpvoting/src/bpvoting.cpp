@@ -256,7 +256,8 @@ void mgp_bpvoting::_allocate_rewards(election_round_t& round) {
 		item.second.allocated_voter_rewards.amount = voter_rewards;
 		
 		bp.unclaimed_rewards.amount += bp_rewards;
-		_dbc.set(bp);		
+		round.total_voteage.amount += bp_rewards;
+		_dbc.set(bp);
 	}
 
 	round.reward_allocation_completed = true;
@@ -281,17 +282,17 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 			completed = false;
 			break;
 		}
-		
+
 		_gstate2.vote_reward_index = itr->id;
 
 		if (itr->unvoted_at > time_point()) continue;
-		
+
 		if (!round.elected_bps.count(itr->candidate))
 			continue;	//skip vote with its candidate unelected
 
 		// vote_ids.push_back(itr->id);
 
-		// str += to_string(step) + ": (" + to_string(itr->id) 
+		// str += to_string(step) + ": (" + to_string(itr->id)
 		// 	+ ", " + to_string(itr->reward_round) + ") ";
 
 		// check(false, str);
@@ -307,7 +308,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 			_dbc.del(candidate_bp);
 			continue;
 		}
-	
+
 		auto elected_bp					= round.elected_bps[itr->candidate];
 		auto total_voter_rewards 		= elected_bp.allocated_voter_rewards;
 		// auto voter_rewards 				= total_voter_rewards * itr->quantity.amount / bp.received_votes.amount;
@@ -327,7 +328,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 		detail.owner = itr->owner;
 		detail.candidate = itr->candidate;
 		detail.quantity = voter_rewards;
-		
+
 
 		voter.unclaimed_rewards 		+= voter_rewards;
 
@@ -337,6 +338,8 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 
 		_dbc.set(detail);
 
+		// save actual release amount
+		round.total_voteage += voter_rewards;
    	}
 
 	// check( completed, "not completed: " + to_string(step) + "\n" + str);
@@ -344,7 +347,7 @@ void mgp_bpvoting::_execute_rewards(election_round_t& round) {
 	if (completed) {
 		_gstate.last_execution_round 	= round.round_id;
 		_gstate2.vote_reward_index 		= 0;
-		
+
 	}
 
 	_dbc.set( round );
@@ -461,7 +464,7 @@ void mgp_bpvoting::_referesh_ers(uint64_t round) {
 
 		bps.push_back(bp);
 	}
-	
+
 	auto cmp = [](bp_entry_t a, bp_entry_t b) {return a.second.total_votes > b.second.total_votes; };
 	std::sort(bps.begin(), bps.end(), cmp);
 
@@ -489,20 +492,20 @@ void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 
 	auto initial_time = time_point();
 	auto cand_votes = asset(0, SYS_SYMBOL);
-	
+
 	check( _gstate2.vote_reward_index < _gstate2.last_vote_tally_index, "tally finished" );
 
 	auto vote = vote_t(_gstate2.vote_reward_index);
 	check( _dbc.get(vote), "vote not found for id: " + to_string(_gstate2.vote_reward_index) );
-	
+
 	vote_t::tbl_t votes(_self, _self.value);
 	// auto idx = votes.get_index<"voteda"_n>();
 	// auto itr = idx.upper_bound( vote.voted_at.sec_since_epoch() );
-	
+
 	auto itr = votes.upper_bound( _gstate2.vote_reward_index);
 
 	//check( itr != idx.end(), "already traversed" );
-	// check(false, "itr->id: " + to_string(itr->id) + ", _gstate2.vote_reward_index: " + 
+	// check(false, "itr->id: " + to_string(itr->id) + ", _gstate2.vote_reward_index: " +
 	// 	to_string(_gstate2.vote_reward_index) );
 
 	int step = 0;
@@ -517,13 +520,13 @@ void mgp_bpvoting::_referesh_tallied_votes(const name& candidate) {
 
 		if (itr->candidate != candidate) continue;
 
-		if (itr->unvoted_at == initial_time || 
+		if (itr->unvoted_at == initial_time ||
 			itr->unvoted_at > last_er.ended_at) //not unvoted
 			cand_votes += itr->quantity;
 			// res += to_string(itr->id) + " : " + to_string(itr->quantity.amount /10000) + "\n";
 	}
 	// check( false, "res = " + res);
-	
+
 	cand.tallied_votes += cand_votes;
 	_dbc.set(cand);
 
@@ -573,13 +576,13 @@ ACTION mgp_bpvoting::checkvotes(const name& voter, const uint64_t& last_election
 		if (itr->voted_at > er.started_at) break;
 
 		res += to_string(itr->id) + ": " + itr->quantity.to_string() + ", ";
-		if (itr->unvoted_at.sec_since_epoch() > 0) 
+		if (itr->unvoted_at.sec_since_epoch() > 0)
 			total_unvoted += itr->quantity;
 
 		total_voted += itr->quantity;
 	}
 
-	check( false, "Res: " + res + "\n\ntotal_voted:" + total_voted.to_string() 
+	check( false, "Res: " + res + "\n\ntotal_voted:" + total_voted.to_string()
 					+ "\ntotal_unvoted: " + total_unvoted.to_string() );
 }
 
@@ -591,15 +594,17 @@ ACTION mgp_bpvoting::init() {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 
+	_gstate.last_execution_round = _gstate.last_election_round - 1;
+	//_gstate2.last_vote_tally_index = 0;
 	// check(false, "invoke disabled");
-	_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
+	//_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
 	/*
 	election_round_t execution_round(20684);
 	_dbc.get(execution_round);
 	_execute_rewards( execution_round );
 	*/
-	
-	
+
+
 
 	/*
 	voter_t::tbl_t voter(_self,_self.value);
@@ -618,10 +623,10 @@ ACTION mgp_bpvoting::init() {
 		itr3 = detail.erase(itr3);
 
 	}
-	
 
 
-	
+
+
 	candidate_t::tbl_t can(_self,_self.value);
 	auto itr2 = can.begin();
 	while(itr2 != can.end()){
@@ -657,7 +662,7 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 	//check( elapsed > _gstate.refund_delay_sec, "elapsed " + to_string(elapsed) + "sec, too early to unvote" );
 	check( vote.unvoted_at == time_point(), "The vote has been unvoted.");
 	vote.unvoted_at = ct;
-	_dbc.set( vote );
+	_dbc.del( vote );
 
 
 	// unvote_t unvote(vote_id);
@@ -676,9 +681,10 @@ ACTION mgp_bpvoting::unvote(const name& owner, const uint64_t vote_id) {
 
 		if (candidate.tallied_votes < vote.quantity)
 			candidate.tallied_votes.amount = 0;
-		else
-			candidate.tallied_votes -= vote.quantity;
+		else if (_gstate2.last_vote_tally_index > vote_id){
 
+				candidate.tallied_votes -= vote.quantity;
+			}
 		_dbc.set(candidate);
 	}
 
@@ -741,9 +747,9 @@ ACTION mgp_bpvoting::disclaim(const name& user, const asset& quant){
 }
 /**
  * unvote a voter by its given amount
- * 
+ *
  * only contract ower is allowed to invoke
- * 
+ *
  * this is meant for data repairing purpose
  */
 ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
@@ -765,29 +771,29 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 		}else if (assets > quant){
 			sub_vote[itr->id] = itr->quantity - (assets - quant);
 			break;
-		}else 
+		}else
 			vote_ids.push_back(itr->id);
-		
-		
+
+
 	}
 
 	for (auto i = 0; i < vote_ids.size(); i++) {
 		auto vote_id = vote_ids[i];
 		auto vote = vote_t(vote_id);
 		if (!_dbc.get(vote)) continue;
-		
+
 		auto candidate = candidate_t(vote.candidate);
 		if (!_dbc.get(candidate)) continue;
 		if (candidate.received_votes > vote.quantity)
 			candidate.received_votes -= vote.quantity;
-		else 
+		else
 			candidate.received_votes.amount = 0;
-		
+
 		auto voter = voter_t(vote.owner);
 		if (!_dbc.get(voter)) continue;
 		if (voter.total_staked > vote.quantity)
 			voter.total_staked -= vote.quantity;
-		else 
+		else
 			voter.total_staked.amount = 0;
 
 		_dbc.set(voter);
@@ -797,7 +803,7 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 
 
 	for (auto& item : sub_vote) {
-		
+
 		auto vote_id = item.first;
 		auto vote = vote_t(vote_id);
 		if (!_dbc.get(vote)) continue;
@@ -808,14 +814,14 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 		if (!_dbc.get(candidate)) continue;
 		if (candidate.received_votes > item.second)
 			candidate.received_votes -= item.second;
-		else 
+		else
 			candidate.received_votes.amount = 0;
-		
+
 		auto voter = voter_t(vote.owner);
 		if (!_dbc.get(voter)) continue;
 		if (voter.total_staked > item.second)
 			voter.total_staked -= item.second;
-		else 
+		else
 			voter.total_staked.amount = 0;
 
 		_dbc.set(voter);
@@ -826,14 +832,14 @@ ACTION mgp_bpvoting::unvoteuser(const name& user, const asset& quant) {
 
 /**
  * unvote a voter by its given amount
- * 
+ *
  * only contract ower is allowed to invoke
- * 
+ *
  * this is meant for data repairing purpose
  */
 ACTION mgp_bpvoting::unstakeuser(const name& user, const asset& quant) {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
-	
+
 	auto candidate = candidate_t(user);
 	check( _dbc.get(candidate), "Err: candidate not found: " + candidate.owner.to_string() );
 	if (candidate.staked_votes > quant)
@@ -864,7 +870,7 @@ ACTION mgp_bpvoting::delist(const name& issuer) {
 	} else {
 		election_round_t curr_execution_round(last_execution_round.next_round_id);
 		check( _dbc.get(curr_execution_round), "Err: curr_execution_round[" + to_string(last_execution_round.next_round_id) + "] not exist" );
-		
+
 		auto bps = curr_execution_round.elected_bps;
 		check( bps.find(issuer) == bps.end(), "issuer is still a BP: " + issuer.to_string());
 	}
@@ -899,6 +905,9 @@ ACTION mgp_bpvoting::execute() {
 	check( execution_round.next_round_id > 0, "execution_round[" + to_string(execution_round.round_id) + "] not ended yet" );
 
 
+	execution_round.unvote_last_round_completed = true;
+
+	/*
 	if (!execution_round.unvote_last_round_completed)
 	{
 		candidate_t::tbl_t can(_self,_self.value);
@@ -910,13 +919,14 @@ ACTION mgp_bpvoting::execute() {
 
 			itr2++;
 		}
-	
+
 		_gstate2.last_vote_tally_index = 0;
 		execution_round.unvote_last_round_completed = true;
 		_dbc.set( execution_round  );
 
 	}
 
+	*/
 
 	if (!last_execution_round.vote_tally_completed && last_execution_round.round_id > 0)
 	{
@@ -995,6 +1005,7 @@ ACTION mgp_bpvoting::claimrewards(const name& issuer, const bool is_voter) {
  */
 ACTION mgp_bpvoting::refunds(){
 
+	/*
 	auto now = time_point_sec(current_time_point());
 
 	unvote_t::tbl_t unvotes(_self, _self.value);
@@ -1012,6 +1023,36 @@ ACTION mgp_bpvoting::refunds(){
 	}
 
 	check( processed, "None entry to refund" );
+	*/
+
+
+	vote_t::tbl_t votes(_self, _self.value);
+	auto upper_itr = votes.upper_bound( _gstate2.vote_reward_index );
+	bool completed = true;
+	int step = 0;
+	for (auto itr = upper_itr; itr != votes.end(); ) {
+		if (step++ == _gstate.max_tally_vote_iterate_steps) {
+			completed = false;
+			break;
+		}
+		int vote_id = itr-> id;
+
+		_gstate2.vote_reward_index = itr->id;
+
+		if (itr->unvoted_at > time_point()){
+			itr = votes.erase(itr);
+		}else {
+			itr++;
+		}
+
+		if (vote_id == _gstate2.last_vote_tally_index){
+
+			_gstate2.vote_reward_index = 0;
+			break;
+		}
+	}
+
+
 }
 
 ACTION mgp_bpvoting::recovervote(const uint64_t& vote_id,const name& user,const name& candidate,const asset& quantity,const time_point& voted_at){
@@ -1048,7 +1089,7 @@ ACTION mgp_bpvoting::recovercan(const name& owner,const uint64_t& self_reward_sh
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 	candidate_t candidate(owner);
-	
+
 	if(!_dbc.get(candidate)){
 		candidate.self_reward_share = self_reward_share;
 		candidate.staked_votes = staked_votes;
@@ -1065,6 +1106,7 @@ ACTION mgp_bpvoting::recovercan(const name& owner,const uint64_t& self_reward_sh
 
 	_dbc.set(candidate);
 }
+
 /*
  * ACTION:	refresh tallied votes for data correction
  */
