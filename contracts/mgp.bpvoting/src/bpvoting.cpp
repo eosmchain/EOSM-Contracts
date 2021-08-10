@@ -594,7 +594,7 @@ ACTION mgp_bpvoting::init() {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 
-	_gstate.last_execution_round = _gstate.last_election_round - 1;
+	_gstate.last_execution_round = 254;
 	//_gstate2.last_vote_tally_index = 0;
 	// check(false, "invoke disabled");
 	//_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
