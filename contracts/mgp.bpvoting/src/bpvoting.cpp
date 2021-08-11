@@ -594,8 +594,8 @@ ACTION mgp_bpvoting::init() {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 
-	_gstate.last_execution_round = 254;
-	//_gstate2.last_vote_tally_index = 0;
+	// _gstate.last_execution_round = 254;
+	_gstate2.last_vote_tally_index = 0;
 	// check(false, "invoke disabled");
 	//_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
 	/*
@@ -743,6 +743,18 @@ ACTION mgp_bpvoting::disclaim(const name& user, const asset& quant){
 	check(voter.unclaimed_rewards >= quant,"not enough");
 	voter.unclaimed_rewards -= quant;
 	_dbc.set(voter);
+
+}
+
+
+ACTION mgp_bpvoting::disclaimcan(const name& user, const asset& quant){
+	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
+
+	auto candidate = candidate_t(user);
+	check(_dbc.get(candidate),"candidate not find");
+	check(candidate.unclaimed_rewards >= quant,"not enough");
+	candidate.unclaimed_rewards -= quant;
+	_dbc.set(candidate);
 
 }
 /**
