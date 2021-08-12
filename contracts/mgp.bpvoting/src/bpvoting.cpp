@@ -594,10 +594,10 @@ ACTION mgp_bpvoting::init() {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
 
-	// _gstate.last_execution_round = 254;
-	_gstate2.last_vote_tally_index = 0;
+	//_gstate.last_execution_round = 254;
+	//_gstate2.last_vote_tally_index = 0;
 	// check(false, "invoke disabled");
-	//_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
+	_gstate2.vote_reward_index = 0; //finished refreshing tallied votes
 	/*
 	election_round_t execution_round(20684);
 	_dbc.get(execution_round);
@@ -1125,7 +1125,21 @@ ACTION mgp_bpvoting::recovercan(const name& owner,const uint64_t& self_reward_sh
 ACTION mgp_bpvoting::refreshtally(const name& candidate) {
 	check( has_auth(_self) || has_auth("mgpmgphehehe"_n), "permission denied!" );
 
-	_referesh_tallied_votes(candidate);
+	// _referesh_tallied_votes(candidate);
+
+	candidate_t::tbl_t can(_self,_self.value);
+	auto itr2 = can.begin();
+	while(itr2 != can.end()){
+		can.modify( *itr2, _self, [&]( auto& row ) {
+			row.tallied_votes.amount = 0;
+		});
+
+		itr2++;
+	}
+
+	_gstate2.last_vote_tally_index = 0;
+
+
 }
 
 }  //end of namespace:: mgp_bpvoting
